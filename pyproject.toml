@@ -3,4 +3,14 @@ name = "dy"
 version = "0.1.0"
 description = "Add your description here"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "alembic",
+    "asyncmy",
+    "cloudinary",
+    "fastapi",
+    "pydantic-settings",
+    "python-dotenv",
+    "python-telegram-bot",
+    "sqlalchemy",
+    "uvicorn[standard]",
+]
