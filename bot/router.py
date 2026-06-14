@@ -28,11 +28,21 @@ async def init_bot():
             application.add_handler(handler)
 
         if settings.mini_app_url and settings.mini_app_url != "not_yet_there":
-            webhook_url = f"{settings.mini_app_url.rstrip('/')}/telegram"
+            base_url = settings.mini_app_url.rstrip("/")
+            webhook_url = f"{base_url}/telegram"
             await application.bot.set_webhook(url=webhook_url)
             logger.info("Webhook set to %s", webhook_url)
+
+            await application.bot.set_chat_menu_button(
+                menu_button={
+                    "type": "web_app",
+                    "text": "Open App",
+                    "web_app": {"url": f"{base_url}/app"},
+                }
+            )
+            logger.info("Mini app menu button set")
         else:
-            logger.info("Mini app URL not set — skipping webhook registration")
+            logger.info("Mini app URL not set — skipping webhook and menu button registration")
 
         logger.info("Telegram bot initialized")
     except Exception as e:

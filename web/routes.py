@@ -37,7 +37,7 @@ REGISTER_HTML = """\
 </head>
 <body>
   <h2>Create Account</h2>
-  <form id="registerForm">
+  <form id="registerForm" onsubmit="return false">
     <label>Name <input name="name" required></label>
     <label>Surname <input name="surname" required></label>
     <label>Phone (+237...) <input name="phone" placeholder="+237XXXXXXXXX" required></label>
@@ -73,46 +73,51 @@ REGISTER_HTML = """\
     <button type="submit">Register</button>
   </form>
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
+    (function() {
+      const tg = window.Telegram && window.Telegram.WebApp;
+      if (tg) tg.ready();
 
-    document.getElementById('registerForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const errorEl = document.getElementById('errorMsg');
-      errorEl.style.display = 'none';
+      const form = document.getElementById('registerForm');
+      if (!form) return;
 
-      const form = e.target;
-      const data = {
-        name: form.name.value,
-        surname: form.surname.value,
-        phone: form.phone.value,
-        telegram_id: String(tg.initDataUnsafe.user.id),
-        gender: form.gender.value,
-        department: form.department.value,
-        group: form.group.value || null,
-        school: form.school.value,
-        dob: form.dob.value,
-      };
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById('errorMsg');
+        errorEl.style.display = 'none';
 
-      try {
-        const res = await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
-        });
-        const result = await res.json();
-        if (res.ok) {
-          tg.showAlert('Account created successfully!');
-          tg.close();
-        } else {
-          errorEl.textContent = result.detail || 'Registration failed';
+        const data = {
+          name: form.name.value,
+          surname: form.surname.value,
+          phone: form.phone.value,
+          telegram_id: tg ? String(tg.initDataUnsafe.user.id) : '0',
+          gender: form.gender.value,
+          department: form.department.value,
+          group: form.group.value || null,
+          school: form.school.value,
+          dob: form.dob.value,
+        };
+
+        try {
+          const res = await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+          const result = await res.json();
+          if (res.ok) {
+            if (tg) { tg.showAlert('Account created successfully!'); tg.close(); }
+            else { alert('Account created successfully!'); }
+          } else {
+            errorEl.textContent = result.detail || 'Registration failed';
+            errorEl.style.display = 'block';
+          }
+        } catch (err) {
+          errorEl.textContent = 'Network error. Please try again.';
           errorEl.style.display = 'block';
         }
-      } catch (err) {
-        errorEl.textContent = 'Network error. Please try again.';
-        errorEl.style.display = 'block';
-      }
-    });
+        return false;
+      });
+    })();
   </script>
 </body>
 </html>"""

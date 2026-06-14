@@ -170,10 +170,14 @@ async def task_info(update: Update, _context):
 
 async def help_info(update: Update, _context):
     keyboard = [
-        [InlineKeyboardButton("👤 User Info", callback_data="info_user")],
-        [InlineKeyboardButton("📋 Tasks", callback_data="info_tasks")],
-        [InlineKeyboardButton("✅ Attendance", callback_data="info_attendance")],
-        [InlineKeyboardButton("📝 Notes", callback_data="info_notes")],
+        [
+            InlineKeyboardButton("👤 User Info", callback_data="info_user"),
+            InlineKeyboardButton("📋 Tasks", callback_data="info_tasks"),
+        ],
+        [
+            InlineKeyboardButton("✅ Attendance", callback_data="info_attendance"),
+            InlineKeyboardButton("📝 Notes", callback_data="info_notes"),
+        ],
         [InlineKeyboardButton("📢 Announcements", callback_data="info_announcements")],
     ]
     await update.message.reply_text(
