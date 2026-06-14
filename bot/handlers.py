@@ -1,8 +1,8 @@
 import logging
 
 from sqlalchemy import func, select
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
-from telegram.ext import CallbackQueryHandler, CommandHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, WebAppInfo
+from telegram.ext import CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from config import settings
 
@@ -231,6 +231,60 @@ async def info_callback(update: Update, context):
         await query.message.reply_text("An error occurred.")
 
 
+async def link_cmd(update: Update, _context):
+    button = KeyboardButton("Share Contact", request_contact=True)
+    markup = ReplyKeyboardMarkup([[button]], one_time_keyboard=True, resize_keyboard=True)
+    await update.message.reply_text(
+        "Share your phone number to link your Telegram account:",
+        reply_markup=markup,
+    )
+
+
+async def handle_contact(update: Update, _context):
+    contact = update.message.contact
+    if not contact:
+        return
+    phone = contact.phone_number
+    telegram_id = str(contact.user_id)
+
+    from db.database import async_session
+    from models.models import User
+
+    async with async_session() as session:
+        async with session.begin():
+            user = (
+                await session.execute(select(User).where(User.phone == phone))
+            ).scalar_one_or_none()
+
+            if not user:
+                await update.message.reply_text(
+                    "No account found with this phone number.",
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+                return
+
+            if user.telegram_id and user.telegram_id != telegram_id:
+                await update.message.reply_text(
+                    "This phone is linked to a different account.",
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+                return
+
+            if user.telegram_id == telegram_id:
+                await update.message.reply_text(
+                    "Already linked!",
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+                return
+
+            user.telegram_id = telegram_id
+
+    await update.message.reply_text(
+        f"Linked! Welcome {user.name} {user.surname}.",
+        reply_markup=ReplyKeyboardRemove(),
+    )
+
+
 handlers = [
     CommandHandler("info", info),
     CommandHandler("helpInfo", help_info),
@@ -241,5 +295,7 @@ handlers = [
     CommandHandler("taskinfo", task_info),
     CommandHandler("dashboard", dashboard),
     CommandHandler("dash", dashboard),
+    CommandHandler("link", link_cmd),
+    MessageHandler(filters.CONTACT, handle_contact),
     CallbackQueryHandler(info_callback, pattern="^info_"),
 ]

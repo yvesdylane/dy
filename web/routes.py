@@ -70,37 +70,90 @@ APP_HTML = """\
   </form>
 </div>
 
-<div id="adminView" class="hidden max-w-2xl mx-auto p-4 space-y-5">
-  <div class="flex items-center gap-3 pb-2 border-b border-zinc-200 dark:border-zinc-800">
-    <div class="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center text-white font-bold text-lg">D</div>
-    <div><h1 class="text-xl font-bold">Admin Dashboard</h1><p id="adminName" class="text-sm text-zinc-500 dark:text-zinc-400"></p></div>
+  <div id="adminView" class="hidden flex min-h-screen">
+    <div class="hidden md:flex md:flex-col md:w-56 md:bg-zinc-50 md:dark:bg-zinc-900 md:border-r md:border-zinc-200 md:dark:border-zinc-800 md:fixed md:h-full">
+      <div class="p-4 border-b border-zinc-200 dark:border-zinc-800">
+        <h2 class="font-bold text-brand-600 dark:text-brand-400">dy</h2>
+        <p id="adminNameSide" class="text-xs text-zinc-500 mt-1"></p>
+      </div>
+      <nav class="flex-1 p-2 space-y-1">
+        <button data-section="stats" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950">📊 Stats</button>
+        <button data-section="users" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950">👥 Users</button>
+        <button data-section="codes" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950">🔑 Codes</button>
+      </nav>
+    </div>
+    <div class="flex-1 md:ml-56 min-w-0">
+      <div class="md:hidden flex items-center gap-2 p-4 border-b border-zinc-200 dark:border-zinc-800">
+        <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm">D</div>
+        <div><h1 class="font-bold text-sm">Dashboard</h1><p id="adminNameMobile" class="text-xs text-zinc-500"></p></div>
+      </div>
+      <div class="p-4 pb-24 md:pb-4">
+        <div id="sectionStats">
+          <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div class="p-4 rounded-xl bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-900">
+              <p class="text-xs uppercase tracking-wider text-brand-700 dark:text-brand-400 font-medium">Total Users</p>
+              <p id="statUsers" class="text-3xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
+            </div>
+            <div class="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+              <p class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-medium">Interns</p>
+              <p id="statInterns" class="text-3xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
+            </div>
+            <div class="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+              <p class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-medium">Instructors</p>
+              <p id="statInstructors" class="text-3xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
+            </div>
+            <div class="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+              <p class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-medium">Tasks</p>
+              <p id="statTasks" class="text-3xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
+            </div>
+            <div class="p-4 rounded-xl bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-900">
+              <p class="text-xs uppercase tracking-wider text-green-700 dark:text-green-400 font-medium">Total Fees</p>
+              <p id="statTotalFees" class="text-2xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
+            </div>
+            <div class="p-4 rounded-xl bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-900">
+              <p class="text-xs uppercase tracking-wider text-green-700 dark:text-green-400 font-medium">Paid</p>
+              <p id="statPaid" class="text-2xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
+            </div>
+          </div>
+        </div>
+      <div id="sectionUsers" class="hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold">Users</h3>
+          <button id="addUserBtn" class="px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">+ Add</button>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <input id="userSearch" placeholder="Search name/phone..."
+            class="w-full sm:flex-1 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs outline-none focus:ring-2 focus:ring-brand-500">
+          <select id="userDeptFilter"
+            class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="">All depts</option>
+            <option value="ISM">ISM</option><option value="SWE">SWE</option><option value="CGWD">CGWD</option>
+            <option value="EDM">EDM</option><option value="CNWS">CNWS</option><option value="NS">NS</option>
+          </select>
+          <select id="userRoleFilter"
+            class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs outline-none focus:ring-2 focus:ring-brand-500">
+            <option value="">All roles</option>
+            <option value="admin">Admin</option><option value="instructor">Instructor</option><option value="intern">Intern</option>
+          </select>
+        </div>
+        <div id="usersList" class="space-y-2"></div>
+      </div>
+      <div id="sectionCodes" class="hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold">Codes</h3>
+          <button id="addCodeBtn" class="px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">+ Generate</button>
+        </div>
+        <div id="codesList" class="space-y-2"></div>
+      </div>
+    </div>
   </div>
-  <div id="statsGrid" class="grid grid-cols-2 gap-3">
-    <div class="p-4 rounded-xl bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-900">
-      <p class="text-xs uppercase tracking-wider text-brand-700 dark:text-brand-400 font-medium">Total Users</p>
-      <p id="statUsers" class="text-3xl font-bold mt-1">--</p>
-    </div>
-    <div class="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-      <p class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-medium">Interns</p>
-      <p id="statInterns" class="text-3xl font-bold mt-1">--</p>
-    </div>
-    <div class="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-      <p class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-medium">Instructors</p>
-      <p id="statInstructors" class="text-3xl font-bold mt-1">--</p>
-    </div>
-    <div class="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-      <p class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-medium">Tasks</p>
-      <p id="statTasks" class="text-3xl font-bold mt-1">--</p>
-    </div>
+  <div id="modalOverlay" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <div id="modalContent" class="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5 space-y-4"></div>
   </div>
-  <div class="space-y-2">
-    <h3 class="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Quick Actions</h3>
-    <div class="grid grid-cols-2 gap-2">
-      <button onclick="tg?.HapticFeedback?.impactOccurred('light')"
-        class="py-3 px-4 rounded-xl bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium transition-colors">+ Create Code</button>
-      <button onclick="tg?.HapticFeedback?.impactOccurred('light')"
-        class="py-3 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 text-sm font-medium transition-colors hover:bg-zinc-100 dark:hover:bg-zinc-800">View Users</button>
-    </div>
+  <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex safe-area-bottom">
+    <button data-section="stats" class="nav-btn flex-1 py-3 text-center text-xs font-medium">📊 Stats</button>
+    <button data-section="users" class="nav-btn flex-1 py-3 text-center text-xs font-medium">👥 Users</button>
+    <button data-section="codes" class="nav-btn flex-1 py-3 text-center text-xs font-medium">🔑 Codes</button>
   </div>
 </div>
 
@@ -108,10 +161,6 @@ APP_HTML = """\
   <div class="text-5xl mt-16 mb-4">👋</div>
   <h2 class="text-xl font-bold" id="welcomeName"></h2>
   <p class="text-sm text-zinc-500 dark:text-zinc-400">You're registered. Use bot commands like /info to view your data.</p>
-</div>
-
-<div id="debugView" class="fixed bottom-0 left-0 right-0 p-2 bg-zinc-900/80 text-zinc-300 text-xs font-mono leading-relaxed hidden">
-  <p id="debugInfo"></p>
 </div>
 
 <script>
@@ -127,89 +176,277 @@ APP_HTML = """\
       document.getElementById(v).classList.toggle('hidden', v !== id));
   };
 
-  const dbg = (msg) => {
-    const el = document.getElementById('debugInfo');
-    if (el) { el.insertAdjacentHTML('beforeend', msg.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '<br>'); el.parentElement.classList.remove('hidden'); }
-    console.log(msg);
-  };
-
   let tid = null;
 
   const params = new URLSearchParams(window.location.search);
   const urlTid = params.get('telegram_id');
   if (urlTid) {
     tid = urlTid;
-    dbg('TID from URL param: ' + tid);
-  } else if (tg) {
-    try {
-      dbg('=== tg dump ===');
-      dbg('tg type: ' + typeof tg);
-      dbg('tg constructor: ' + (tg.constructor ? tg.constructor.name : 'none'));
-      const keys = Object.getOwnPropertyNames(tg).concat(Object.keys(tg));
-      dbg('tg all keys: ' + [...new Set(keys)].join(', '));
+  } else if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+    tid = String(tg.initDataUnsafe.user.id);
+  }
 
-      const iu = tg.initDataUnsafe;
-      dbg('initDataUnsafe exists: ' + !!iu);
-      if (iu) {
-        dbg('initDataUnsafe keys: ' + Object.keys(iu).join(', '));
-        dbg('initDataUnsafe json: ' + JSON.stringify(iu));
-        if (iu.user) {
-          tid = String(iu.user.id);
-          dbg('*** TID from WebApp user: ' + tid + ' ***');
-        } else {
-          dbg('initDataUnsafe.user is: ' + typeof iu.user + ' / ' + JSON.stringify(iu.user));
-        }
-      }
-      dbg('initData exists: ' + !!tg.initData);
-      if (tg.initData) dbg('initData (first 300): ' + tg.initData.slice(0, 300));
+  const nameEl = (id) => document.getElementById(id);
+  const esc = (s) => { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
 
-      const h = window.location.hash;
-      dbg('location.hash: ' + (h || '(empty)'));
-      dbg('location.search: ' + (window.location.search || '(empty)'));
-      dbg('=== end tg dump ===');
-    } catch(e) {
-      dbg('Error reading tg: ' + e.message);
+  function showSection(name) {
+    ['sectionStats','sectionUsers','sectionCodes'].forEach(s =>
+      nameEl(s).classList.toggle('hidden', s !== 'section' + name[0].toUpperCase() + name.slice(1)));
+  }
+
+  async function loadStats() {
+    const s = await (await fetch('/api/admin/stats?telegram_id=' + encodeURIComponent(tid))).json();
+    if (s.ok) {
+      nameEl('statUsers').textContent = s.total_users;
+      nameEl('statInterns').textContent = s.interns;
+      nameEl('statInstructors').textContent = s.instructors;
+      nameEl('statTasks').textContent = s.tasks;
+      nameEl('statTotalFees').textContent = Number(s.total_fees).toLocaleString();
+      nameEl('statPaid').textContent = Number(s.total_paid).toLocaleString() + ' / ' + Number(s.total_fees).toLocaleString();
     }
-  } else {
-    dbg('tg object not available');
-    dbg('window.Telegram: ' + typeof window.Telegram);
-    dbg('window.Telegram?.WebApp: ' + typeof (window.Telegram && window.Telegram.WebApp));
+  }
+
+  let allUsers = [];
+
+  function filterUsers() {
+    const q = nameEl('userSearch').value.toLowerCase();
+    const dept = nameEl('userDeptFilter').value;
+    const role = nameEl('userRoleFilter').value;
+    return allUsers.filter(u =>
+      (u.name.toLowerCase().includes(q) || u.surname.toLowerCase().includes(q) || u.phone.includes(q)) &&
+      (!dept || u.department === dept) &&
+      (!role || u.role === role)
+    );
+  }
+
+  function renderUsers() {
+    const list = nameEl('usersList');
+    const filtered = filterUsers();
+    list.innerHTML = filtered.map(u => `
+      <div class="user-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="${u.id}">
+        <div class="min-w-0 flex-1">
+          <p class="font-medium text-sm truncate">${u.name} ${u.surname}</p>
+          <p class="text-xs text-zinc-500">${u.department} · ${u.role} · ${u.phone} · ${u.linked ? 'linked' : 'pending'}</p>
+        </div>
+        <span class="text-xs px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300' : u.role === 'instructor' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'}">${u.role}</span>
+      </div>
+    `).join('');
+  }
+
+  async function loadUsers() {
+    const r = await (await fetch('/api/admin/users?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    allUsers = r.users;
+    renderUsers();
+  }
+
+  async function loadCodes() {
+    const r = await (await fetch('/api/admin/codes?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('codesList');
+    list.innerHTML = r.codes.map(c => `
+      <div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between">
+        <div>
+          <p class="font-mono text-sm">${c.code}</p>
+          <p class="text-xs text-zinc-500">${c.is_used ? 'Used' : 'Available'} · ${c.role}</p>
+        </div>
+        <button class="del-code-btn ml-2 p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg text-xs" data-id="${c.id}">✕</button>
+      </div>
+    `).join('');
   }
 
   async function checkAndShow(idToCheck) {
     try {
-      dbg('Fetching /api/me for: ' + idToCheck);
-      const res = await fetch('/api/me?telegram_id=' + encodeURIComponent(idToCheck));
-      const me = await res.json();
-      dbg('API /me: ' + JSON.stringify(me));
-      if (!me.exists) { dbg('User not found'); show('registerView'); return; }
+      const me = await (await fetch('/api/me?telegram_id=' + encodeURIComponent(idToCheck))).json();
+      if (!me.exists) { show('registerView'); return; }
       if (me.role === 'admin') {
-        dbg('Admin user – showing dashboard');
-        document.getElementById('adminName').textContent = me.name + ' ' + me.surname;
+        const fullName = me.name + ' ' + me.surname;
+        nameEl('adminNameSide').textContent = fullName;
+        nameEl('adminNameMobile').textContent = fullName;
         show('adminView');
-        const sRes = await fetch('/api/admin/stats?telegram_id=' + encodeURIComponent(idToCheck));
-        const stats = await sRes.json();
-        if (stats.ok) {
-          document.getElementById('statUsers').textContent = stats.total_users;
-          document.getElementById('statInterns').textContent = stats.interns;
-          document.getElementById('statInstructors').textContent = stats.instructors;
-          document.getElementById('statTasks').textContent = stats.tasks;
-          dbg('Stats loaded: ' + JSON.stringify(stats));
-        }
+        await loadStats();
+        showSection('stats');
+
+        document.querySelectorAll('.nav-btn').forEach(b =>
+          b.addEventListener('click', async () => {
+            const section = b.dataset.section;
+            showSection(section);
+            if (section === 'users') await loadUsers();
+            if (section === 'codes') await loadCodes();
+          })
+        );
+
+        nameEl('addUserBtn').addEventListener('click', () => showUserForm());
+        nameEl('addCodeBtn').addEventListener('click', () => showCodeForm());
+
+        nameEl('userSearch').addEventListener('input', renderUsers);
+        nameEl('userDeptFilter').addEventListener('change', renderUsers);
+        nameEl('userRoleFilter').addEventListener('change', renderUsers);
+
+        nameEl('usersList').addEventListener('click', (e) => {
+          const row = e.target.closest('.user-row');
+          if (row) {
+            const u = allUsers.find(x => x.id == row.dataset.id);
+            if (u) showUserDetail(u);
+          }
+        });
+
+        document.addEventListener('click', async (e) => {
+          const d = e.target.closest('.del-code-btn');
+          if (d && confirm('Delete this code?')) {
+            await fetch('/api/admin/codes/' + d.dataset.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+            await loadCodes();
+          }
+        });
       } else {
-        dbg('Non-admin user – showing welcome');
-        document.getElementById('welcomeName').textContent = 'Welcome back, ' + me.name + '!';
+        nameEl('welcomeName').textContent = 'Welcome back, ' + me.name + '!';
         show('welcomeView');
       }
     } catch(e) {
-      dbg('Error: ' + e.message);
       show('registerView');
     }
   }
 
+  function showUserForm(data) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const isEdit = !!data;
+    c.innerHTML = `
+      <h3 class="font-bold text-lg">${isEdit ? 'Edit' : 'Add'} User</h3>
+      <form id="userForm" class="space-y-3" onsubmit="return false">
+        <input name="name" placeholder="Name" value="${isEdit ? esc(data.name) : ''}" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        <input name="surname" placeholder="Surname" value="${isEdit ? esc(data.surname) : ''}" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        <input name="phone" placeholder="Phone (+237XXXXXXXXX)" value="${isEdit ? esc(data.phone) : ''}" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        <select name="gender" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+          <option value="">Gender</option>
+          <option value="male" ${isEdit && data.gender === 'male' ? 'selected' : ''}>Male</option>
+          <option value="female" ${isEdit && data.gender === 'female' ? 'selected' : ''}>Female</option>
+        </select>
+        <select name="department" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+          <option value="">Department</option>
+          ${['ISM','SWE','CGWD','EDM','CNWS','NS'].map(d =>
+            `<option value="${d}" ${isEdit && data.department === d ? 'selected' : ''}>${d}</option>`).join('')}
+        </select>
+        <select name="group"
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+          <option value="">Group</option>
+          <option value="A" ${isEdit && data.group === 'A' ? 'selected' : ''}>A</option>
+          <option value="B" ${isEdit && data.group === 'B' ? 'selected' : ''}>B</option>
+        </select>
+        <input name="school" placeholder="School" value="${isEdit ? esc(data.school) : ''}" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        <input name="dob" type="date" value="${isEdit ? data.dob : ''}" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        ${isEdit ? '<select name="role" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500"><option value="">Role</option><option value="intern" ' + (data.role === 'intern' ? 'selected' : '') + '>Intern</option><option value="instructor" ' + (data.role === 'instructor' ? 'selected' : '') + '>Instructor</option><option value="admin" ' + (data.role === 'admin' ? 'selected' : '') + '>Admin</option></select>' : ''}
+        ${isEdit ? '<input name="total_fees" type="number" step="0.01" placeholder="Total fees" value="' + (data.total_fees || 0) + '" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' : ''}
+        ${isEdit ? '<input name="fees_paid" type="number" step="0.01" placeholder="Fees paid" value="' + (data.fees_paid || 0) + '" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' : ''}
+        <p id="userFormErr" class="text-red-500 text-xs hidden"></p>
+        <div class="flex gap-2">
+          <button type="button" id="modalCancel"
+            class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>
+          <button type="submit"
+            class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">${isEdit ? 'Save' : 'Create'}</button>
+        </div>
+      </form>`;
+    m.classList.remove('hidden');
+
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+
+    nameEl('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const g = (n) => f.elements[n];
+      const body = { name: g('name').value, surname: g('surname').value, phone: g('phone').value,
+        gender: g('gender').value, department: g('department').value, group: g('group').value || null,
+        school: g('school').value, dob: g('dob').value };
+      if (isEdit) {
+        if (g('role')) body.role = g('role').value;
+        if (g('total_fees')) body.total_fees = parseFloat(g('total_fees').value) || 0;
+        if (g('fees_paid')) body.fees_paid = parseFloat(g('fees_paid').value) || 0;
+      }
+      const url = isEdit
+        ? '/api/admin/users/' + data.id + '?telegram_id=' + encodeURIComponent(tid)
+        : '/api/admin/users?telegram_id=' + encodeURIComponent(tid);
+      const method = isEdit ? 'PUT' : 'POST';
+      const r = await (await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      if (r.ok) { m.classList.add('hidden'); await loadUsers(); }
+      else { const err = nameEl('userFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); }
+    });
+  }
+
+  function showUserDetail(u) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    c.innerHTML = `
+      <h3 class="font-bold text-lg">${esc(u.name)} ${esc(u.surname)}</h3>
+      <div class="space-y-2 text-sm">
+        <div class="grid grid-cols-2 gap-2">
+          <div><span class="text-zinc-500">Role</span><p class="font-medium">${u.role}</p></div>
+          <div><span class="text-zinc-500">Department</span><p class="font-medium">${u.department}</p></div>
+          <div><span class="text-zinc-500">Gender</span><p class="font-medium">${u.gender}</p></div>
+          <div><span class="text-zinc-500">Group</span><p class="font-medium">${u.group || '—'}</p></div>
+          <div><span class="text-zinc-500">Phone</span><p class="font-medium">${esc(u.phone)}</p></div>
+          <div><span class="text-zinc-500">School</span><p class="font-medium">${esc(u.school)}</p></div>
+          <div><span class="text-zinc-500">DOB</span><p class="font-medium">${u.dob}</p></div>
+          <div><span class="text-zinc-500">Status</span><p class="font-medium">${u.linked ? 'Linked' : 'Pending'}</p></div>
+          <div><span class="text-zinc-500">Total Fees</span><p class="font-medium">${Number(u.total_fees || 0).toLocaleString()}</p></div>
+          <div><span class="text-zinc-500">Paid</span><p class="font-medium" class="${u.fees_paid >= u.total_fees ? 'text-green-600 dark:text-green-400' : 'text-brand-600 dark:text-brand-400'}">${Number(u.fees_paid || 0).toLocaleString()}</p></div>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="button" id="modalEditUser" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Edit</button>
+        <button type="button" id="modalDeleteUser" class="flex-1 py-2.5 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">Delete</button>
+        <button type="button" id="modalClose" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Close</button>
+      </div>`;
+    m.classList.remove('hidden');
+    nameEl('modalClose').onclick = () => m.classList.add('hidden');
+    nameEl('modalEditUser').onclick = () => { m.classList.add('hidden'); showUserForm(u); };
+    nameEl('modalDeleteUser').onclick = async () => {
+      if (!confirm("Delete " + esc(u.name) + " " + esc(u.surname) + "?")) return;
+      await fetch('/api/admin/users/' + u.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+      m.classList.add('hidden');
+      await loadUsers();
+    };
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+  }
+
+  function showCodeForm() {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    c.innerHTML = '<h3 class="font-bold text-lg">Generate Code</h3>' +
+      '<form id="codeForm" class="space-y-3" onsubmit="return false">' +
+      '<label class="block text-sm font-medium">Role' +
+      '<select name="role" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<option value="intern">Intern</option><option value="instructor">Instructor</option><option value="admin">Admin</option></select></label>' +
+      '<label class="block text-sm font-medium">Expires in (minutes)' +
+      '<input name="expiry" type="number" value="60" min="1" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500"></label>' +
+      '<p id="codeFormErr" class="text-red-500 text-xs hidden"></p>' +
+      '<div class="flex gap-2">' +
+      '<button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
+      '<button type="submit" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Generate</button></div></form>';
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('codeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const g = (n) => f.elements[n];
+      const body = { role: g('role').value, expiry_minutes: parseInt(g('expiry').value) || 60 };
+      const r = await (await fetch('/api/admin/codes?telegram_id=' + encodeURIComponent(tid),
+        {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      if (r.ok) { m.classList.add('hidden'); await loadCodes(); }
+      else { const err = nameEl('codeFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); }
+    });
+  }
+
   (async () => {
     if (tid) { await checkAndShow(tid); return; }
-    dbg('No TID available – showing registration form');
     show('registerView');
   })();
 
@@ -305,8 +542,240 @@ async def admin_stats(telegram_id: str = Query(...)):
             select(func.count(User.id)).where(User.role == Role.instructor)
         )).scalar()
         tasks = (await session.execute(select(func.count(Task.id)))).scalar()
+        total_fees = (await session.execute(select(func.sum(User.total_fees)))).scalar() or 0
+        total_paid = (await session.execute(select(func.sum(User.fees_paid)))).scalar() or 0
 
-    return {"ok": True, "total_users": total_users, "interns": interns, "instructors": instructors, "tasks": tasks}
+    total_fees = float(total_fees)
+    total_paid = float(total_paid)
+    return {"ok": True, "total_users": total_users, "interns": interns,
+        "instructors": instructors, "tasks": tasks,
+        "total_fees": total_fees, "total_paid": total_paid, "outstanding": total_fees - total_paid}
+
+
+@router.get("/api/admin/users")
+async def admin_list_users(telegram_id: str = Query(...)):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import Role, User
+
+    async with async_session() as session:
+        admin = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        )
+        if not admin.scalar_one_or_none():
+            return {"ok": False, "detail": "Unauthorized"}
+
+        users = (await session.execute(select(User).order_by(User.id))).scalars().all()
+
+    return {"ok": True, "users": [{
+        "id": u.id, "name": u.name, "surname": u.surname, "phone": u.phone,
+        "telegram_id": u.telegram_id, "gender": u.gender.value,
+        "role": u.role.value, "department": u.department.value,
+        "group": u.group.value if u.group else None,
+        "school": u.school, "dob": str(u.dob),
+        "linked": not u.telegram_id.startswith("pending_"),
+        "fees_paid": float(u.fees_paid) if u.fees_paid else 0,
+        "total_fees": float(u.total_fees) if u.total_fees else 0,
+    } for u in users]}
+
+
+@router.post("/api/admin/users")
+async def admin_create_user(telegram_id: str = Query(...), data: dict = None):
+    from datetime import datetime
+    from uuid import uuid4
+
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import Department, Gender, Group, Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            existing_phone = await session.execute(
+                select(User).where(User.phone == data["phone"])
+            )
+            if existing_phone.scalar_one_or_none():
+                return {"ok": False, "detail": "Phone already exists"}
+
+            placeholder = f"pending_{uuid4().hex[:12]}"
+            user = User(
+                name=data["name"], surname=data["surname"], phone=data["phone"],
+                telegram_id=placeholder, gender=Gender(data["gender"]),
+                role=Role.intern, department=Department(data["department"]),
+                group=Group(data["group"]) if data.get("group") else None,
+                school=data["school"],
+                dob=datetime.strptime(data["dob"], "%Y-%m-%d").date(),
+            )
+            session.add(user)
+
+    return {"ok": True, "user": {
+        "id": user.id, "name": user.name, "surname": user.surname,
+        "phone": user.phone, "gender": user.gender.value,
+        "department": user.department.value, "group": user.group.value if user.group else None,
+        "school": user.school, "dob": str(user.dob),
+    }}
+
+
+@router.put("/api/admin/users/{user_id}")
+async def admin_update_user(user_id: int, telegram_id: str = Query(...), data: dict = None):
+    from datetime import datetime
+
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import Department, Gender, Group, Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            user = await session.get(User, user_id)
+            if not user:
+                return {"ok": False, "detail": "User not found"}
+
+            if "name" in data: user.name = data["name"]
+            if "surname" in data: user.surname = data["surname"]
+            if "phone" in data:
+                dup = await session.execute(
+                    select(User).where(User.phone == data["phone"], User.id != user_id)
+                )
+                if dup.scalar_one_or_none():
+                    return {"ok": False, "detail": "Phone already in use"}
+                user.phone = data["phone"]
+            if "gender" in data: user.gender = Gender(data["gender"])
+            if "role" in data: user.role = Role(data["role"])
+            if "department" in data: user.department = Department(data["department"])
+            if "group" in data: user.group = Group(data["group"]) if data["group"] else None
+            if "school" in data: user.school = data["school"]
+            if "dob" in data: user.dob = datetime.strptime(data["dob"], "%Y-%m-%d").date()
+            if "fees_paid" in data: user.fees_paid = float(data["fees_paid"])
+            if "total_fees" in data: user.total_fees = float(data["total_fees"])
+
+    return {"ok": True}
+
+
+@router.delete("/api/admin/users/{user_id}")
+async def admin_delete_user(user_id: int, telegram_id: str = Query(...)):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            user = await session.get(User, user_id)
+            if not user:
+                return {"ok": False, "detail": "User not found"}
+
+            await session.delete(user)
+
+    return {"ok": True}
+
+
+@router.get("/api/admin/codes")
+async def admin_list_codes(telegram_id: str = Query(...)):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import CreationCode, Role, User
+
+    async with async_session() as session:
+        admin = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        )
+        if not admin.scalar_one_or_none():
+            return {"ok": False, "detail": "Unauthorized"}
+
+        codes = (await session.execute(
+            select(CreationCode).order_by(CreationCode.created_at.desc())
+        )).scalars().all()
+
+    return {"ok": True, "codes": [{
+        "id": c.id, "code": c.code, "role": c.role.value,
+        "is_used": c.is_used, "created_at": str(c.created_at),
+        "expires_at": str(c.expires_at),
+    } for c in codes]}
+
+
+@router.post("/api/admin/codes")
+async def admin_create_code(telegram_id: str = Query(...), data: dict = None):
+    import random
+    from datetime import datetime, timedelta
+
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import CreationCode, Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            admin_user = admin.scalar_one_or_none()
+            if not admin_user:
+                return {"ok": False, "detail": "Unauthorized"}
+
+            code = str(random.randint(100000, 999999))
+            while True:
+                exists = await session.execute(
+                    select(CreationCode).where(CreationCode.code == code)
+                )
+                if not exists.scalar_one_or_none():
+                    break
+                code = str(random.randint(100000, 999999))
+
+            role_val = data.get("role", "intern") if data else "intern"
+            expiry_minutes = data.get("expiry_minutes", 60) if data else 60
+
+            cc = CreationCode(
+                code=code, role=Role(role_val),
+                expires_at=datetime.utcnow() + timedelta(minutes=expiry_minutes),
+                created_by=admin_user.id,
+            )
+            session.add(cc)
+
+    return {"ok": True, "code": {"id": cc.id, "code": cc.code, "role": cc.role.value}}
+
+
+@router.delete("/api/admin/codes/{code_id}")
+async def admin_delete_code(code_id: int, telegram_id: str = Query(...)):
+    from sqlalchemy import select
+    from db.database import async_session
+    from models.models import CreationCode, Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            cc = await session.get(CreationCode, code_id)
+            if not cc:
+                return {"ok": False, "detail": "Code not found"}
+
+            await session.delete(cc)
+
+    return {"ok": True}
 
 
 @router.post("/api/register")
