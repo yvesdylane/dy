@@ -58,7 +58,6 @@ class User(Base):
     group = Column(Enum(Group), nullable=True)
     school = Column(String(200), nullable=False)
     dob = Column(Date, nullable=False)
-    verify = Column(Boolean, default=False)
     quarter = Column(Integer, nullable=True)
     fees_paid = Column(Numeric(10, 2), default=0, nullable=True)
     total_fees = Column(Numeric(10, 2), default=40000, nullable=True)
@@ -67,9 +66,25 @@ class User(Base):
 
     attendances = relationship("InternAttendance", back_populates="user")
     task_submissions = relationship("TaskSubmission", back_populates="user")
+    created_codes = relationship("CreationCode", back_populates="creator")
     created_tasks = relationship("Task", back_populates="creator")
     infos = relationship("Info", back_populates="creator")
     notes = relationship("Note", back_populates="uploader")
+
+
+class CreationCode(Base):
+    __tablename__ = "creation_codes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(200), unique=True, nullable=False)
+    role = Column(Enum(Role), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    is_used = Column(Boolean, default=False)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    creator = relationship("User", back_populates="created_codes")
 
 
 class Attendance(Base):

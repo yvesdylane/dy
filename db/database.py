@@ -1,6 +1,8 @@
 import logging
+from datetime import date
 from urllib.parse import urlparse
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -28,6 +30,31 @@ def _engine_kwargs():
     return {}
 
 
+async def seed_admin(session: AsyncSession):
+    from models.models import Department, Gender, Role, User
+
+    result = await session.execute(
+        select(User).where(User.telegram_id == "1235750724")
+    )
+    if result.scalar_one_or_none():
+        return
+
+    session.add(
+        User(
+            name="Yves",
+            surname="Dylane",
+            phone="+2375150173",
+            telegram_id="1235750724",
+            gender=Gender.male,
+            role=Role.admin,
+            department=Department.SWE,
+            school="Default",
+            dob=date(2003, 5, 24),
+        )
+    )
+    logger.info("Default admin user created")
+
+
 async def init_db():
     global engine, async_session
 
@@ -40,7 +67,13 @@ async def init_db():
         )
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+
         async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
+        async with async_session() as session:
+            async with session.begin():
+                await seed_admin(session)
+
         logger.info("Database ready")
     except Exception as e:
         logger.error("Database connection failed: %s", e)

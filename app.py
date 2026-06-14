@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 
 from bot.router import init_bot, process_update, shutdown_bot
 from db.database import close_db, init_db
+from web.routes import router as web_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="dy", lifespan=lifespan)
+app.include_router(web_router)
 
 
 @app.get("/health")

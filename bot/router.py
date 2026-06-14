@@ -3,6 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler
 
+from bot.handlers import handlers as other_handlers
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,8 @@ async def init_bot():
         await application.start()
 
         application.add_handler(CommandHandler("start", start))
+        for handler in other_handlers:
+            application.add_handler(handler)
 
         if settings.mini_app_url and settings.mini_app_url != "not_yet_there":
             webhook_url = f"{settings.mini_app_url.rstrip('/')}/telegram"
