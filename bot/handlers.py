@@ -1,7 +1,7 @@
 import logging
 
 from sqlalchemy import func, select
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import CallbackQueryHandler, CommandHandler
 
 from config import settings
@@ -60,7 +60,8 @@ async def send_user_info(telegram_id: str, update: Update):
 
     if not user:
         mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app"
-        button = InlineKeyboardButton("Create Account", url=mini_app_url)
+        url_with_id = f"{mini_app_url}?telegram_id={telegram_id}"
+        button = InlineKeyboardButton("Create Account", web_app=WebAppInfo(url=url_with_id))
         keyboard = InlineKeyboardMarkup([[button]])
         await reply(
             "You don't have an account yet. Tap the button below to create one.",
@@ -140,12 +141,32 @@ async def send_task_overview(telegram_id: str, update: Update):
 
 async def info(update: Update, _context):
     telegram_id = str(update.effective_user.id)
+    logger.info("=== /info called by user id=%s ===", telegram_id)
+    logger.info("effective_user: id=%s, first_name=%s, username=%s, is_bot=%s",
+                update.effective_user.id, update.effective_user.first_name,
+                update.effective_user.username, update.effective_user.is_bot)
+    logger.info("effective_chat: id=%s, type=%s",
+                update.effective_chat.id, update.effective_chat.type if update.effective_chat else None)
+    logger.info("update_id=%s, message.text=%s", update.update_id,
+                update.message.text if update.message else None)
     try:
         await send_user_info(telegram_id, update)
     except Exception as e:
         logger.error("Info command failed: %s", e)
         reply = reply_fn(update)
         await reply("An error occurred. Please try again later.")
+
+
+async def dashboard(update: Update, _context):
+    telegram_id = str(update.effective_user.id)
+    logger.info("=== /dashboard called by user id=%s ===", telegram_id)
+    mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app?telegram_id={telegram_id}"
+    button = InlineKeyboardButton("Open Dashboard", web_app=WebAppInfo(url=mini_app_url))
+    keyboard = InlineKeyboardMarkup([[button]])
+    await update.message.reply_text(
+        "Open your dashboard below:",
+        reply_markup=keyboard,
+    )
 
 
 async def user_info(update: Update, _context):
@@ -218,5 +239,7 @@ handlers = [
     CommandHandler("userinfo", user_info),
     CommandHandler("taskInfo", task_info),
     CommandHandler("taskinfo", task_info),
+    CommandHandler("dashboard", dashboard),
+    CommandHandler("dash", dashboard),
     CallbackQueryHandler(info_callback, pattern="^info_"),
 ]

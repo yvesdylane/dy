@@ -40,5 +40,6 @@ async def health():
 @app.post("/telegram")
 async def telegram_webhook(request: Request):
     data = await request.json()
+    print(data)
     await process_update(data)
     return {"ok": True}

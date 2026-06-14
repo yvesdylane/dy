@@ -1,6 +1,6 @@
 import logging
 
-from telegram import Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import Application, CommandHandler
 
 from bot.handlers import handlers as other_handlers
@@ -12,7 +12,11 @@ application: Application | None = None
 
 
 async def start(update: Update, _context):
-    await update.message.reply_text("Hello! I'm the dy bot.")
+    telegram_id = str(update.effective_user.id)
+    mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app?telegram_id={telegram_id}"
+    button = InlineKeyboardButton("Open Dashboard", web_app=WebAppInfo(url=mini_app_url))
+    keyboard = InlineKeyboardMarkup([[button]])
+    await update.message.reply_text("Welcome! Open your dashboard:", reply_markup=keyboard)
 
 
 async def init_bot():
@@ -53,6 +57,12 @@ async def process_update(data: dict):
     if application is None:
         logger.warning("Bot not initialized, dropping update")
         return
+
+    logger.info("=== INCOMING TELEGRAM UPDATE ===")
+    import json
+    for line in json.dumps(data, indent=2, default=str).splitlines():
+        logger.info("TG: %s", line)
+    logger.info("=== END UPDATE ===")
 
     try:
         update = Update.de_json(data, application.bot)
