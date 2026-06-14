@@ -1,12 +1,25 @@
 import logging
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import CommandHandler
+from telegram.ext import CallbackQueryHandler, CommandHandler
 
 from config import settings
 
 logger = logging.getLogger(__name__)
+
+HELP_INFO_TEXT = "Select an option below to view information:"
+
+
+async def get_user(telegram_id: str):
+    from db.database import async_session
+    from models.models import User
+
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+        return result.scalar_one_or_none()
 
 
 def format_user_info(user) -> str:
@@ -29,33 +42,177 @@ def format_user_info(user) -> str:
     return "\n".join(lines)
 
 
+def reply_fn(update: Update):
+    if update.callback_query:
+        return update.callback_query.message.reply_text
+    return update.message.reply_text
+
+
+def reply_md_fn(update: Update):
+    if update.callback_query:
+        return update.callback_query.message.reply_markdown
+    return update.message.reply_markdown
+
+
+async def send_user_info(telegram_id: str, update: Update):
+    user = await get_user(telegram_id)
+    reply = reply_md_fn(update)
+
+    if not user:
+        mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app"
+        button = InlineKeyboardButton("Create Account", url=mini_app_url)
+        keyboard = InlineKeyboardMarkup([[button]])
+        await reply(
+            "You don't have an account yet. Tap the button below to create one.",
+            reply_markup=keyboard,
+        )
+        return
+
+    text = format_user_info(user)
+    text += "\n\nUse /helpInfo to explore more info commands."
+    await reply(text)
+
+
+async def send_user_overview(telegram_id: str, update: Update):
+    from db.database import async_session
+    from models.models import Department, Role, User
+
+    reply = reply_md_fn(update)
+
+    me = await get_user(telegram_id)
+    if not me:
+        await reply("You need an account first. Use /info to create one.")
+        return
+
+    async with async_session() as session:
+        base = select(func.count(User.id))
+        dept_filter = [] if me.role != Role.intern else [User.department == me.department]
+
+        total = (await session.execute(base.where(*dept_filter))).scalar()
+        intern_count = (
+            await session.execute(base.where(User.role == Role.intern, *dept_filter))
+        ).scalar()
+        instructor_count = (
+            await session.execute(base.where(User.role == Role.instructor, *dept_filter))
+        ).scalar()
+
+    scope = "your department" if me.role == Role.intern else "all departments"
+    text = (
+        f"*User Overview ({scope})*\n\n"
+        f"Total users: {total}\n"
+        f"Interns: {intern_count}\n"
+        f"Instructors: {instructor_count}"
+    )
+    if me.role != Role.intern:
+        text += f"\nAdmins: {total - intern_count - instructor_count}"
+
+    await reply(text)
+
+
+async def send_task_overview(telegram_id: str, update: Update):
+    from db.database import async_session
+    from models.models import Department, Role, Task
+
+    reply = reply_md_fn(update)
+
+    me = await get_user(telegram_id)
+    if not me:
+        await reply("You need an account first.")
+        return
+
+    async with async_session() as session:
+        q = select(Task)
+        if me.role == Role.intern:
+            q = q.where(Task.department == me.department)
+        q = q.order_by(Task.submission_deadline)
+        tasks = (await session.execute(q)).scalars().all()
+
+    if not tasks:
+        await reply("No tasks found.")
+        return
+
+    scope = f"department *{me.department.value}*" if me.role == Role.intern else "all departments"
+    lines = [f"*Tasks ({scope}):*"]
+    for t in tasks:
+        lines.append(f"\n• *{t.name}* — due {t.submission_deadline.date()}")
+    await reply("\n".join(lines))
+
+
 async def info(update: Update, _context):
     telegram_id = str(update.effective_user.id)
-
     try:
-        from db.database import async_session
-        from models.models import User
-
-        async with async_session() as session:
-            result = await session.execute(
-                select(User).where(User.telegram_id == telegram_id)
-            )
-            user = result.scalar_one_or_none()
-
-        if user:
-            text = format_user_info(user)
-            await update.message.reply_markdown(text)
-        else:
-            mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app"
-            button = InlineKeyboardButton("Create Account", url=mini_app_url)
-            keyboard = InlineKeyboardMarkup([[button]])
-            await update.message.reply_text(
-                "You don't have an account yet. Tap the button below to create one.",
-                reply_markup=keyboard,
-            )
+        await send_user_info(telegram_id, update)
     except Exception as e:
         logger.error("Info command failed: %s", e)
-        await update.message.reply_text("An error occurred. Please try again later.")
+        reply = reply_fn(update)
+        await reply("An error occurred. Please try again later.")
 
 
-handlers = [CommandHandler("info", info)]
+async def user_info(update: Update, _context):
+    telegram_id = str(update.effective_user.id)
+    try:
+        await send_user_overview(telegram_id, update)
+    except Exception as e:
+        logger.error("User info failed: %s", e)
+        reply = reply_fn(update)
+        await reply("An error occurred.")
+
+
+async def task_info(update: Update, _context):
+    telegram_id = str(update.effective_user.id)
+    try:
+        await send_task_overview(telegram_id, update)
+    except Exception as e:
+        logger.error("Task info failed: %s", e)
+        reply = reply_fn(update)
+        await reply("An error occurred.")
+
+
+async def help_info(update: Update, _context):
+    keyboard = [
+        [InlineKeyboardButton("👤 User Info", callback_data="info_user")],
+        [InlineKeyboardButton("📋 Tasks", callback_data="info_tasks")],
+        [InlineKeyboardButton("✅ Attendance", callback_data="info_attendance")],
+        [InlineKeyboardButton("📝 Notes", callback_data="info_notes")],
+        [InlineKeyboardButton("📢 Announcements", callback_data="info_announcements")],
+    ]
+    await update.message.reply_text(
+        HELP_INFO_TEXT,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+async def info_callback(update: Update, context):
+    query = update.callback_query
+    await query.answer()
+    telegram_id = str(query.from_user.id)
+
+    handlers_map = {
+        "info_user": send_user_overview,
+        "info_tasks": send_task_overview,
+        "info_attendance": lambda tid, u: reply_fn(u)("Attendance info coming soon."),
+        "info_notes": lambda tid, u: reply_fn(u)("Notes info coming soon."),
+        "info_announcements": lambda tid, u: reply_fn(u)("Announcements coming soon."),
+    }
+
+    handler = handlers_map.get(query.data)
+    if not handler:
+        return
+
+    try:
+        await handler(telegram_id, update)
+    except Exception as e:
+        logger.error("Callback %s failed: %s", query.data, e)
+        await query.message.reply_text("An error occurred.")
+
+
+handlers = [
+    CommandHandler("info", info),
+    CommandHandler("helpInfo", help_info),
+    CommandHandler("helpinfo", help_info),
+    CommandHandler("userInfo", user_info),
+    CommandHandler("userinfo", user_info),
+    CommandHandler("taskInfo", task_info),
+    CommandHandler("taskinfo", task_info),
+    CallbackQueryHandler(info_callback, pattern="^info_"),
+]
