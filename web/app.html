@@ -19,6 +19,22 @@
       }
     }
   </script>
+  <script>
+    try {
+      var _tg = window.Telegram?.WebApp;
+      if (_tg) {
+        var _sp = _tg.initDataUnsafe?.start_param;
+        if (_sp && _sp.length > 1 && _sp[0] === 'M') {
+          var _c = _sp.slice(1);
+          var _decoded = atob(_c);
+          var _sep = _decoded.indexOf('|');
+          if (_sep > 0) {
+            window.location.href = '/mark?d=' + encodeURIComponent(_decoded.slice(0, _sep)) + '&s=' + encodeURIComponent(_decoded.slice(_sep + 1));
+          }
+        }
+      }
+    } catch(e) {}
+  </script>
   <title>dy</title>
 </head>
 <body class="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-[100dvh] transition-colors duration-200">
