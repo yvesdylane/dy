@@ -67,6 +67,11 @@ async def init_db():
         )
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+            from sqlalchemy import text as sa_text
+            try:
+                await conn.execute(sa_text("ALTER TABLE infos ADD COLUMN file_url VARCHAR(500)"))
+            except Exception:
+                pass
 
         async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 

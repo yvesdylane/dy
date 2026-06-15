@@ -139,22 +139,45 @@ async def send_task_overview(telegram_id: str, update: Update):
     await reply("\n".join(lines))
 
 
-async def info(update: Update, _context):
+async def me(update: Update, _context):
     telegram_id = str(update.effective_user.id)
-    logger.info("=== /info called by user id=%s ===", telegram_id)
-    logger.info("effective_user: id=%s, first_name=%s, username=%s, is_bot=%s",
-                update.effective_user.id, update.effective_user.first_name,
-                update.effective_user.username, update.effective_user.is_bot)
-    logger.info("effective_chat: id=%s, type=%s",
-                update.effective_chat.id, update.effective_chat.type if update.effective_chat else None)
-    logger.info("update_id=%s, message.text=%s", update.update_id,
-                update.message.text if update.message else None)
+    logger.info("=== /me called by user id=%s ===", telegram_id)
     try:
         await send_user_info(telegram_id, update)
     except Exception as e:
-        logger.error("Info command failed: %s", e)
+        logger.error("Me command failed: %s", e)
         reply = reply_fn(update)
         await reply("An error occurred. Please try again later.")
+
+
+async def announcements(update: Update, _context):
+    telegram_id = str(update.effective_user.id)
+    try:
+        from sqlalchemy import select
+
+        from db.database import async_session
+        from models.models import Info
+
+        async with async_session() as session:
+            items = (await session.execute(
+                select(Info).order_by(Info.created_at.desc())
+            )).scalars().all()
+
+        if not items:
+            await update.message.reply_text("No announcements yet.")
+            return
+
+        lines = ["*📢 Announcements:*"]
+        for item in items:
+            lines.append(f"\n*{item.title}*")
+            lines.append(f"{item.content[:200]}")
+            lines.append(f"_{item.created_at.date()}_")
+
+        await update.message.reply_markdown("\n".join(lines))
+    except Exception as e:
+        logger.error("Info command failed: %s", e)
+        reply = reply_fn(update)
+        await reply("An error occurred.")
 
 
 async def dashboard(update: Update, _context):
@@ -192,7 +215,7 @@ async def task_info(update: Update, _context):
 async def help_info(update: Update, _context):
     keyboard = [
         [
-            InlineKeyboardButton("👤 User Info", callback_data="info_user"),
+            InlineKeyboardButton("👤 My Info", callback_data="info_user"),
             InlineKeyboardButton("📋 Tasks", callback_data="info_tasks"),
         ],
         [
@@ -217,7 +240,7 @@ async def info_callback(update: Update, context):
         "info_tasks": send_task_overview,
         "info_attendance": lambda tid, u: reply_fn(u)("Attendance info coming soon."),
         "info_notes": lambda tid, u: reply_fn(u)("Notes info coming soon."),
-        "info_announcements": lambda tid, u: reply_fn(u)("Announcements coming soon."),
+        "info_announcements": lambda tid, u: announcements(u, None),
     }
 
     handler = handlers_map.get(query.data)
@@ -286,7 +309,8 @@ async def handle_contact(update: Update, _context):
 
 
 handlers = [
-    CommandHandler("info", info),
+    CommandHandler("me", me),
+    CommandHandler("info", announcements),
     CommandHandler("helpInfo", help_info),
     CommandHandler("helpinfo", help_info),
     CommandHandler("userInfo", user_info),

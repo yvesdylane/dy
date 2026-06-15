@@ -1,0 +1,37 @@
+<div id="registerView" class="hidden max-w-md mx-auto p-4 space-y-5">
+  <h2 class="text-xl font-bold text-brand-600 dark:text-brand-400">Create Account</h2>
+  <form id="registerForm" onsubmit="return false" class="space-y-3">
+    <label class="block text-sm font-medium">Name <input name="name" required
+      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
+    <label class="block text-sm font-medium">Surname <input name="surname" required
+      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
+    <label class="block text-sm font-medium">Phone (+237) <input name="phone" placeholder="+237XXXXXXXXX" required
+      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
+    <label class="block text-sm font-medium">Gender
+      <select name="gender" required
+        class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
+        <option value="">--</option><option value="male">Male</option><option value="female">Female</option>
+      </select></label>
+    <label class="block text-sm font-medium">Department
+      <select name="department" required
+        class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
+        <option value="">--</option>
+        <option value="ISM">ISM</option><option value="SWE">SWE</option><option value="CGWD">CGWD</option>
+        <option value="EDM">EDM</option><option value="CNWS">CNWS</option><option value="NS">NS</option>
+      </select></label>
+    <label class="block text-sm font-medium">Group
+      <select name="group"
+        class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
+        <option value="">None</option><option value="A">A</option><option value="B">B</option>
+      </select></label>
+    <label class="block text-sm font-medium">School <input name="school" required
+      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
+    <label class="block text-sm font-medium">Date of Birth <input name="dob" type="date" required
+      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
+    <label class="block text-sm font-medium">Registration Code <input name="code" placeholder="6-digit code" required
+      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
+    <p id="errorMsg" class="text-red-500 text-sm hidden"></p>
+    <button type="submit"
+      class="w-full py-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm transition-colors">Register</button>
+  </form>
+</div>

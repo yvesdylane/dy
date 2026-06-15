@@ -9,6 +9,7 @@ from web.routes import router as web_router
 from web.attendance_routes import router as attendance_router
 from web.task_routes import router as task_router
 from web.note_routes import router as note_router
+from web.info_routes import router as info_router
 from web.scheduler import start_scheduler, stop_scheduler
 
 logging.basicConfig(level=logging.INFO)
@@ -39,6 +40,7 @@ app.include_router(web_router)
 app.include_router(attendance_router)
 app.include_router(task_router)
 app.include_router(note_router)
+app.include_router(info_router)
 
 
 @app.get("/health")

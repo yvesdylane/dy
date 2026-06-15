@@ -12,8 +12,8 @@
         extend: {
           colors: {
             brand: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
-                     400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309',
-                     800: '#92400e', 900: '#78350f' }
+                      400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309',
+                      800: '#92400e', 900: '#78350f' }
           }
         }
       }
@@ -27,167 +27,91 @@
   <div class="animate-spin h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
 </div>
 
-<div id="registerView" class="hidden max-w-md mx-auto p-4 space-y-5">
-  <h2 class="text-xl font-bold text-brand-600 dark:text-brand-400">Create Account</h2>
-
-  <form id="registerForm" onsubmit="return false" class="space-y-3">
-    <label class="block text-sm font-medium">Name <input name="name" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <label class="block text-sm font-medium">Surname <input name="surname" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <label class="block text-sm font-medium">Phone (+237) <input name="phone" placeholder="+237XXXXXXXXX" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <label class="block text-sm font-medium">Gender
-      <select name="gender" required
-        class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
-        <option value="">--</option><option value="male">Male</option><option value="female">Female</option>
-      </select></label>
-    <label class="block text-sm font-medium">Department
-      <select name="department" required
-        class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
-        <option value="">--</option>
-        <option value="ISM">ISM</option><option value="SWE">SWE</option><option value="CGWD">CGWD</option>
-        <option value="EDM">EDM</option><option value="CNWS">CNWS</option><option value="NS">NS</option>
-      </select></label>
-    <label class="block text-sm font-medium">Group
-      <select name="group"
-        class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
-        <option value="">None</option><option value="A">A</option><option value="B">B</option>
-      </select></label>
-    <label class="block text-sm font-medium">School <input name="school" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <label class="block text-sm font-medium">Date of Birth <input name="dob" type="date" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <p id="errorMsg" class="text-red-500 text-sm hidden"></p>
-    <button type="submit"
-      class="w-full py-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm transition-colors">Register</button>
-  </form>
-</div>
-
-  <div id="adminView" class="hidden flex min-h-screen">
-    <div class="hidden md:flex md:flex-col md:w-56 md:bg-zinc-50 md:dark:bg-zinc-900 md:border-r md:border-zinc-200 md:dark:border-zinc-800 md:fixed md:h-full">
-      <div class="p-4 border-b border-zinc-200 dark:border-zinc-800">
-        <h2 class="font-bold text-brand-600 dark:text-brand-400">dy</h2>
-        <p id="adminNameSide" class="text-xs text-zinc-500 mt-1"></p>
-      </div>
-      <nav class="flex-1 p-2 space-y-1">
-        <button data-section="stats" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950">📊 Stats</button>
-        <button data-section="users" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950">👥 Users</button>
-        <button data-section="codes" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950">🔑 Codes</button>
-        <button data-section="attendance" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950">📋 Attendance</button>
-        <button data-section="tasks" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950">📋 Tasks</button>
-        <button data-section="notes" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950">📝 Notes</button>
-      </nav>
+<div id="adminView" class="hidden flex min-h-screen">
+  <div class="hidden md:flex md:flex-col md:w-56 md:bg-zinc-50 md:dark:bg-zinc-900 md:border-r md:border-zinc-200 md:dark:border-zinc-800 md:fixed md:h-full">
+    <div class="p-4 border-b border-zinc-200 dark:border-zinc-800">
+      <h2 class="font-bold text-brand-600 dark:text-brand-400">dy</h2>
+      <p id="adminNameSide" class="text-xs text-zinc-500 mt-1"></p>
     </div>
-    <div class="flex-1 md:ml-56 min-w-0">
-      <div class="md:hidden flex items-center gap-2 p-4 border-b border-zinc-200 dark:border-zinc-800">
-        <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm">D</div>
-        <div><h1 class="font-bold text-sm">Dashboard</h1><p id="adminNameMobile" class="text-xs text-zinc-500"></p></div>
-      </div>
-      <div class="p-4 pb-24 md:pb-4">
-        <div id="sectionStats">
-          <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <div class="p-4 rounded-xl bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-900">
-              <p class="text-xs uppercase tracking-wider text-brand-700 dark:text-brand-400 font-medium">Total Users</p>
-              <p id="statUsers" class="text-3xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
-            </div>
-            <div class="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <p class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-medium">Interns</p>
-              <p id="statInterns" class="text-3xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
-            </div>
-            <div class="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <p class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-medium">Instructors</p>
-              <p id="statInstructors" class="text-3xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
-            </div>
-            <div class="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
-              <p class="text-xs uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-medium">Tasks</p>
-              <p id="statTasks" class="text-3xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
-            </div>
-            <div class="p-4 rounded-xl bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-900">
-              <p class="text-xs uppercase tracking-wider text-green-700 dark:text-green-400 font-medium">Total Fees</p>
-              <p id="statTotalFees" class="text-2xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
-            </div>
-            <div class="p-4 rounded-xl bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-900">
-              <p class="text-xs uppercase tracking-wider text-green-700 dark:text-green-400 font-medium">Paid</p>
-              <p id="statPaid" class="text-2xl font-bold mt-1 text-zinc-900 dark:text-white">--</p>
-            </div>
-          </div>
-        </div>
-      <div id="sectionUsers" class="hidden">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-bold">Users</h3>
-          <button id="addUserBtn" class="px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">+ Add</button>
-        </div>
-        <div class="flex flex-wrap gap-2 mb-3">
-          <input id="userSearch" placeholder="Search name/phone..."
-            class="w-full sm:flex-1 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs outline-none focus:ring-2 focus:ring-brand-500">
-          <select id="userDeptFilter"
-            class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs outline-none focus:ring-2 focus:ring-brand-500">
-            <option value="">All depts</option>
-            <option value="ISM">ISM</option><option value="SWE">SWE</option><option value="CGWD">CGWD</option>
-            <option value="EDM">EDM</option><option value="CNWS">CNWS</option><option value="NS">NS</option>
-          </select>
-          <select id="userRoleFilter"
-            class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs outline-none focus:ring-2 focus:ring-brand-500">
-            <option value="">All roles</option>
-            <option value="admin">Admin</option><option value="instructor">Instructor</option><option value="intern">Intern</option>
-          </select>
-        </div>
-        <div id="usersList" class="space-y-2"></div>
-      </div>
-      <div id="sectionCodes" class="hidden">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-bold">Codes</h3>
-          <button id="addCodeBtn" class="px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">+ Generate</button>
-        </div>
-        <div id="codesList" class="space-y-2"></div>
-      </div>
-      <div id="sectionAttendance" class="hidden space-y-4">
-        <div class="flex items-center gap-2">
-          <input id="attDate" type="date" class="flex-1 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
-          <button id="attLoadBtn" class="px-4 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Load</button>
-        </div>
-        <div id="attGroupBadge" class="hidden text-xs font-medium px-2 py-1 rounded-full bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 inline-block"></div>
-        <div id="attStudents" class="space-y-2"></div>
-        <div id="attActions" class="hidden flex gap-2">
-          <button id="attSaveBtn" class="flex-1 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Save</button>
-          <button id="attCreateBtn" class="flex-1 py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white text-sm font-medium">Create</button>
-          <button id="attDeleteBtn" class="flex-1 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">Delete</button>
-        </div>
-      </div>
-      <div id="sectionTasks" class="hidden">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-bold">Tasks</h3>
-          <button id="addTaskBtn" class="px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">+ Add</button>
-        </div>
-        <div id="tasksList" class="space-y-2"></div>
-      </div>
-      <div id="sectionNotes" class="hidden">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-bold">Notes</h3>
-          <button id="addNoteBtn" class="px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">+ Add</button>
-        </div>
-        <div class="flex flex-wrap gap-2 mb-3">
-          <select id="noteDeptFilter" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs outline-none focus:ring-2 focus:ring-brand-500">
-            <option value="">All departments</option>
-            <option value="ISM">ISM</option><option value="SWE">SWE</option><option value="CGWD">CGWD</option>
-            <option value="EDM">EDM</option><option value="CNWS">CNWS</option><option value="NS">NS</option>
-          </select>
-        </div>
-        <div id="notesList" class="space-y-2"></div>
-      </div>
+    <nav class="flex-1 p-2 space-y-1">
+      <button data-section="stats" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="2" width="4" height="19" rx="1"/></svg>
+        <span>Stats</span>
+      </button>
+      <button data-section="users" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Users</span>
+      </button>
+      <button data-section="codes" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span>Codes</span>
+      </button>
+      <button data-section="attendance" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+        <span>Attendance</span>
+      </button>
+      <button data-section="tasks" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Tasks</span>
+      </button>
+      <button data-section="notes" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Notes</span>
+      </button>
+      <button data-section="info" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Info</span>
+      </button>
+    </nav>
+  </div>
+  <div class="flex-1 md:ml-56 min-w-0">
+    <div class="md:hidden flex items-center gap-2 p-4 border-b border-zinc-200 dark:border-zinc-800">
+      <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm">D</div>
+      <div><h1 class="font-bold text-sm">Dashboard</h1><p id="adminNameMobile" class="text-xs text-zinc-500"></p></div>
+    </div>
+    <div class="p-4 pb-24 md:pb-4">
+      <!--SECTION:register-->
+      <!--SECTION:stats-->
+      <!--SECTION:users-->
+      <!--SECTION:codes-->
+      <!--SECTION:attendance-->
+      <!--SECTION:tasks-->
+      <!--SECTION:notes-->
+      <!--SECTION:info-->
     </div>
   </div>
   <div id="modalOverlay" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
     <div id="modalContent" class="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5 space-y-4"></div>
   </div>
   <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex safe-area-bottom">
-    <button data-section="stats" class="nav-btn flex-1 py-3 text-center text-xs font-medium">📊 Stats</button>
-    <button data-section="users" class="nav-btn flex-1 py-3 text-center text-xs font-medium">👥 Users</button>
-    <button data-section="codes" class="nav-btn flex-1 py-3 text-center text-xs font-medium">🔑 Codes</button>
-    <button data-section="attendance" class="nav-btn flex-1 py-3 text-center text-xs font-medium">📋 Attendance</button>
-    <button data-section="tasks" class="nav-btn flex-1 py-3 text-center text-xs font-medium">📋 Tasks</button>
-    <button data-section="notes" class="nav-btn flex-1 py-3 text-center text-xs font-medium">📝 Notes</button>
+    <button data-section="stats" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="2" width="4" height="19" rx="1"/></svg>
+      <span>Stats</span>
+    </button>
+    <button data-section="users" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Users</span>
+    </button>
+    <button data-section="codes" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      <span>Codes</span>
+    </button>
+    <button data-section="attendance" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      <span>Attd</span>
+    </button>
+    <button data-section="tasks" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Tasks</span>
+    </button>
+    <button data-section="notes" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Notes</span>
+    </button>
+    <button data-section="info" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span>Info</span>
+    </button>
   </div>
 </div>
 
@@ -230,8 +154,16 @@
   const esc = (s) => { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
 
   function showSection(name) {
-    ['sectionStats','sectionUsers','sectionCodes','sectionAttendance','sectionTasks','sectionNotes'].forEach(s =>
+    ['sectionStats','sectionUsers','sectionCodes','sectionAttendance','sectionTasks','sectionNotes','sectionInfo'].forEach(s =>
       nameEl(s).classList.toggle('hidden', s !== 'section' + name[0].toUpperCase() + name.slice(1)));
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      const isActive = b.dataset.section === name;
+      b.classList.toggle('bg-brand-100', isActive);
+      b.classList.toggle('dark:bg-brand-950/50', isActive);
+      b.classList.toggle('text-brand-700', isActive);
+      b.classList.toggle('dark:text-brand-300', isActive);
+      b.classList.toggle('font-semibold', isActive);
+    });
   }
 
   async function loadStats() {
@@ -320,6 +252,7 @@
             if (section === 'attendance') await loadAttendance(document.getElementById('attDate').value);
             if (section === 'tasks') await loadTasks();
             if (section === 'notes') await loadNotes();
+            if (section === 'info') await loadInfo();
           })
         );
 
@@ -547,11 +480,13 @@
       (task.supporting_doc ? '<div><span class="text-zinc-500">File</span><p class="font-medium"><a href="' + esc(task.supporting_doc) + '" target="_blank" class="text-brand-600 hover:underline">📎 Download</a></p></div>' : '') + '</div>' +
       '<div class="flex gap-2 pt-2">' +
       '<button type="button" id="modalEditTask" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Edit</button>' +
+      '<button type="button" id="modalViewSubmissions" class="flex-1 py-2.5 rounded-lg bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 text-sm font-medium">Submissions</button>' +
       '<button type="button" id="modalDeleteTask" class="flex-1 py-2.5 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">Delete</button>' +
       '<button type="button" id="modalClose" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Close</button></div>';
     m.classList.remove('hidden');
     nameEl('modalClose').onclick = () => m.classList.add('hidden');
     nameEl('modalEditTask').onclick = () => { m.classList.add('hidden'); showTaskForm(task); };
+    nameEl('modalViewSubmissions').onclick = () => { m.classList.add('hidden'); showSubmissions(task); };
     nameEl('modalDeleteTask').onclick = async () => {
       if (!confirm("Delete task \"" + esc(task.name) + "\"?")) return;
       await fetch('/api/admin/tasks/' + task.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
@@ -611,6 +546,66 @@
       if (t) showTaskDetail(t);
     }
   });
+
+  // --- Submissions ---
+  async function showSubmissions(task) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    c.innerHTML = '<h3 class="font-bold text-lg">Submissions: ' + esc(task.name) + '</h3><div id="submissionsList" class="space-y-2 text-sm">Loading...</div>' +
+      '<div class="flex gap-2 pt-2"><button type="button" id="modalBack" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Back</button></div>';
+    m.classList.remove('hidden');
+    nameEl('modalBack').onclick = () => { m.classList.add('hidden'); showTaskDetail(task); };
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+
+    const r = await (await fetch('/api/admin/tasks/' + task.id + '/submissions?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok || !r.submissions.length) {
+      nameEl('submissionsList').innerHTML = '<p class="text-zinc-500 text-sm">No submissions yet.</p>';
+      return;
+    }
+    nameEl('submissionsList').innerHTML = r.submissions.map(s => {
+      const marked = s.mark_obtained != null;
+      return '<div class="submission-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900" data-id="' + s.id + '">' +
+        '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(s.user_name) + ' ' + esc(s.user_surname) + '</p>' +
+        '<span class="text-xs text-zinc-500">' + new Date(s.submitted_at).toLocaleDateString() + '</span></div>' +
+        '<div class="flex items-center gap-2 mt-1">' +
+        (s.submitted_file ? '<a href="' + esc(s.submitted_file) + '" target="_blank" class="text-xs text-brand-600 hover:underline">📎 File</a>' : '') +
+        '<span class="text-xs text-zinc-400">·</span>' +
+        '<span class="text-xs ' + (marked ? 'text-green-600' : 'text-zinc-400') + '">' + (marked ? s.mark_obtained + '/' + task.total_mark_on : 'Not graded') + '</span>' +
+        '</div>' +
+        (s.feedback ? '<p class="text-xs text-zinc-500 mt-1 italic">"' + esc(s.feedback) + '"</p>' : '') +
+        '<button class="grade-btn mt-2 text-xs px-2 py-1 rounded bg-brand-500 text-white hover:bg-brand-600" data-id="' + s.id + '" data-mark="' + (s.mark_obtained || '') + '" data-feedback="' + esc(s.feedback || '') + '" data-total="' + task.total_mark_on + '">' + (marked ? 'Edit Grade' : 'Grade') + '</button></div>';
+    }).join('');
+
+    nameEl('submissionsList').addEventListener('click', (e) => {
+      const btn = e.target.closest('.grade-btn');
+      if (!btn) return;
+      const sid = btn.dataset.id;
+      const currentMark = btn.dataset.mark;
+      const currentFeedback = btn.dataset.feedback;
+      const total = btn.dataset.total;
+      const row = btn.closest('.submission-row');
+      row.innerHTML = '<div class="space-y-2"><h4 class="font-medium text-sm">Grade Submission</h4>' +
+        '<input id="gradeMark" type="number" step="0.5" min="0" max="' + total + '" placeholder="Mark / ' + total + '" value="' + currentMark + '" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+        '<textarea id="gradeFeedback" placeholder="Feedback" rows="2" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + esc(currentFeedback) + '</textarea>' +
+        '<div class="flex gap-2"><button id="gradeSaveBtn" class="flex-1 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Save</button>' +
+        '<button id="gradeCancelBtn" class="flex-1 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button></div></div>';
+      row.querySelector('#gradeSaveBtn').onclick = async () => {
+        const mark = row.querySelector('#gradeMark').value;
+        const feedback = row.querySelector('#gradeFeedback').value;
+        const fd = new FormData();
+        if (mark) fd.append('mark_obtained', mark);
+        if (feedback) fd.append('feedback', feedback);
+        const resp = await (await fetch('/api/admin/submissions/' + sid + '?telegram_id=' + encodeURIComponent(tid), {method:'PUT', body: fd})).json();
+        if (resp.ok) {
+          btn.dataset.mark = mark;
+          await showSubmissions(task);
+        } else {
+          alert(resp.detail);
+        }
+      };
+      row.querySelector('#gradeCancelBtn').onclick = () => showSubmissions(task);
+    });
+  }
 
   // --- Notes ---
   let allNotes = [];
@@ -727,6 +722,86 @@
     });
   }
 
+  // --- Info / Announcements ---
+  let allInfo = [];
+  async function loadInfo() {
+    const r = await (await fetch('/api/admin/info?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    allInfo = r.info;
+    renderInfo();
+  }
+  function renderInfo() {
+    const list = nameEl('infoList');
+    list.innerHTML = allInfo.map(item => {
+      const preview = item.content ? item.content.substring(0, 100) + (item.content.length > 100 ? '…' : '') : '';
+      const date = item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
+      return '<div class="info-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="' + item.id + '">' +
+        '<div class="flex items-center justify-between"><p class="font-medium text-sm truncate">' + esc(item.title) + '</p>' +
+        '<span class="text-xs text-zinc-400 shrink-0 ml-2">' + date + '</span></div>' +
+        '<p class="text-xs text-zinc-500 mt-1 truncate">' + esc(preview) + '</p></div>';
+    }).join('');
+  }
+  function showInfoDetail(item) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const dl = item.file_url ? '<a href="' + esc(item.file_url) + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : '';
+    c.innerHTML = '<h3 class="font-bold text-lg break-words">' + esc(item.title) + '</h3>' +
+      '<p class="text-sm whitespace-pre-wrap">' + esc(item.content || '') + '</p>' +
+      '<p class="text-xs text-zinc-400">' + new Date(item.created_at).toLocaleString() + '</p>' +
+      (dl ? '<div>' + dl + '</div>' : '') +
+      '<div class="flex gap-2 pt-2">' +
+      '<button type="button" id="modalEditInfo" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Edit</button>' +
+      '<button type="button" id="modalDeleteInfo" class="flex-1 py-2.5 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">Delete</button>' +
+      '<button type="button" id="modalClose" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Close</button></div>';
+    m.classList.remove('hidden');
+    nameEl('modalClose').onclick = () => m.classList.add('hidden');
+    nameEl('modalEditInfo').onclick = () => { m.classList.add('hidden'); showInfoForm(item); };
+    nameEl('modalDeleteInfo').onclick = async () => {
+      if (!confirm("Delete announcement \"" + esc(item.title) + "\"?")) return;
+      await fetch('/api/admin/info/' + item.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+      m.classList.add('hidden');
+      await loadInfo();
+    };
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+  }
+  function showInfoForm(data) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const isEdit = !!data;
+    c.innerHTML = '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'Add') + ' Announcement</h3>' +
+      '<form id="infoForm" class="space-y-3" onsubmit="return false">' +
+      '<input name="title" placeholder="Title" value="' + (isEdit ? esc(data.title) : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<textarea name="content" placeholder="Content" rows="5" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + (isEdit ? esc(data.content || '') : '') + '</textarea>' +
+      '<label class="block text-sm font-medium text-zinc-600 dark:text-zinc-400">File (optional)' +
+      '<input type="file" name="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 hover:file:bg-brand-100 dark:hover:file:bg-brand-900 cursor-pointer"></label>' +
+      '<p id="infoFormErr" class="text-red-500 text-xs hidden"></p>' +
+      '<div class="flex gap-2"><button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
+      '<button type="submit" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('infoForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const f = e.target;
+      const fd = new FormData();
+      fd.append('title', f.elements['title'].value);
+      fd.append('content', f.elements['content'].value);
+      if (f.elements['file'].files[0]) fd.append('file', f.elements['file'].files[0]);
+      const url = isEdit ? '/api/admin/info/' + data.id + '?telegram_id=' + encodeURIComponent(tid) : '/api/admin/info?telegram_id=' + encodeURIComponent(tid);
+      const method = isEdit ? 'PUT' : 'POST';
+      const r = await (await fetch(url, {method, body: fd})).json();
+      if (r.ok) { m.classList.add('hidden'); await loadInfo(); }
+      else { const err = nameEl('infoFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); }
+    });
+  }
+  nameEl('addInfoBtn').addEventListener('click', () => showInfoForm());
+  nameEl('infoList').addEventListener('click', (e) => {
+    const row = e.target.closest('.info-row');
+    if (row) { const item = allInfo.find(x => x.id == row.dataset.id); if (item) showInfoDetail(item); }
+  });
+
   try {
     const attDate = nameEl('attDate');
     if (attDate) attDate.valueAsDate = new Date();
@@ -750,6 +825,7 @@
         name: form.name.value, surname: form.surname.value, phone: form.phone.value,
         telegram_id: tid, gender: form.gender.value, department: form.department.value,
         group: form.group.value || null, school: form.school.value, dob: form.dob.value,
+        code: form.code ? form.code.value : '',
       };
       try {
         const res = await (await fetch('/api/register', { method:'POST',

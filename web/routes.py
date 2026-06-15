@@ -5,10 +5,15 @@ from fastapi import APIRouter, Query
 router = APIRouter()
 
 APP_HTML_PATH = Path(__file__).parent / "app.html"
+SECTIONS_DIR = Path(__file__).parent / "sections"
 
 
 def _get_app_html():
-    return APP_HTML_PATH.read_text()
+    shell = APP_HTML_PATH.read_text()
+    for name in ("register","stats","users","codes","attendance","tasks","notes","info"):
+        fragment = (SECTIONS_DIR / f"{name}.html").read_text()
+        shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
+    return shell
 
 
 @router.get("/app")
@@ -314,7 +319,7 @@ async def register(data: dict):
     from sqlalchemy import select
 
     from db.database import async_session
-    from models.models import Department, Gender, Group, Role, User
+    from models.models import CreationCode, Department, Gender, Group, Role, User
 
     try:
         async with async_session() as session:
@@ -325,10 +330,26 @@ async def register(data: dict):
                 if existing.scalar_one_or_none():
                     return {"ok": False, "detail": "User already registered"}
 
+                code_val = data.get("code", "")
+                role = Role.intern
+                if code_val:
+                    cc = await session.execute(
+                        select(CreationCode).where(
+                            CreationCode.code == code_val,
+                            CreationCode.is_used == False,
+                            CreationCode.expires_at > datetime.utcnow()
+                        )
+                    )
+                    cc = cc.scalar_one_or_none()
+                    if not cc:
+                        return {"ok": False, "detail": "Invalid or expired registration code"}
+                    role = cc.role
+                    cc.is_used = True
+
                 session.add(User(
                     name=data["name"], surname=data["surname"], phone=data["phone"],
                     telegram_id=data["telegram_id"], gender=Gender(data["gender"]),
-                    role=Role.intern, department=Department(data["department"]),
+                    role=role, department=Department(data["department"]),
                     group=Group(data["group"]) if data.get("group") else None,
                     school=data["school"],
                     dob=datetime.strptime(data["dob"], "%Y-%m-%d").date(),

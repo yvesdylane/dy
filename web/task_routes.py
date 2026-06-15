@@ -154,3 +154,68 @@ async def admin_delete_task(task_id: int, telegram_id: str = Query(...)):
             await session.delete(task)
 
     return {"ok": True}
+
+
+@router.get("/api/admin/tasks/{task_id}/submissions")
+async def admin_list_submissions(task_id: int, telegram_id: str = Query(...)):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import Role, Task, TaskSubmission, User
+
+    async with async_session() as session:
+        user = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role.in_([Role.admin, Role.instructor]))
+        )
+        if not user.scalar_one_or_none():
+            return {"ok": False, "detail": "Unauthorized"}
+
+        task = await session.get(Task, task_id)
+        if not task:
+            return {"ok": False, "detail": "Task not found"}
+
+        result = await session.execute(
+            select(TaskSubmission, User).join(User, TaskSubmission.user_id == User.id)
+            .where(TaskSubmission.task_id == task_id).order_by(TaskSubmission.submitted_at.desc())
+        )
+        rows = result.all()
+
+    return {"ok": True, "submissions": [{
+        "id": ts.TaskSubmission.id,
+        "user_name": ts.User.name,
+        "user_surname": ts.User.surname,
+        "submitted_file": ts.TaskSubmission.submitted_file,
+        "submitted_at": ts.TaskSubmission.submitted_at.isoformat() if ts.TaskSubmission.submitted_at else None,
+        "mark_obtained": float(ts.TaskSubmission.mark_obtained) if ts.TaskSubmission.mark_obtained is not None else None,
+        "feedback": ts.TaskSubmission.feedback,
+    } for ts in rows]}
+
+
+@router.put("/api/admin/submissions/{submission_id}")
+async def admin_grade_submission(
+    submission_id: int, telegram_id: str = Query(...),
+    mark_obtained: float = Form(None), feedback: str = Form(None),
+):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import Role, TaskSubmission, User
+
+    async with async_session() as session:
+        async with session.begin():
+            user = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role.in_([Role.admin, Role.instructor]))
+            )
+            if not user.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            sub = await session.get(TaskSubmission, submission_id)
+            if not sub:
+                return {"ok": False, "detail": "Submission not found"}
+
+            if mark_obtained is not None:
+                sub.mark_obtained = mark_obtained
+            if feedback is not None:
+                sub.feedback = feedback
+
+    return {"ok": True, "submission": {"id": sub.id, "mark_obtained": float(sub.mark_obtained) if sub.mark_obtained is not None else None, "feedback": sub.feedback}}
