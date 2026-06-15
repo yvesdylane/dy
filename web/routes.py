@@ -356,6 +356,13 @@ async def admin_update_user(user_id: int, telegram_id: str = Depends(verified_ti
             if "dob" in data: user.dob = datetime.strptime(data["dob"], "%Y-%m-%d").date()
             if "fees_paid" in data: user.fees_paid = float(data["fees_paid"])
             if "total_fees" in data: user.total_fees = float(data["total_fees"])
+            if "telegram_id" in data:
+                dup = await session.execute(
+                    select(User).where(User.telegram_id == data["telegram_id"], User.id != user_id)
+                )
+                if dup.scalar_one_or_none():
+                    return {"ok": False, "detail": "Telegram ID already in use"}
+                user.telegram_id = data["telegram_id"]
 
     return {"ok": True}
 
