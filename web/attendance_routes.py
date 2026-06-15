@@ -1,8 +1,10 @@
 import logging
 from datetime import date, datetime, time
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import delete, select
+
+from web.security import verified_tid
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -16,7 +18,7 @@ def _get_group(d: date):
 
 
 @router.get("/api/admin/attendance")
-async def admin_get_attendance(telegram_id: str = Query(...), date_str: str = Query(...)):
+async def admin_get_attendance(telegram_id: str = Depends(verified_tid), date_str: str = Query(...)):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -72,7 +74,7 @@ async def admin_get_attendance(telegram_id: str = Query(...), date_str: str = Qu
 
 
 @router.post("/api/admin/attendance/save")
-async def admin_save_attendance(telegram_id: str = Query(...), data: dict = None):
+async def admin_save_attendance(telegram_id: str = Depends(verified_tid), data: dict = None):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -125,7 +127,7 @@ async def admin_save_attendance(telegram_id: str = Query(...), data: dict = None
 
 
 @router.post("/api/admin/attendance/create")
-async def admin_create_attendance(telegram_id: str = Query(...), data: dict = None):
+async def admin_create_attendance(telegram_id: str = Depends(verified_tid), data: dict = None):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -156,7 +158,7 @@ async def admin_create_attendance(telegram_id: str = Query(...), data: dict = No
 
 
 @router.delete("/api/admin/attendance")
-async def admin_delete_attendance(telegram_id: str = Query(...), date_str: str = Query(...)):
+async def admin_delete_attendance(telegram_id: str = Depends(verified_tid), date_str: str = Query(...)):
     from sqlalchemy import delete, select
 
     from db.database import async_session

@@ -1,8 +1,9 @@
 import logging
 
-from fastapi import APIRouter, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, Form, Query, UploadFile
 
 from web.cloudinary import upload_to_cloudinary
+from web.security import verified_tid
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -33,7 +34,7 @@ async def notify_interns(department, title, content):
 
 
 @router.get("/api/admin/notes")
-async def admin_list_notes(telegram_id: str = Query(...), department: str | None = Query(None)):
+async def admin_list_notes(telegram_id: str = Depends(verified_tid), department: str | None = Query(None)):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -62,7 +63,7 @@ async def admin_list_notes(telegram_id: str = Query(...), department: str | None
 
 @router.post("/api/admin/notes")
 async def admin_create_note(
-    telegram_id: str = Query(...),
+    telegram_id: str = Depends(verified_tid),
     title: str = Form(...), content: str = Form(...),
     department: str | None = Form(None), file: UploadFile = None,
 ):
@@ -97,7 +98,7 @@ async def admin_create_note(
 
 @router.put("/api/admin/notes/{note_id}")
 async def admin_update_note(
-    note_id: int, telegram_id: str = Query(...),
+    note_id: int, telegram_id: str = Depends(verified_tid),
     title: str = Form(None), content: str = Form(None),
     department: str = Form(None), file: UploadFile = None,
 ):
@@ -128,7 +129,7 @@ async def admin_update_note(
 
 
 @router.delete("/api/admin/notes/{note_id}")
-async def admin_delete_note(note_id: int, telegram_id: str = Query(...)):
+async def admin_delete_note(note_id: int, telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
 
     from db.database import async_session

@@ -142,6 +142,16 @@
     console.log('dy: tid final', tid);
   } catch(e) { console.error('dy: setup error', e); }
 
+  const origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    opts = opts || {};
+    opts.headers = opts.headers || {};
+    if (tg && tg.initData) {
+      opts.headers['X-Init-Data'] = tg.initData;
+    }
+    return origFetch.call(this, url, opts);
+  };
+
   const cs = tg ? tg.colorScheme : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   document.documentElement.classList.toggle('dark', cs === 'dark');
 

@@ -1,8 +1,9 @@
 import logging
 
-from fastapi import APIRouter, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, Form, Query, UploadFile
 
 from web.cloudinary import upload_to_cloudinary
+from web.security import verified_tid
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -33,7 +34,7 @@ async def notify_interns(title, content):
 
 
 @router.get("/api/admin/info")
-async def admin_list_info(telegram_id: str = Query(...)):
+async def admin_list_info(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -59,7 +60,7 @@ async def admin_list_info(telegram_id: str = Query(...)):
 
 @router.post("/api/admin/info")
 async def admin_create_info(
-    telegram_id: str = Query(...),
+    telegram_id: str = Depends(verified_tid),
     title: str = Form(...), content: str = Form(...),
     file: UploadFile = None,
 ):
@@ -91,7 +92,7 @@ async def admin_create_info(
 
 @router.put("/api/admin/info/{info_id}")
 async def admin_update_info(
-    info_id: int, telegram_id: str = Query(...),
+    info_id: int, telegram_id: str = Depends(verified_tid),
     title: str = Form(None), content: str = Form(None),
     file: UploadFile = None,
 ):
@@ -121,7 +122,7 @@ async def admin_update_info(
 
 
 @router.delete("/api/admin/info/{info_id}")
-async def admin_delete_info(info_id: int, telegram_id: str = Query(...)):
+async def admin_delete_info(info_id: int, telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
 
     from db.database import async_session

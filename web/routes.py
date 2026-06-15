@@ -1,6 +1,8 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
+
+from web.security import verified_tid
 
 router = APIRouter()
 
@@ -21,8 +23,16 @@ async def mini_app():
     from fastapi.responses import HTMLResponse
     return HTMLResponse(_get_app_html())
 
+MARK_HTML_PATH = Path(__file__).parent / "mark.html"
+
+
+@router.get("/mark")
+async def mark_page():
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(MARK_HTML_PATH.read_text())
+
 @router.get("/api/me")
-async def get_me(telegram_id: str = Query(...)):
+async def get_me(telegram_id: str = Depends(verified_tid)):
     import logging
 
     from sqlalchemy import select
@@ -55,7 +65,7 @@ async def get_me(telegram_id: str = Query(...)):
 
 
 @router.get("/api/admin/stats")
-async def admin_stats(telegram_id: str = Query(...)):
+async def admin_stats(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import func, select
 
     from db.database import async_session
@@ -87,7 +97,7 @@ async def admin_stats(telegram_id: str = Query(...)):
 
 
 @router.get("/api/admin/users")
-async def admin_list_users(telegram_id: str = Query(...)):
+async def admin_list_users(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -115,7 +125,7 @@ async def admin_list_users(telegram_id: str = Query(...)):
 
 
 @router.post("/api/admin/users")
-async def admin_create_user(telegram_id: str = Query(...), data: dict = None):
+async def admin_create_user(telegram_id: str = Depends(verified_tid), data: dict = None):
     from datetime import datetime
     from uuid import uuid4
 
@@ -158,7 +168,7 @@ async def admin_create_user(telegram_id: str = Query(...), data: dict = None):
 
 
 @router.put("/api/admin/users/{user_id}")
-async def admin_update_user(user_id: int, telegram_id: str = Query(...), data: dict = None):
+async def admin_update_user(user_id: int, telegram_id: str = Depends(verified_tid), data: dict = None):
     from datetime import datetime
 
     from sqlalchemy import select
@@ -200,7 +210,7 @@ async def admin_update_user(user_id: int, telegram_id: str = Query(...), data: d
 
 
 @router.delete("/api/admin/users/{user_id}")
-async def admin_delete_user(user_id: int, telegram_id: str = Query(...)):
+async def admin_delete_user(user_id: int, telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -224,7 +234,7 @@ async def admin_delete_user(user_id: int, telegram_id: str = Query(...)):
 
 
 @router.get("/api/admin/codes")
-async def admin_list_codes(telegram_id: str = Query(...)):
+async def admin_list_codes(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -249,7 +259,7 @@ async def admin_list_codes(telegram_id: str = Query(...)):
 
 
 @router.post("/api/admin/codes")
-async def admin_create_code(telegram_id: str = Query(...), data: dict = None):
+async def admin_create_code(telegram_id: str = Depends(verified_tid), data: dict = None):
     import random
     from datetime import datetime, timedelta
 
@@ -290,7 +300,7 @@ async def admin_create_code(telegram_id: str = Query(...), data: dict = None):
 
 
 @router.delete("/api/admin/codes/{code_id}")
-async def admin_delete_code(code_id: int, telegram_id: str = Query(...)):
+async def admin_delete_code(code_id: int, telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
     from db.database import async_session
     from models.models import CreationCode, Role, User
@@ -358,3 +368,91 @@ async def register(data: dict):
         return {"ok": True}
     except Exception as e:
         return {"ok": False, "detail": str(e)}
+
+
+MARK_QR_MAX_AGE = 3600
+
+
+@router.get("/api/mark")
+async def mark_attendance(
+    telegram_id: str = Depends(verified_tid),
+    d: str = Query(...),
+    s: str = Query(...),
+):
+    from datetime import date, datetime
+
+    from sqlalchemy import select
+
+    from config import settings
+    from db.database import async_session
+    from models.models import Attendance, Group, InternAttendance, User
+    from web.security import verify_qr_payload
+
+    qr_data = verify_qr_payload(d, s, settings.telegram_token, MARK_QR_MAX_AGE)
+    if not qr_data:
+        return {"ok": False, "message": "Invalid or expired QR code"}
+
+    if qr_data.get("date") != str(date.today()):
+        return {"ok": False, "message": "QR code is for a different date"}
+
+    async with async_session() as session:
+        async with session.begin():
+            user = await session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            user = user.scalar_one_or_none()
+
+            if not user:
+                return {
+                    "ok": False,
+                    "needs_register": True,
+                    "telegram_id": telegram_id,
+                    "message": "Create an account first",
+                }
+
+            weekday = date.today().weekday()
+            if weekday == 6:
+                return {"ok": False, "message": "No attendance on Sundays"}
+
+            today_group = Group.A if weekday in (0, 2, 4) else Group.B
+
+            if user.group != today_group:
+                return {
+                    "ok": False,
+                    "message": f"Today is Group {today_group.value}, you are Group {user.group.value}",
+                }
+
+            att = await session.execute(
+                select(Attendance).where(
+                    Attendance.date == date.today(),
+                    Attendance.group == today_group,
+                )
+            )
+            att = att.scalar_one_or_none()
+            if not att:
+                att = Attendance(date=date.today(), group=today_group)
+                session.add(att)
+                await session.flush()
+
+            entry = await session.execute(
+                select(InternAttendance).where(
+                    InternAttendance.attendance_id == att.id,
+                    InternAttendance.user_id == user.id,
+                )
+            )
+            entry = entry.scalar_one_or_none()
+
+            now = datetime.utcnow()
+            if not entry:
+                entry = InternAttendance(
+                    attendance_id=att.id,
+                    user_id=user.id,
+                    enter_at=now,
+                )
+                session.add(entry)
+                msg = f"✅ Entry marked at {now.strftime('%H:%M')}"
+            else:
+                entry.left_at = now
+                msg = f"✅ Exit marked at {now.strftime('%H:%M')}"
+
+    return {"ok": True, "message": msg}

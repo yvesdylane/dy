@@ -1,9 +1,10 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, Form, Query, UploadFile
+from fastapi import APIRouter, Depends, Form, Query, UploadFile
 
 from web.cloudinary import upload_to_cloudinary
+from web.security import verified_tid
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -34,7 +35,7 @@ async def notify_interns(department, name, description, deadline):
 
 
 @router.get("/api/admin/tasks")
-async def admin_list_tasks(telegram_id: str = Query(...)):
+async def admin_list_tasks(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -60,7 +61,7 @@ async def admin_list_tasks(telegram_id: str = Query(...)):
 
 @router.post("/api/admin/tasks")
 async def admin_create_task(
-    telegram_id: str = Query(...),
+    telegram_id: str = Depends(verified_tid),
     name: str = Form(...), description: str = Form(...),
     department: str = Form(...), submission_deadline: str = Form(...),
     total_mark_on: int = Form(...), file: UploadFile = None,
@@ -99,7 +100,7 @@ async def admin_create_task(
 
 @router.put("/api/admin/tasks/{task_id}")
 async def admin_update_task(
-    task_id: int, telegram_id: str = Query(...),
+    task_id: int, telegram_id: str = Depends(verified_tid),
     name: str = Form(None), description: str = Form(None),
     department: str = Form(None), submission_deadline: str = Form(None),
     total_mark_on: int = Form(None), file: UploadFile = None,
@@ -133,7 +134,7 @@ async def admin_update_task(
 
 
 @router.delete("/api/admin/tasks/{task_id}")
-async def admin_delete_task(task_id: int, telegram_id: str = Query(...)):
+async def admin_delete_task(task_id: int, telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -157,7 +158,7 @@ async def admin_delete_task(task_id: int, telegram_id: str = Query(...)):
 
 
 @router.get("/api/admin/tasks/{task_id}/submissions")
-async def admin_list_submissions(task_id: int, telegram_id: str = Query(...)):
+async def admin_list_submissions(task_id: int, telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
 
     from db.database import async_session
@@ -193,7 +194,7 @@ async def admin_list_submissions(task_id: int, telegram_id: str = Query(...)):
 
 @router.put("/api/admin/submissions/{submission_id}")
 async def admin_grade_submission(
-    submission_id: int, telegram_id: str = Query(...),
+    submission_id: int, telegram_id: str = Depends(verified_tid),
     mark_obtained: float = Form(None), feedback: str = Form(None),
 ):
     from sqlalchemy import select
