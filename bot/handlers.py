@@ -268,6 +268,8 @@ async def handle_contact(update: Update, _context):
     if not contact:
         return
     phone = contact.phone_number
+    if not phone.startswith("+"):
+        phone = "+" + phone
     telegram_id = str(contact.user_id)
 
     from db.database import async_session
