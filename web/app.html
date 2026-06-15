@@ -265,6 +265,18 @@
           try { await loadStats(); } catch(e) {}
           reloadBtn.textContent = 'Reload';
         });
+        const saveDbBtn = nameEl('saveDbBtn');
+        if (saveDbBtn) saveDbBtn.addEventListener('click', async () => {
+          saveDbBtn.textContent = 'Saving...';
+          try {
+            const r = await (await fetch('/api/admin/save-db?telegram_id=' + encodeURIComponent(tid), { method: 'POST' })).json();
+            saveDbBtn.textContent = r.ok ? 'Sent!' : r.detail;
+            setTimeout(() => { saveDbBtn.textContent = 'Save DB'; }, 3000);
+          } catch(e) {
+            saveDbBtn.textContent = 'Error';
+            setTimeout(() => { saveDbBtn.textContent = 'Save DB'; }, 3000);
+          }
+        });
         showSection('stats');
 
         document.querySelectorAll('.nav-btn').forEach(b =>

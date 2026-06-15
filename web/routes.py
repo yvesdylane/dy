@@ -209,6 +209,44 @@ async def admin_stats(telegram_id: str = Depends(verified_tid)):
         "total_fees": total_fees, "total_paid": total_paid, "outstanding": total_fees - total_paid}
 
 
+@router.post("/api/admin/save-db")
+async def admin_save_db(telegram_id: str = Depends(verified_tid)):
+    from io import BytesIO
+
+    from sqlalchemy import select
+
+    from bot.router import application
+    from db.database import async_session
+    from models.models import Role, User
+
+    async with async_session() as session:
+        admin = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        )
+        if not admin.scalar_one_or_none():
+            return {"ok": False, "detail": "Unauthorized"}
+
+    if not application:
+        return {"ok": False, "detail": "Bot not initialized"}
+
+    db_path = Path("dy.db")
+    if not db_path.exists():
+        return {"ok": False, "detail": "Database file not found"}
+
+    try:
+        data = db_path.read_bytes()
+        buf = BytesIO(data)
+        buf.name = "dy.db"
+        await application.bot.send_document(
+            chat_id=telegram_id,
+            document=buf,
+            caption=f"📦 dy.db backup — {len(data)} bytes",
+        )
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "detail": str(e)}
+
+
 @router.get("/api/admin/users")
 async def admin_list_users(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
