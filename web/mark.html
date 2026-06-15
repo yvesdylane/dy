@@ -51,8 +51,10 @@
       document.querySelector('.spinner').remove();
 
       if (data.needs_register) {
+        sessionStorage.setItem('qrD', d);
+        sessionStorage.setItem('qrS', s);
         document.getElementById('status').textContent = 'Create an account first...';
-        const url = '/app?telegram_id=' + encodeURIComponent(data.telegram_id);
+        const url = '/app/register?telegram_id=' + encodeURIComponent(data.telegram_id);
         window.location.href = url;
         return;
       }

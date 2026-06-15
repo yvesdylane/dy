@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+  <title>Create Account</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fafafa;color:#111;padding:24px;min-height:100dvh}
+    @media(prefers-color-scheme:dark){
+      body{background:#09090b;color:#f4f4f5}
+      input,select{background:#18181b;color:#f4f4f5;border-color:#3f3f46}
+      input:focus,select:focus{border-color:#f59e0b}
+    }
+    .container{max-width:420px;margin:0 auto}
+    h1{font-size:22px;font-weight:700;margin-bottom:4px;color:#d97706}
+    p.sub{font-size:13px;color:#71717a;margin-bottom:20px}
+    label{display:block;font-size:13px;font-weight:500;margin-bottom:16px}
+    label span{display:block;margin-bottom:4px}
+    input,select{width:100%;padding:10px 12px;border:1px solid #d4d4d8;border-radius:8px;font-size:14px;background:#fff;outline:none;transition:border-color .15s}
+    input:focus,select:focus{border-color:#f59e0b}
+    .err{color:#dc2626;font-size:13px;display:none;margin-bottom:12px}
+    button{width:100%;padding:12px;border:none;border-radius:8px;background:#d97706;color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+    button:active{background:#b45309}
+    button:disabled{opacity:.5}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Create Account</h1>
+    <p class="sub">Fill in your details to register. A registration code is required.</p>
+
+    <form id="registerForm" onsubmit="return false">
+      <label><span>Name</span><input name="name" required></label>
+      <label><span>Surname</span><input name="surname" required></label>
+      <label><span>Phone (+237)</span><input name="phone" placeholder="+237XXXXXXXXX" required></label>
+      <label><span>Gender</span>
+        <select name="gender" required>
+          <option value="">--</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </label>
+      <label><span>Department</span>
+        <select name="department" required>
+          <option value="">--</option>
+          <option value="ISM">ISM</option>
+          <option value="SWE">SWE</option>
+          <option value="CGWD">CGWD</option>
+          <option value="EDM">EDM</option>
+          <option value="CNWS">CNWS</option>
+          <option value="NS">NS</option>
+        </select>
+      </label>
+      <label><span>Group</span>
+        <select name="group">
+          <option value="">None</option>
+          <option value="A">A</option>
+          <option value="B">B</option>
+        </select>
+      </label>
+      <label><span>School</span><input name="school" required></label>
+      <label><span>Date of Birth</span><input name="dob" type="date" required></label>
+      <label><span>Registration Code</span><input name="code" placeholder="6-digit code" required></label>
+      <p id="errorMsg" class="err"></p>
+      <button type="submit" id="submitBtn">Register</button>
+    </form>
+  </div>
+
+  <script>
+  (function() {
+    var tg = null;
+    try { tg = window.Telegram?.WebApp; if (tg) tg.ready(); } catch(e) {}
+
+    var tid = null;
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      tid = String(tg.initDataUnsafe.user.id);
+    }
+    if (!tid) {
+      tid = new URLSearchParams(window.location.search).get('telegram_id');
+    }
+
+    var form = document.getElementById('registerForm');
+    var err = document.getElementById('errorMsg');
+    var btn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      err.style.display = 'none';
+      if (!tid) {
+        err.textContent = 'Telegram ID not available — open this page from Telegram';
+        err.style.display = 'block';
+        return;
+      }
+      var data = {
+        name: form.elements['name'].value,
+        surname: form.elements['surname'].value,
+        phone: form.elements['phone'].value,
+        telegram_id: tid,
+        gender: form.elements['gender'].value,
+        department: form.elements['department'].value,
+        group: form.elements['group'].value || null,
+        school: form.elements['school'].value,
+        dob: form.elements['dob'].value,
+        code: form.elements['code'].value,
+      };
+      btn.disabled = true;
+      btn.textContent = 'Registering...';
+      try {
+        var res = await (await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })).json();
+        if (res.ok) {
+          var qd = sessionStorage.getItem('qrD');
+          var qs = sessionStorage.getItem('qrS');
+          sessionStorage.removeItem('qrD');
+          sessionStorage.removeItem('qrS');
+          if (qd && qs) {
+            window.location.href = '/app/mark?d=' + encodeURIComponent(qd) + '&s=' + encodeURIComponent(qs);
+          } else {
+            if (tg) { tg.HapticFeedback?.notificationOccurred?.('success'); tg.close(); }
+            else location.href = '/app';
+          }
+        } else {
+          err.textContent = res.detail;
+          err.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Register';
+        }
+      } catch(e) {
+        err.textContent = 'Network error';
+        err.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Register';
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

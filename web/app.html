@@ -19,22 +19,6 @@
       }
     }
   </script>
-  <script>
-    try {
-      var _tg = window.Telegram?.WebApp;
-      if (_tg) {
-        var _sp = _tg.initDataUnsafe?.start_param;
-        if (_sp && _sp.length > 1 && _sp[0] === 'M') {
-          var _c = _sp.slice(1);
-          var _decoded = atob(_c);
-          var _sep = _decoded.indexOf('|');
-          if (_sep > 0) {
-            window.location.href = '/mark?d=' + encodeURIComponent(_decoded.slice(0, _sep)) + '&s=' + encodeURIComponent(_decoded.slice(_sep + 1));
-          }
-        }
-      }
-    } catch(e) {}
-  </script>
   <title>dy</title>
 </head>
 <body class="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-[100dvh] transition-colors duration-200">
@@ -43,6 +27,7 @@
   <div class="animate-spin h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
 </div>
 
+<!--SECTION:register-->
 <div id="adminView" class="hidden flex min-h-screen">
   <div class="hidden md:flex md:flex-col md:w-56 md:bg-zinc-50 md:dark:bg-zinc-900 md:border-r md:border-zinc-200 md:dark:border-zinc-800 md:fixed md:h-full">
     <div class="p-4 border-b border-zinc-200 dark:border-zinc-800">
@@ -86,7 +71,6 @@
       <div><h1 class="font-bold text-sm">Dashboard</h1><p id="adminNameMobile" class="text-xs text-zinc-500"></p></div>
     </div>
     <div class="p-4 pb-24 md:pb-4">
-      <!--SECTION:register-->
       <!--SECTION:stats-->
       <!--SECTION:users-->
       <!--SECTION:codes-->
@@ -172,8 +156,16 @@
   document.documentElement.classList.toggle('dark', cs === 'dark');
 
   const show = (id) => {
-    ['loadingView','registerView','adminView','welcomeView'].forEach(v =>
-      document.getElementById(v).classList.toggle('hidden', v !== id));
+    ['loadingView','registerView','adminView','welcomeView'].forEach(v => {
+      const el = document.getElementById(v);
+      if (!el) return;
+      if (v === id) {
+        el.style.display = '';
+        el.classList.remove('hidden');
+      } else {
+        el.style.display = 'none';
+      }
+    });
   };
 
   const nameEl = (id) => document.getElementById(id);
@@ -846,6 +838,11 @@
       e.preventDefault();
       const err = document.getElementById('errorMsg');
       err.style.display = 'none';
+      if (!form.name) {
+        err.textContent = 'Full registration form coming soon. Use /link in the bot for now.';
+        err.style.display = 'block';
+        return;
+      }
       if (!tid) { err.textContent = 'Telegram ID not available — open this page from Telegram'; err.style.display = 'block'; return; }
       const data = {
         name: form.name.value, surname: form.surname.value, phone: form.phone.value,
@@ -857,8 +854,16 @@
         const res = await (await fetch('/api/register', { method:'POST',
           headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) })).json();
         if (res.ok) {
-          if (tg) { tg.HapticFeedback?.notificationOccurred?.('success'); tg.close(); }
-          else location.reload();
+          var qd = sessionStorage.getItem('qrD');
+          var qs = sessionStorage.getItem('qrS');
+          sessionStorage.removeItem('qrD');
+          sessionStorage.removeItem('qrS');
+          if (qd && qs) {
+            window.location.href = '/mark?d=' + encodeURIComponent(qd) + '&s=' + encodeURIComponent(qs);
+          } else {
+            if (tg) { tg.HapticFeedback?.notificationOccurred?.('success'); tg.close(); }
+            else location.reload();
+          }
         } else {
           err.textContent = res.detail; err.style.display = 'block';
         }

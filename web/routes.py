@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import RedirectResponse
 
 from web.security import verified_tid
 
@@ -8,6 +9,8 @@ router = APIRouter()
 
 APP_HTML_PATH = Path(__file__).parent / "app.html"
 SECTIONS_DIR = Path(__file__).parent / "sections"
+REGISTER_HTML_PATH = Path(__file__).parent / "register-standalone.html"
+MARK_HTML_PATH = Path(__file__).parent / "mark.html"
 
 
 def _get_app_html():
@@ -18,18 +21,124 @@ def _get_app_html():
     return shell
 
 
+HUB_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body{margin:0;padding:0;background:#09090b;display:flex;align-items:center;justify-content:center;min-height:100dvh}
+    .spinner{width:24px;height:24px;border:3px solid #f59e0b;border-top-color:transparent;border-radius:50%;animation:spin .5s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <div class="spinner"></div>
+  <script>
+  (async function(){
+    try{
+      var tg=window.Telegram?.WebApp;
+      if(tg) tg.ready();
+      console.log('hub: tg=',!!tg,'user=',tg?.initDataUnsafe?.user);
+
+      var sp=new URLSearchParams(window.location.search).get('tgWebAppStartParam');
+      if(sp&&sp.length>1&&sp[0]==='M'){
+        var c=sp.slice(1).replace(/-/g,'+').replace(/_/g,'/');
+        var decoded=atob(c);var sep=decoded.indexOf('|');
+        if(sep>0){
+          window.location.href='/app/mark?d='+encodeURIComponent(decoded.slice(0,sep))+'&s='+encodeURIComponent(decoded.slice(sep+1));
+          return;
+        }
+      }
+
+      var tid=null;
+      // attempt 1: tg.initDataUnsafe.user.id
+      if(tg&&tg.initDataUnsafe&&tg.initDataUnsafe.user) tid=String(tg.initDataUnsafe.user.id);
+      console.log('hub: attempt1 tid=',tid);
+      // attempt 2: parse tg.initData directly
+      if(!tid&&tg&&tg.initData){
+        try{
+          var parts=tg.initData.split('&');
+          for(var i=0;i<parts.length;i++){
+            var kv=parts[i].split('=');
+            if(kv[0]==='user'){var u=JSON.parse(decodeURIComponent(kv[1]));tid=String(u.id);break;}
+          }
+        }catch(e){console.log('hub: parse initData failed',e);}
+        console.log('hub: attempt2 tid=',tid);
+      }
+      // attempt 3: URL hash fallback
+      if(!tid){
+        try{
+          var h=new URLSearchParams((window.location.hash||'').replace(/^#/,''));
+          var raw=h.get('tgWebAppData');
+          if(raw){
+            var p2=raw.split('&');
+            for(var j=0;j<p2.length;j++){
+              var kv2=p2[j].split('=');
+              if(kv2[0]==='user'){var u2=JSON.parse(decodeURIComponent(kv2[1]));tid=String(u2.id);break;}
+            }
+          }
+        }catch(e){console.log('hub: hash parse failed',e);}
+        console.log('hub: attempt3 tid=',tid);
+      }
+      // attempt 4: URL query param
+      if(!tid) tid=new URLSearchParams(window.location.search).get('telegram_id');
+      console.log('hub: attempt4 tid=',tid);
+      console.log('hub: final tid=',tid);
+
+      if(!tid){console.log('hub: no tid → register');window.location.href='/app/register';return;}
+      console.log('hub: fetching /api/me');
+      var resp=await fetch('/api/me?telegram_id='+encodeURIComponent(tid));
+      console.log('hub: /api/me status',resp.status);
+      var me=await resp.json();
+      console.log('hub: /api/me body',JSON.stringify(me));
+      if(!me.exists){console.log('hub: user not found → register');window.location.href='/app/register?telegram_id='+encodeURIComponent(tid);}
+      else if(me.role==='admin'){console.log('hub: admin → dashboard');window.location.href='/app/admin?telegram_id='+encodeURIComponent(tid);}
+      else{
+        console.log('hub: non-admin role',me.role,'→ close');
+        document.body.innerHTML='<p style="color:#a1a1aa;font-family:sans-serif;text-align:center;padding:40px 20px;font-size:14px">No dashboard available for your role yet.</p>';
+        setTimeout(function(){if(tg) tg.close();},3000);
+      }
+    }catch(e){console.error('hub: error',e);window.location.href='/app/register';}
+  })();
+  </script>
+</body>
+</html>"""
+
+
 @router.get("/app")
-async def mini_app():
+async def app_hub():
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(HUB_HTML)
+
+
+@router.get("/app/admin")
+async def admin_dashboard():
     from fastapi.responses import HTMLResponse
     return HTMLResponse(_get_app_html())
 
-MARK_HTML_PATH = Path(__file__).parent / "mark.html"
+
+@router.get("/app/register")
+async def register_page():
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(REGISTER_HTML_PATH.read_text())
 
 
-@router.get("/mark")
+@router.get("/app/mark")
 async def mark_page():
     from fastapi.responses import HTMLResponse
     return HTMLResponse(MARK_HTML_PATH.read_text())
+
+
+@router.get("/s")
+async def launch_redirect():
+    return RedirectResponse(url="/app")
+
+
+@router.get("/mark")
+async def mark_redirect():
+    return RedirectResponse(url="/app/mark")
 
 @router.get("/api/me")
 async def get_me(telegram_id: str = Depends(verified_tid)):
@@ -341,20 +450,20 @@ async def register(data: dict):
                     return {"ok": False, "detail": "User already registered"}
 
                 code_val = data.get("code", "")
-                role = Role.intern
-                if code_val:
-                    cc = await session.execute(
-                        select(CreationCode).where(
-                            CreationCode.code == code_val,
-                            CreationCode.is_used == False,
-                            CreationCode.expires_at > datetime.utcnow()
-                        )
+                if not code_val:
+                    return {"ok": False, "detail": "Registration code is required"}
+                cc = await session.execute(
+                    select(CreationCode).where(
+                        CreationCode.code == code_val,
+                        CreationCode.is_used == False,
+                        CreationCode.expires_at > datetime.utcnow()
                     )
-                    cc = cc.scalar_one_or_none()
-                    if not cc:
-                        return {"ok": False, "detail": "Invalid or expired registration code"}
-                    role = cc.role
-                    cc.is_used = True
+                )
+                cc = cc.scalar_one_or_none()
+                if not cc:
+                    return {"ok": False, "detail": "Invalid or expired registration code"}
+                role = cc.role
+                cc.is_used = True
 
                 session.add(User(
                     name=data["name"], surname=data["surname"], phone=data["phone"],

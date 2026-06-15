@@ -1,37 +1,10 @@
-<div id="registerView" class="hidden max-w-md mx-auto p-4 space-y-5">
-  <h2 class="text-xl font-bold text-brand-600 dark:text-brand-400">Create Account</h2>
-  <form id="registerForm" onsubmit="return false" class="space-y-3">
-    <label class="block text-sm font-medium">Name <input name="name" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <label class="block text-sm font-medium">Surname <input name="surname" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <label class="block text-sm font-medium">Phone (+237) <input name="phone" placeholder="+237XXXXXXXXX" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <label class="block text-sm font-medium">Gender
-      <select name="gender" required
-        class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
-        <option value="">--</option><option value="male">Male</option><option value="female">Female</option>
-      </select></label>
-    <label class="block text-sm font-medium">Department
-      <select name="department" required
-        class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
-        <option value="">--</option>
-        <option value="ISM">ISM</option><option value="SWE">SWE</option><option value="CGWD">CGWD</option>
-        <option value="EDM">EDM</option><option value="CNWS">CNWS</option><option value="NS">NS</option>
-      </select></label>
-    <label class="block text-sm font-medium">Group
-      <select name="group"
-        class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none">
-        <option value="">None</option><option value="A">A</option><option value="B">B</option>
-      </select></label>
-    <label class="block text-sm font-medium">School <input name="school" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <label class="block text-sm font-medium">Date of Birth <input name="dob" type="date" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <label class="block text-sm font-medium">Registration Code <input name="code" placeholder="6-digit code" required
-      class="mt-1 w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none"></label>
-    <p id="errorMsg" class="text-red-500 text-sm hidden"></p>
-    <button type="submit"
-      class="w-full py-3 rounded-lg bg-brand-500 hover:bg-brand-600 text-white font-semibold text-sm transition-colors">Register</button>
-  </form>
+<div id="registerView" style="display:none; text-align:center; padding:40px 20px; font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+  <form id="registerForm" style="display:none;"></form>
+  <p id="errorMsg" style="display:none;"></p>
+  <div style="margin-bottom:16px;">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+  </div>
+  <h2 style="font-size:20px; font-weight:700; color:#f59e0b; margin:0 0 8px;">dy</h2>
+  <p style="font-size:14px; color:#666; line-height:1.5; margin:0 0 4px;">Account registration will be available in a future update.</p>
+  <p style="font-size:13px; color:#999; margin:0;">For now, use <strong>/link</strong> in the bot to connect your account.</p>
 </div>
