@@ -1,4 +1,13 @@
 <div id="sectionStats">
+  <style>
+    @media (prefers-color-scheme: dark) {
+      #statUsers { color: #111 !important; }
+    }
+  </style>
+  <div class="flex items-center justify-between mb-3">
+    <h2 class="text-lg font-bold text-zinc-800 dark:text-zinc-200">Dashboard</h2>
+    <button id="reloadBtn" class="px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-500 hover:bg-brand-600 text-white transition-colors">Reload</button>
+  </div>
   <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3">
     <div class="p-4 rounded-xl bg-brand-50 dark:bg-brand-950 border border-brand-200 dark:border-brand-900">
       <p class="text-xs uppercase tracking-wider text-brand-700 dark:text-brand-400 font-medium">Total Users</p>

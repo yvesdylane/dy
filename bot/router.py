@@ -1,6 +1,8 @@
 import logging
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
+from pathlib import Path
+
+from telegram import BotCommand, BotCommandScopeAllPrivateChats, InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import Application, CommandHandler
 
 from bot.handlers import handlers as other_handlers
@@ -9,14 +11,41 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 application: Application | None = None
+ASSETS_DIR = Path(__file__).parent.parent / "assets"
 
 
 async def start(update: Update, _context):
     telegram_id = str(update.effective_user.id)
     mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app?telegram_id={telegram_id}"
-    button = InlineKeyboardButton("Open Dashboard", web_app=WebAppInfo(url=mini_app_url))
+    button = InlineKeyboardButton("Open App", web_app=WebAppInfo(url=mini_app_url))
     keyboard = InlineKeyboardMarkup([[button]])
-    await update.message.reply_text("Welcome! Open your dashboard:", reply_markup=keyboard)
+    logo_path = ASSETS_DIR / "logo.png"
+    description = (
+        "👋 *Welcome to dy!*\n\n"
+        "Manage attendance, tasks, notes, and announcements for your institute.\n\n"
+        "Use /me to view your profile, or open the mini app below."
+    )
+    try:
+        if logo_path.exists():
+            await update.message.reply_photo(
+                photo=logo_path.read_bytes(),
+                caption=description,
+                parse_mode="Markdown",
+                reply_markup=keyboard,
+            )
+        else:
+            await update.message.reply_text(
+                description,
+                parse_mode="Markdown",
+                reply_markup=keyboard,
+            )
+    except Exception as e:
+        logger.error("Start command failed: %s", e)
+        await update.message.reply_text(
+            description,
+            parse_mode="Markdown",
+            reply_markup=keyboard,
+        )
 
 
 async def init_bot():
@@ -45,6 +74,22 @@ async def init_bot():
                 }
             )
             logger.info("Mini app menu button set")
+
+            await application.bot.set_my_commands(
+                [
+                    BotCommand("start", "Welcome and bot info"),
+                    BotCommand("me", "View your profile"),
+                    BotCommand("info", "View announcements"),
+                    BotCommand("helpInfo", "Explore info commands"),
+                    BotCommand("userInfo", "User overview"),
+                    BotCommand("taskInfo", "Task overview"),
+                    BotCommand("dashboard", "Open mini app dashboard"),
+                    BotCommand("link", "Link your phone number"),
+                    BotCommand("qr", "Generate attendance QR (staff only)"),
+                ],
+                scope=BotCommandScopeAllPrivateChats(),
+            )
+            logger.info("Bot commands set")
         else:
             logger.info("Mini app URL not set — skipping webhook and menu button registration")
 

@@ -259,6 +259,12 @@
         nameEl('adminNameMobile').textContent = fullName;
         show('adminView');
         try { await loadStats(); } catch(e) { console.error('Stats load failed', e); }
+        const reloadBtn = nameEl('reloadBtn');
+        if (reloadBtn) reloadBtn.addEventListener('click', async () => {
+          reloadBtn.textContent = 'Reloading...';
+          try { await loadStats(); } catch(e) {}
+          reloadBtn.textContent = 'Reload';
+        });
         showSection('stats');
 
         document.querySelectorAll('.nav-btn').forEach(b =>

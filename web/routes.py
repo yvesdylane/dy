@@ -195,8 +195,12 @@ async def admin_stats(telegram_id: str = Depends(verified_tid)):
             select(func.count(User.id)).where(User.role == Role.instructor)
         )).scalar()
         tasks = (await session.execute(select(func.count(Task.id)))).scalar()
-        total_fees = (await session.execute(select(func.sum(User.total_fees)))).scalar() or 0
-        total_paid = (await session.execute(select(func.sum(User.fees_paid)))).scalar() or 0
+        total_fees = (await session.execute(
+            select(func.sum(User.total_fees)).where(User.role == Role.intern)
+        )).scalar() or 0
+        total_paid = (await session.execute(
+            select(func.sum(User.fees_paid)).where(User.role == Role.intern)
+        )).scalar() or 0
 
     total_fees = float(total_fees)
     total_paid = float(total_paid)
