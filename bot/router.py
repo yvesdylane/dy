@@ -83,6 +83,7 @@ async def init_bot():
                     BotCommand("helpinfo", "Explore info commands"),
                     BotCommand("userinfo", "User overview"),
                     BotCommand("taskinfo", "Task overview"),
+                    BotCommand("task", "View full task details for your department"),
                     BotCommand("dashboard", "Open mini app dashboard"),
                     BotCommand("link", "Link your phone number"),
                     BotCommand("qr", "Generate attendance QR (staff only)"),

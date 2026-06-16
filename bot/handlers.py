@@ -114,6 +114,8 @@ async def send_user_overview(telegram_id: str, update: Update):
 
 
 async def send_task_overview(telegram_id: str, update: Update):
+    from datetime import datetime
+
     from db.database import async_session
     from models.models import Department, Role, Task
 
@@ -124,15 +126,16 @@ async def send_task_overview(telegram_id: str, update: Update):
         await reply("You need an account first.")
         return
 
+    now = datetime.utcnow()
     async with async_session() as session:
-        q = select(Task)
+        q = select(Task).where(Task.submission_deadline >= now)
         if me.role == Role.intern:
             q = q.where(Task.department == me.department)
         q = q.order_by(Task.submission_deadline)
         tasks = (await session.execute(q)).scalars().all()
 
     if not tasks:
-        await reply("No tasks found.")
+        await reply("No active tasks found.")
         return
 
     scope = f"department *{me.department.value}*" if me.role == Role.intern else "all departments"
@@ -211,6 +214,51 @@ async def task_info(update: Update, _context):
         await send_task_overview(telegram_id, update)
     except Exception as e:
         logger.error("Task info failed: %s", e)
+        reply = reply_fn(update)
+        await reply("An error occurred.")
+
+
+async def task_detail(update: Update, _context):
+    from datetime import datetime
+
+    from db.database import async_session
+    from models.models import Role, Task
+
+    telegram_id = str(update.effective_user.id)
+    try:
+        user = await get_user(telegram_id)
+        if not user:
+            await update.message.reply_text("You need an account first.")
+            return
+
+        reply = reply_md_fn(update)
+        now = datetime.utcnow()
+
+        async with async_session() as session:
+            q = (
+                select(Task)
+                .where(Task.department == user.department, Task.submission_deadline >= now)
+                .order_by(Task.submission_deadline)
+            )
+            tasks = (await session.execute(q)).scalars().all()
+
+        if not tasks:
+            await reply(f"No active tasks for your department (*{user.department.value}*).")
+            return
+
+        for t in tasks:
+            lines = [
+                f"*{t.name}*",
+                f"📝 *Description:* {t.description}",
+                f"📅 *Deadline:* {t.submission_deadline.strftime('%Y-%m-%d %H:%M')}",
+                f"🎯 *Total Mark:* {t.total_mark_on}",
+            ]
+            if t.supporting_doc:
+                lines.append(f"📎 *Supporting Doc:* {t.supporting_doc}")
+            lines.append("")
+            await reply("\n".join(lines))
+    except Exception as e:
+        logger.error("Task detail failed: %s", e)
         reply = reply_fn(update)
         await reply("An error occurred.")
 
@@ -431,6 +479,7 @@ handlers = [
     CommandHandler("userinfo", user_info),
     CommandHandler("taskInfo", task_info),
     CommandHandler("taskinfo", task_info),
+    CommandHandler("task", task_detail),
     CommandHandler("dashboard", dashboard),
     CommandHandler("dash", dashboard),
     CommandHandler("link", link_cmd),
