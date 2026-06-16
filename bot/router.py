@@ -69,7 +69,7 @@ async def init_bot():
             await application.bot.set_chat_menu_button(
                 menu_button={
                     "type": "web_app",
-                    "text": "Open App",
+                    "text": "dy",
                     "web_app": {"url": f"{base_url}/app"},
                 }
             )
@@ -84,10 +84,15 @@ async def init_bot():
                     BotCommand("userinfo", "User overview"),
                     BotCommand("taskinfo", "Task overview"),
                     BotCommand("task", "View full task details for your department"),
+                    BotCommand("givetask", "Create a new task (staff only)"),
+                    BotCommand("notes", "View notes"),
+                    BotCommand("givenotes", "Create a new note (staff only)"),
                     BotCommand("dashboard", "Open mini app dashboard"),
                     BotCommand("link", "Link your phone number"),
                     BotCommand("qr", "Generate attendance QR (staff only)"),
                     BotCommand("db", "Download database backup (admin only)"),
+                    BotCommand("cancel", "Cancel current operation"),
+                    BotCommand("skip", "Skip current step"),
                 ],
                 scope=BotCommandScopeAllPrivateChats(),
             )

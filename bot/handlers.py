@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from sqlalchemy import func, select
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, WebAppInfo
-from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, filters
 
 from config import settings
 
@@ -469,7 +469,334 @@ async def sync_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(tmp_path)
 
 
+TASK_NAME, TASK_DESC, TASK_DEPT, TASK_DEADLINE, TASK_MARK, TASK_DOC = range(6)
+NOTE_TITLE, NOTE_CONTENT, NOTE_DEPT, NOTE_FILE = range(4)
+
+
+async def cancel(update: Update, _context):
+    await update.message.reply_text("Cancelled.")
+    return ConversationHandler.END
+
+
+# ── /givetask ──────────────────────────────────────────────────────
+
+
+async def give_task_start(update: Update, _context):
+    from models.models import Role
+
+    user = await get_user(str(update.effective_user.id))
+    if not user or user.role not in (Role.admin, Role.instructor):
+        await update.message.reply_text("Only admins and instructors can create tasks.")
+        return ConversationHandler.END
+
+    await update.message.reply_text("Send me the *task name*:")
+    return TASK_NAME
+
+
+async def give_task_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["task_name"] = update.message.text
+    await update.message.reply_text("Send me the *description*:")
+    return TASK_DESC
+
+
+async def give_task_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["task_desc"] = update.message.text
+    await update.message.reply_text(
+        "Send the *department* (ISM / SWE / CGWD / EDM / CNWS / NS)\n"
+        "Or send `/skip` to use your own department."
+    )
+    return TASK_DEPT
+
+
+async def skip_task_dept(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = await get_user(str(update.effective_user.id))
+    context.user_data["task_dept"] = user.department
+    await update.message.reply_text("Send the *duration* (e.g. `2 days`, `48 hours`, `1d`, `48h`):")
+    return TASK_DEADLINE
+
+
+async def give_task_dept(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from models.models import Department
+
+    try:
+        context.user_data["task_dept"] = Department(update.message.text.strip().upper())
+    except ValueError:
+        await update.message.reply_text("Invalid department. Try: ISM / SWE / CGWD / EDM / CNWS / NS")
+        return TASK_DEPT
+
+    await update.message.reply_text(
+        "Send the *duration* (e.g. `2 days`, `48 hours`, `1d`, `48h`):"
+    )
+    return TASK_DEADLINE
+
+
+async def give_task_deadline(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    import re
+    from datetime import datetime, timedelta
+
+    text = update.message.text.strip().lower()
+    match = re.match(r"(\d+)\s*(h|hr|hours|d|day|days)", text)
+    if not match:
+        await update.message.reply_text("Invalid format. Use e.g. `2 days`, `48 hours`, `1d`.")
+        return TASK_DEADLINE
+
+    amount = int(match.group(1))
+    unit = match.group(2)
+    if unit in ("h", "hr", "hours"):
+        delta = timedelta(hours=amount)
+    else:
+        delta = timedelta(days=amount)
+
+    context.user_data["task_deadline"] = datetime.utcnow() + delta
+
+    await update.message.reply_text("Send the *total mark*:")
+    return TASK_MARK
+
+
+async def give_task_mark(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        context.user_data["task_mark"] = int(update.message.text.strip())
+    except ValueError:
+        await update.message.reply_text("Invalid number. Send an integer.")
+        return TASK_MARK
+
+    await update.message.reply_text(
+        "Upload the *supporting document* (or send `/skip` to skip):"
+    )
+    return TASK_DOC
+
+
+async def skip_task_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from db.database import async_session
+    from models.models import Task
+
+    user = await get_user(str(update.effective_user.id))
+    async with async_session() as session:
+        async with session.begin():
+            session.add(Task(
+                name=context.user_data["task_name"],
+                description=context.user_data["task_desc"],
+                department=context.user_data["task_dept"],
+                submission_deadline=context.user_data["task_deadline"],
+                total_mark_on=context.user_data["task_mark"],
+                supporting_doc=None,
+                created_by=user.id,
+            ))
+
+    context.user_data.clear()
+    await update.message.reply_text("✅ Task created successfully!")
+    return ConversationHandler.END
+
+
+async def give_task_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from db.database import async_session
+    from models.models import Department, Task
+
+    user = await get_user(str(update.effective_user.id))
+
+    doc_url = None
+    if update.message.document:
+        file = await context.bot.get_file(update.message.document.file_id)
+        file_bytes = await file.download_as_bytearray()
+        from web.cloudinary import upload_to_cloudinary
+        doc_url = upload_to_cloudinary(bytes(file_bytes), folder="dy/tasks")
+
+    async with async_session() as session:
+        async with session.begin():
+            task = Task(
+                name=context.user_data["task_name"],
+                description=context.user_data["task_desc"],
+                department=context.user_data["task_dept"],
+                submission_deadline=context.user_data["task_deadline"],
+                total_mark_on=context.user_data["task_mark"],
+                supporting_doc=doc_url,
+                created_by=user.id,
+            )
+            session.add(task)
+
+    context.user_data.clear()
+    await update.message.reply_text("✅ Task created successfully!")
+    return ConversationHandler.END
+
+
+give_task_conv = ConversationHandler(
+    entry_points=[CommandHandler("givetask", give_task_start)],
+    states={
+        TASK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, give_task_name)],
+        TASK_DESC: [MessageHandler(filters.TEXT & ~filters.COMMAND, give_task_desc)],
+        TASK_DEPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, give_task_dept), CommandHandler("skip", skip_task_dept)],
+        TASK_DEADLINE: [MessageHandler(filters.TEXT & ~filters.COMMAND, give_task_deadline)],
+        TASK_MARK: [MessageHandler(filters.TEXT & ~filters.COMMAND, give_task_mark)],
+        TASK_DOC: [MessageHandler(filters.Document.ALL, give_task_doc), MessageHandler(filters.TEXT & ~filters.COMMAND, give_task_doc), CommandHandler("skip", skip_task_doc)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
+
+
+# ── /notes ─────────────────────────────────────────────────────────
+
+
+async def notes_list(update: Update, _context):
+    from datetime import datetime
+
+    from db.database import async_session
+    from models.models import Note
+
+    user = await get_user(str(update.effective_user.id))
+    if not user:
+        await update.message.reply_text("You need an account first.")
+        return
+
+    async with async_session() as session:
+        q = select(Note).order_by(Note.created_at.desc())
+        if not user.role.value == "admin":
+            q = q.where(Note.department == user.department)
+        notes = (await session.execute(q)).scalars().all()
+
+    if not notes:
+        await update.message.reply_text("No notes found.")
+        return
+
+    for n in notes:
+        lines = [
+            f"*{n.title}*",
+        ]
+        if n.content:
+            lines.append(f"📝 {n.content[:200]}")
+        if n.file_url:
+            lines.append(f"📎 {n.file_url}")
+        lines.append(f"_{n.created_at.date()}_")
+        lines.append("")
+        await update.message.reply_markdown("\n".join(lines))
+
+
+# ── /givenotes ─────────────────────────────────────────────────────
+
+
+async def give_note_start(update: Update, _context):
+    from models.models import Role
+
+    user = await get_user(str(update.effective_user.id))
+    if not user or user.role not in (Role.admin, Role.instructor):
+        await update.message.reply_text("Only admins and instructors can create notes.")
+        return ConversationHandler.END
+
+    await update.message.reply_text("Send the *note title*:")
+    return NOTE_TITLE
+
+
+async def give_note_title(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["note_title"] = update.message.text
+    await update.message.reply_text(
+        "Send the *content* (or send `/skip` to skip):"
+    )
+    return NOTE_CONTENT
+
+
+async def skip_note_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["note_content"] = None
+    await update.message.reply_text(
+        "Send the *department* (ISM / SWE / CGWD / EDM / CNWS / NS)\n"
+        "Or send `/skip` to use your own department."
+    )
+    return NOTE_DEPT
+
+
+async def give_note_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["note_content"] = update.message.text
+    await update.message.reply_text(
+        "Send the *department* (ISM / SWE / CGWD / EDM / CNWS / NS)\n"
+        "Or send `/skip` to use your own department."
+    )
+    return NOTE_DEPT
+
+
+async def skip_note_dept(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = await get_user(str(update.effective_user.id))
+    context.user_data["note_dept"] = user.department
+    await update.message.reply_text("Upload the *file* (or send `/skip` to skip):")
+    return NOTE_FILE
+
+
+async def give_note_dept(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from models.models import Department
+
+    try:
+        context.user_data["note_dept"] = Department(update.message.text.strip().upper())
+    except ValueError:
+        await update.message.reply_text("Invalid department. Try: ISM / SWE / CGWD / EDM / CNWS / NS")
+        return NOTE_DEPT
+
+    await update.message.reply_text(
+        "Upload the *file* (or send `/skip` to skip):"
+    )
+    return NOTE_FILE
+
+
+async def skip_note_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from db.database import async_session
+    from models.models import Note
+
+    user = await get_user(str(update.effective_user.id))
+    async with async_session() as session:
+        async with session.begin():
+            session.add(Note(
+                title=context.user_data["note_title"],
+                content=context.user_data["note_content"],
+                department=context.user_data["note_dept"],
+                file_url=None,
+                uploaded_by=user.id,
+            ))
+
+    context.user_data.clear()
+    await update.message.reply_text("✅ Note created successfully!")
+    return ConversationHandler.END
+
+
+async def give_note_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from db.database import async_session
+    from models.models import Note
+
+    user = await get_user(str(update.effective_user.id))
+
+    file_url = None
+    if update.message.document:
+        file = await context.bot.get_file(update.message.document.file_id)
+        file_bytes = await file.download_as_bytearray()
+        from web.cloudinary import upload_to_cloudinary
+        file_url = upload_to_cloudinary(bytes(file_bytes), folder="dy/notes")
+
+    async with async_session() as session:
+        async with session.begin():
+            note = Note(
+                title=context.user_data["note_title"],
+                content=context.user_data["note_content"],
+                department=context.user_data["note_dept"],
+                file_url=file_url,
+                uploaded_by=user.id,
+            )
+            session.add(note)
+
+    context.user_data.clear()
+    await update.message.reply_text("✅ Note created successfully!")
+    return ConversationHandler.END
+
+
+give_note_conv = ConversationHandler(
+    entry_points=[CommandHandler("givenotes", give_note_start)],
+    states={
+        NOTE_TITLE: [MessageHandler(filters.TEXT & ~filters.COMMAND, give_note_title)],
+        NOTE_CONTENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, give_note_content), CommandHandler("skip", skip_note_content)],
+        NOTE_DEPT: [MessageHandler(filters.TEXT & ~filters.COMMAND, give_note_dept), CommandHandler("skip", skip_note_dept)],
+        NOTE_FILE: [MessageHandler(filters.Document.ALL, give_note_file), MessageHandler(filters.TEXT & ~filters.COMMAND, give_note_file), CommandHandler("skip", skip_note_file)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
+
+
 handlers = [
+    give_task_conv,
+    give_note_conv,
     CommandHandler("me", me),
     CommandHandler("info", announcements),
     CommandHandler("qr", qr_command),
@@ -480,6 +807,7 @@ handlers = [
     CommandHandler("taskInfo", task_info),
     CommandHandler("taskinfo", task_info),
     CommandHandler("task", task_detail),
+    CommandHandler("notes", notes_list),
     CommandHandler("dashboard", dashboard),
     CommandHandler("dash", dashboard),
     CommandHandler("link", link_cmd),
