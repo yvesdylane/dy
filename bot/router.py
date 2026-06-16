@@ -85,7 +85,7 @@ async def init_bot():
                     BotCommand("taskinfo", "Browse active tasks"),
                     BotCommand("givetask", "Create a new task (staff only)"),
                     BotCommand("submit", "Submit your task work"),
-                    BotCommand("notes", "View notes"),
+                    BotCommand("notes", "Browse notes"),
                     BotCommand("givenotes", "Create a new note (staff only)"),
                     BotCommand("sync", "Upload & sync database (admin only)"),
                     BotCommand("dashboard", "Open mini app dashboard"),

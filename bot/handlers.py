@@ -138,10 +138,8 @@ async def send_task_overview(telegram_id: str, update: Update):
         await reply("No active tasks found.")
         return
 
-    keyboard = [
-        [InlineKeyboardButton(t.name, callback_data=f"task_{t.id}")]
-        for t in tasks
-    ]
+    btns = [InlineKeyboardButton(t.name, callback_data=f"task_{t.id}") for t in tasks]
+    keyboard = [btns[i:i+2] for i in range(0, len(btns), 2)]
     scope = f"department *{me.department.value}*" if me.role == Role.intern else "all departments"
     await reply(
         f"*Active tasks ({scope}):*",
@@ -225,6 +223,8 @@ async def task_info(update: Update, _context):
 async def task_detail_callback(update: Update, _context):
     from datetime import datetime
 
+    import httpx
+
     from db.database import async_session
     from models.models import Task
 
@@ -245,9 +245,20 @@ async def task_detail_callback(update: Update, _context):
         f"📅 *Deadline:* {t.submission_deadline.strftime('%Y-%m-%d %H:%M')}",
         f"🎯 *Total Mark:* {t.total_mark_on}",
     ]
-    if t.supporting_doc:
-        lines.append(f"📎 *Supporting Doc:* {t.supporting_doc}")
     await query.message.reply_markdown("\n".join(lines))
+
+    if t.supporting_doc:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(t.supporting_doc)
+                resp.raise_for_status()
+            await query.message.reply_document(
+                document=resp.content,
+                filename=t.supporting_doc.rsplit("/", 1)[-1].split("?")[0],
+                caption="📎 Supporting document",
+            )
+        except Exception as e:
+            logger.error("Failed to send supporting doc: %s", e)
 
 
 async def help_info(update: Update, _context):
@@ -775,8 +786,6 @@ give_task_conv = ConversationHandler(
 
 
 async def notes_list(update: Update, _context):
-    from datetime import datetime
-
     from db.database import async_session
     from models.models import Note
 
@@ -795,17 +804,48 @@ async def notes_list(update: Update, _context):
         await update.message.reply_text("No notes found.")
         return
 
-    for n in notes:
-        lines = [
-            f"*{n.title}*",
-        ]
-        if n.content:
-            lines.append(f"📝 {n.content[:200]}")
-        if n.file_url:
-            lines.append(f"📎 {n.file_url}")
-        lines.append(f"_{n.created_at.date()}_")
-        lines.append("")
-        await update.message.reply_markdown("\n".join(lines))
+    btns = [InlineKeyboardButton(n.title, callback_data=f"note_{n.id}") for n in notes]
+    keyboard = [btns[i:i+2] for i in range(0, len(btns), 2)]
+    await update.message.reply_text(
+        "Select a note:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
+async def note_detail_callback(update: Update, _context):
+    import httpx
+
+    from db.database import async_session
+    from models.models import Note
+
+    query = update.callback_query
+    await query.answer()
+
+    note_id = int(query.data.split("_")[1])
+    async with async_session() as session:
+        n = (await session.execute(select(Note).where(Note.id == note_id))).scalar_one_or_none()
+
+    if not n:
+        await query.message.reply_text("Note not found.")
+        return
+
+    lines = [f"*{n.title}*", f"_{n.created_at.date()}_"]
+    if n.content:
+        lines.append(f"\n📝 {n.content}")
+    await query.message.reply_markdown("\n".join(lines))
+
+    if n.file_url:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(n.file_url)
+                resp.raise_for_status()
+            await query.message.reply_document(
+                document=resp.content,
+                filename=n.file_url.rsplit("/", 1)[-1].split("?")[0],
+                caption=f"📎 {n.title}",
+            )
+        except Exception as e:
+            logger.error("Failed to send note file: %s", e)
 
 
 # ── /givenotes ─────────────────────────────────────────────────────
@@ -954,4 +994,5 @@ handlers = [
     MessageHandler(filters.CONTACT, handle_contact),
     CallbackQueryHandler(info_callback, pattern="^info_"),
     CallbackQueryHandler(task_detail_callback, pattern="^task_"),
+    CallbackQueryHandler(note_detail_callback, pattern="^note_"),
 ]
