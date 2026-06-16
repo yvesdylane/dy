@@ -86,6 +86,7 @@ async def init_bot():
                     BotCommand("dashboard", "Open mini app dashboard"),
                     BotCommand("link", "Link your phone number"),
                     BotCommand("qr", "Generate attendance QR (staff only)"),
+                    BotCommand("db", "Download database backup (admin only)"),
                 ],
                 scope=BotCommandScopeAllPrivateChats(),
             )

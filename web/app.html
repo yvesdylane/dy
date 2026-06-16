@@ -216,7 +216,7 @@
       <div class="user-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="${u.id}">
         <div class="min-w-0 flex-1">
           <p class="font-medium text-sm truncate">${u.name} ${u.surname}</p>
-          <p class="text-xs text-zinc-500">${u.department} · ${u.role} · ${u.phone} · ${u.linked ? 'linked' : 'pending'}</p>
+          <p class="text-xs text-zinc-500">${u.department} · ${u.role} · ${u.phone} · ${u.linked ? 'linked' : 'pending'} · <span class="font-mono">${u.telegram_id}</span></p>
         </div>
         <span class="text-xs px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300' : u.role === 'instructor' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'}">${u.role}</span>
       </div>
@@ -336,6 +336,7 @@
           class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
         <input name="phone" placeholder="Phone (+237XXXXXXXXX)" value="${isEdit ? esc(data.phone) : ''}" required
           class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        ${isEdit ? '<input name="telegram_id" placeholder="Telegram ID" value="' + esc(data.telegram_id) + '" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' : ''}
         <select name="gender" required
           class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
           <option value="">Gender</option>
@@ -385,6 +386,7 @@
         if (g('role')) body.role = g('role').value;
         if (g('total_fees')) body.total_fees = parseFloat(g('total_fees').value) || 0;
         if (g('fees_paid')) body.fees_paid = parseFloat(g('fees_paid').value) || 0;
+        if (g('telegram_id')) body.telegram_id = g('telegram_id').value;
       }
       const url = isEdit
         ? '/api/admin/users/' + data.id + '?telegram_id=' + encodeURIComponent(tid)
@@ -408,6 +410,7 @@
           <div><span class="text-zinc-500">Gender</span><p class="font-medium">${u.gender}</p></div>
           <div><span class="text-zinc-500">Group</span><p class="font-medium">${u.group || '—'}</p></div>
           <div><span class="text-zinc-500">Phone</span><p class="font-medium">${esc(u.phone)}</p></div>
+          <div><span class="text-zinc-500">Telegram ID</span><p class="font-mono text-xs">${esc(u.telegram_id)}</p></div>
           <div><span class="text-zinc-500">School</span><p class="font-medium">${esc(u.school)}</p></div>
           <div><span class="text-zinc-500">DOB</span><p class="font-medium">${u.dob}</p></div>
           <div><span class="text-zinc-500">Status</span><p class="font-medium">${u.linked ? 'Linked' : 'Pending'}</p></div>

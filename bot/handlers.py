@@ -1,4 +1,7 @@
 import logging
+import os
+import tempfile
+from urllib.parse import urlparse
 
 from sqlalchemy import func, select
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, WebAppInfo
@@ -362,6 +365,62 @@ async def qr_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.warning("Failed to send QR to user %s", s.telegram_id)
 
 
+async def db_backup(update: Update, _context):
+    from models.models import Role
+
+    telegram_id = str(update.effective_user.id)
+    user = await get_user(telegram_id)
+    if not user or user.role != Role.admin:
+        await update.message.reply_text("Only admins can use this command.")
+        return
+
+    parsed = urlparse(settings.database_url)
+    db_path = parsed.path.lstrip("/")
+    if not os.path.exists(db_path):
+        await update.message.reply_text("Database file not found.")
+        return
+
+    await update.message.reply_document(
+        document=open(db_path, "rb"),
+        filename="dy_backup.db",
+        caption="📦 Database backup",
+    )
+
+
+async def sync_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from models.models import Role
+
+    telegram_id = str(update.effective_user.id)
+    user = await get_user(telegram_id)
+    if not user or user.role != Role.admin:
+        await update.message.reply_text("Only admins can use this command.")
+        return
+
+    document = update.message.document
+    if not document or not document.file_name.lower().endswith(".db"):
+        await update.message.reply_text("Please send a .db file.")
+        return
+
+    msg = await update.message.reply_text("Downloading database file...")
+
+    file = await context.bot.get_file(document.file_id)
+    tmp_path = os.path.join(tempfile.gettempdir(), f"sync_{telegram_id}_{document.file_name}")
+    await file.download_to_drive(tmp_path)
+
+    await msg.edit_text("Syncing data...")
+
+    try:
+        from db.sync import sync_database
+        result = await sync_database(tmp_path)
+        await msg.edit_text(f"✅ Sync complete!\n{result}")
+    except Exception as e:
+        await msg.edit_text(f"❌ Sync failed: {e}")
+        logger.error("Sync error: %s", e, exc_info=True)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
 handlers = [
     CommandHandler("me", me),
     CommandHandler("info", announcements),
@@ -375,6 +434,8 @@ handlers = [
     CommandHandler("dashboard", dashboard),
     CommandHandler("dash", dashboard),
     CommandHandler("link", link_cmd),
+    CommandHandler("db", db_backup),
+    MessageHandler(filters.Document.FileExtension("db"), sync_db),
     MessageHandler(filters.CONTACT, handle_contact),
     CallbackQueryHandler(info_callback, pattern="^info_"),
 ]
