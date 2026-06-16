@@ -138,11 +138,15 @@ async def send_task_overview(telegram_id: str, update: Update):
         await reply("No active tasks found.")
         return
 
+    keyboard = [
+        [InlineKeyboardButton(t.name, callback_data=f"task_{t.id}")]
+        for t in tasks
+    ]
     scope = f"department *{me.department.value}*" if me.role == Role.intern else "all departments"
-    lines = [f"*Tasks ({scope}):*"]
-    for t in tasks:
-        lines.append(f"\n• *{t.name}* — due {t.submission_deadline.date()}")
-    await reply("\n".join(lines))
+    await reply(
+        f"*Active tasks ({scope}):*",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
 
 
 async def me(update: Update, _context):
@@ -218,49 +222,32 @@ async def task_info(update: Update, _context):
         await reply("An error occurred.")
 
 
-async def task_detail(update: Update, _context):
+async def task_detail_callback(update: Update, _context):
     from datetime import datetime
 
     from db.database import async_session
-    from models.models import Role, Task
+    from models.models import Task
 
-    telegram_id = str(update.effective_user.id)
-    try:
-        user = await get_user(telegram_id)
-        if not user:
-            await update.message.reply_text("You need an account first.")
-            return
+    query = update.callback_query
+    await query.answer()
 
-        reply = reply_md_fn(update)
-        now = datetime.utcnow()
+    task_id = int(query.data.split("_")[1])
+    async with async_session() as session:
+        t = (await session.execute(select(Task).where(Task.id == task_id))).scalar_one_or_none()
 
-        async with async_session() as session:
-            q = (
-                select(Task)
-                .where(Task.department == user.department, Task.submission_deadline >= now)
-                .order_by(Task.submission_deadline)
-            )
-            tasks = (await session.execute(q)).scalars().all()
+    if not t:
+        await query.message.reply_text("Task not found or has been removed.")
+        return
 
-        if not tasks:
-            await reply(f"No active tasks for your department (*{user.department.value}*).")
-            return
-
-        for t in tasks:
-            lines = [
-                f"*{t.name}*",
-                f"📝 *Description:* {t.description}",
-                f"📅 *Deadline:* {t.submission_deadline.strftime('%Y-%m-%d %H:%M')}",
-                f"🎯 *Total Mark:* {t.total_mark_on}",
-            ]
-            if t.supporting_doc:
-                lines.append(f"📎 *Supporting Doc:* {t.supporting_doc}")
-            lines.append("")
-            await reply("\n".join(lines))
-    except Exception as e:
-        logger.error("Task detail failed: %s", e)
-        reply = reply_fn(update)
-        await reply("An error occurred.")
+    lines = [
+        f"*{t.name}*",
+        f"📝 *Description:* {t.description}",
+        f"📅 *Deadline:* {t.submission_deadline.strftime('%Y-%m-%d %H:%M')}",
+        f"🎯 *Total Mark:* {t.total_mark_on}",
+    ]
+    if t.supporting_doc:
+        lines.append(f"📎 *Supporting Doc:* {t.supporting_doc}")
+    await query.message.reply_markdown("\n".join(lines))
 
 
 async def help_info(update: Update, _context):
@@ -435,19 +422,58 @@ async def db_backup(update: Update, _context):
     )
 
 
-async def sync_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
+TASK_NAME, TASK_DESC, TASK_DEPT, TASK_DEADLINE, TASK_MARK, TASK_DOC = range(6)
+NOTE_TITLE, NOTE_CONTENT, NOTE_DEPT, NOTE_FILE = range(4)
+SYNC_FILE = 0
+SUBMIT_SELECT, SUBMIT_FILE = range(2)
+
+
+async def cancel(update: Update, _context):
+    await update.message.reply_text("Cancelled.")
+    return ConversationHandler.END
+
+
+def _validate_db_schema(db_path: str) -> tuple[bool, str]:
+    import sqlite3
+
+    EXPECTED = {
+        "users", "attendances", "intern_attendances", "tasks",
+        "task_submissions", "infos", "notes", "creation_codes",
+    }
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        tables = {row[0] for row in cursor.fetchall()}
+        conn.close()
+        missing = EXPECTED - tables
+        if missing:
+            return False, f"Missing tables: {', '.join(sorted(missing))}"
+        return True, "Schema OK"
+    except Exception as e:
+        return False, str(e)
+
+
+# ── /sync ──────────────────────────────────────────────────────────
+
+
+async def sync_start(update: Update, _context):
     from models.models import Role
 
-    telegram_id = str(update.effective_user.id)
-    user = await get_user(telegram_id)
+    user = await get_user(str(update.effective_user.id))
     if not user or user.role != Role.admin:
         await update.message.reply_text("Only admins can use this command.")
-        return
+        return ConversationHandler.END
 
+    await update.message.reply_text("Upload the *.db* file to sync:")
+    return SYNC_FILE
+
+
+async def sync_receive(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    telegram_id = str(update.effective_user.id)
     document = update.message.document
     if not document or not document.file_name.lower().endswith(".db"):
         await update.message.reply_text("Please send a .db file.")
-        return
+        return SYNC_FILE
 
     msg = await update.message.reply_text("Downloading database file...")
 
@@ -455,8 +481,13 @@ async def sync_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tmp_path = os.path.join(tempfile.gettempdir(), f"sync_{telegram_id}_{document.file_name}")
     await file.download_to_drive(tmp_path)
 
-    await msg.edit_text("Syncing data...")
+    valid, err = _validate_db_schema(tmp_path)
+    if not valid:
+        os.remove(tmp_path)
+        await msg.edit_text(f"❌ Invalid database format: {err}")
+        return ConversationHandler.END
 
+    await msg.edit_text("Syncing data...")
     try:
         from db.sync import sync_database
         result = await sync_database(tmp_path)
@@ -468,14 +499,121 @@ async def sync_db(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
-
-TASK_NAME, TASK_DESC, TASK_DEPT, TASK_DEADLINE, TASK_MARK, TASK_DOC = range(6)
-NOTE_TITLE, NOTE_CONTENT, NOTE_DEPT, NOTE_FILE = range(4)
-
-
-async def cancel(update: Update, _context):
-    await update.message.reply_text("Cancelled.")
     return ConversationHandler.END
+
+
+sync_conv = ConversationHandler(
+    entry_points=[CommandHandler("sync", sync_start)],
+    states={
+        SYNC_FILE: [MessageHandler(filters.Document.ALL, sync_receive)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
+
+
+# ── /submit ────────────────────────────────────────────────────────
+
+
+async def submit_start(update: Update, _context):
+    from datetime import datetime
+
+    from db.database import async_session
+    from models.models import Role, Task
+
+    user = await get_user(str(update.effective_user.id))
+    if not user:
+        await update.message.reply_text("You need an account first.")
+        return ConversationHandler.END
+
+    now = datetime.utcnow()
+    async with async_session() as session:
+        tasks = (
+            (await session.execute(
+                select(Task).where(
+                    Task.department == user.department,
+                    Task.submission_deadline >= now,
+                ).order_by(Task.submission_deadline)
+            )).scalars().all()
+        )
+
+    if not tasks:
+        await update.message.reply_text("No active tasks for your department.")
+        return ConversationHandler.END
+
+    keyboard = [
+        [InlineKeyboardButton(t.name, callback_data=f"submit_{t.id}")]
+        for t in tasks
+    ]
+    await update.message.reply_text(
+        "Select the task to submit:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return SUBMIT_SELECT
+
+
+async def submit_select(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    task_id = int(query.data.split("_")[1])
+
+    from db.database import async_session
+    from models.models import Task
+
+    async with async_session() as session:
+        t = (await session.execute(select(Task).where(Task.id == task_id))).scalar_one_or_none()
+
+    if not t:
+        await query.message.reply_text("Task not found.")
+        return ConversationHandler.END
+
+    context.user_data["submit_task_id"] = task_id
+    await query.message.reply_text(f"Upload your submission for *{t.name}*:")
+    return SUBMIT_FILE
+
+
+async def submit_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from db.database import async_session
+    from models.models import Task, TaskSubmission
+
+    user = await get_user(str(update.effective_user.id))
+    task_id = context.user_data.get("submit_task_id")
+    if not task_id or not user:
+        await update.message.reply_text("Something went wrong. Start again with /submit.")
+        return ConversationHandler.END
+
+    if not update.message.document:
+        await update.message.reply_text("Please upload a file.")
+        return SUBMIT_FILE
+
+    msg = await update.message.reply_text("Uploading submission...")
+
+    file = await context.bot.get_file(update.message.document.file_id)
+    file_bytes = await file.download_as_bytearray()
+
+    from web.cloudinary import upload_to_cloudinary
+    file_url = upload_to_cloudinary(bytes(file_bytes), folder="dy/submissions")
+
+    async with async_session() as session:
+        async with session.begin():
+            session.add(TaskSubmission(
+                task_id=task_id,
+                user_id=user.id,
+                submitted_file=file_url,
+            ))
+
+    context.user_data.pop("submit_task_id", None)
+    await msg.edit_text("✅ Task submitted successfully!")
+    return ConversationHandler.END
+
+
+submit_conv = ConversationHandler(
+    entry_points=[CommandHandler("submit", submit_start)],
+    states={
+        SUBMIT_SELECT: [CallbackQueryHandler(submit_select, pattern="^submit_")],
+        SUBMIT_FILE: [MessageHandler(filters.Document.ALL, submit_file)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
 
 
 # ── /givetask ──────────────────────────────────────────────────────
@@ -795,7 +933,9 @@ give_note_conv = ConversationHandler(
 
 
 handlers = [
+    sync_conv,
     give_task_conv,
+    submit_conv,
     give_note_conv,
     CommandHandler("me", me),
     CommandHandler("info", announcements),
@@ -806,13 +946,12 @@ handlers = [
     CommandHandler("userinfo", user_info),
     CommandHandler("taskInfo", task_info),
     CommandHandler("taskinfo", task_info),
-    CommandHandler("task", task_detail),
     CommandHandler("notes", notes_list),
     CommandHandler("dashboard", dashboard),
     CommandHandler("dash", dashboard),
     CommandHandler("link", link_cmd),
     CommandHandler("db", db_backup),
-    MessageHandler(filters.Document.FileExtension("db"), sync_db),
     MessageHandler(filters.CONTACT, handle_contact),
     CallbackQueryHandler(info_callback, pattern="^info_"),
+    CallbackQueryHandler(task_detail_callback, pattern="^task_"),
 ]
