@@ -337,7 +337,7 @@ async def handle_contact(update: Update, _context):
                 )
                 return
 
-            if user.telegram_id and user.telegram_id != telegram_id:
+            if user.telegram_id and not user.telegram_id.startswith("pending_") and user.telegram_id != telegram_id:
                 await update.message.reply_text(
                     "This phone is linked to a different account.",
                     reply_markup=ReplyKeyboardRemove(),
