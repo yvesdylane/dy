@@ -3,6 +3,7 @@ from datetime import datetime
 
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+from sqlalchemy.types import Date, DateTime, Numeric
 
 from models.models import (
     Attendance,
@@ -48,8 +49,19 @@ async def sync_database(uploaded_db_path: str) -> str:
                 for row in rows:
                     u = User()
                     for col in User.__table__.columns:
-                        if col.name in col_names:
-                            setattr(u, col.name, row._mapping[col.name])
+                        if col.name not in col_names:
+                            continue
+                        val = row._mapping[col.name]
+                        if isinstance(col.type, DateTime) and isinstance(val, str):
+                            from datetime import datetime as _dt
+                            val = _dt.strptime(val, "%Y-%m-%d %H:%M:%S.%f")
+                        elif isinstance(col.type, Date) and isinstance(val, str):
+                            from datetime import datetime as _dt
+                            val = _dt.strptime(val, "%Y-%m-%d").date()
+                        elif isinstance(col.type, Numeric) and isinstance(val, (int, float)):
+                            from decimal import Decimal
+                            val = Decimal(str(val))
+                        setattr(u, col.name, val)
                     users.append(u)
 
             attendances = (await upload_session.execute(select(Attendance))).scalars().all()
