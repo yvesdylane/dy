@@ -197,6 +197,8 @@
   }
 
   let allUsers = [];
+  let userPage = 1;
+  const userPerPage = 20;
 
   function filterUsers() {
     const q = nameEl('userSearch').value.toLowerCase();
@@ -212,21 +214,42 @@
   function renderUsers() {
     const list = nameEl('usersList');
     const filtered = filterUsers();
-    list.innerHTML = filtered.map(u => `
-      <div class="user-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="${u.id}">
-        <div class="min-w-0 flex-1">
-          <p class="font-medium text-sm truncate">${u.name} ${u.surname}</p>
-          <p class="text-xs text-zinc-500">${u.department} · ${u.role} · ${u.phone} · ${u.linked ? 'linked' : 'pending'} · <span class="font-mono">${u.telegram_id}</span></p>
-        </div>
-        <span class="text-xs px-2 py-0.5 rounded-full ${u.role === 'admin' ? 'bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300' : u.role === 'instructor' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'}">${u.role}</span>
-      </div>
-    `).join('');
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / userPerPage) || 1;
+    if (userPage > totalPages) userPage = totalPages;
+    const start = (userPage - 1) * userPerPage;
+    const pageUsers = filtered.slice(start, start + userPerPage);
+    const countEl = nameEl('userCount');
+    if (countEl) countEl.textContent = total + ' user' + (total !== 1 ? 's' : '');
+    const pagEl = nameEl('userPagination');
+    if (pagEl) {
+      let html = '';
+      if (totalPages > 1) {
+        html += '<button class="px-2 py-1 rounded ' + (userPage <= 1 ? 'text-zinc-400' : 'text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950 cursor-pointer') + '" data-page="' + (userPage - 1) + '"' + (userPage <= 1 ? ' disabled' : '') + '>\u2039</button>';
+        html += '<span class="px-2 py-1 text-zinc-500">' + userPage + '/' + totalPages + '</span>';
+        html += '<button class="px-2 py-1 rounded ' + (userPage >= totalPages ? 'text-zinc-400' : 'text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950 cursor-pointer') + '" data-page="' + (userPage + 1) + '"' + (userPage >= totalPages ? ' disabled' : '') + '>\u203a</button>';
+      }
+      pagEl.innerHTML = html;
+    }
+    list.innerHTML = pageUsers.map(u => {
+      return '<div class="user-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="' + u.id + '">' +
+        '<div class="min-w-0 flex-1">' +
+        '<p class="font-medium text-sm truncate">' + u.name + ' ' + u.surname + '</p>' +
+        '<p class="text-xs text-zinc-500">' + u.department + ' \u00b7 ' + u.role + ' \u00b7 ' + u.phone + ' \u00b7 ' + (u.linked ? 'linked' : 'pending') + ' \u00b7 <span class="font-mono">' + u.telegram_id + '</span></p>' +
+        '</div>' +
+        '<span class="text-xs px-2 py-0.5 rounded-full ' + (u.role === 'admin' ? 'bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300' : u.role === 'instructor' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300') + '">' + u.role + '</span>' +
+        '</div>';
+    }).join('');
   }
 
   async function loadUsers() {
-    const r = await (await fetch('/api/admin/users?telegram_id=' + encodeURIComponent(tid))).json();
+    const group = nameEl('userGroupFilter').value;
+    let url = '/api/admin/users?telegram_id=' + encodeURIComponent(tid);
+    if (group) url += '&group=' + encodeURIComponent(group);
+    const r = await (await fetch(url)).json();
     if (!r.ok) return;
     allUsers = r.users;
+    userPage = 1;
     renderUsers();
   }
 
@@ -298,12 +321,20 @@
         nameEl('userSearch').addEventListener('input', renderUsers);
         nameEl('userDeptFilter').addEventListener('change', renderUsers);
         nameEl('userRoleFilter').addEventListener('change', renderUsers);
+        nameEl('userGroupFilter').addEventListener('change', () => { userPage = 1; loadUsers(); });
 
         nameEl('usersList').addEventListener('click', (e) => {
           const row = e.target.closest('.user-row');
           if (row) {
             const u = allUsers.find(x => x.id == row.dataset.id);
             if (u) showUserDetail(u);
+          }
+        });
+        nameEl('userPagination').addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-page]');
+          if (btn && !btn.disabled) {
+            userPage = parseInt(btn.dataset.page);
+            renderUsers();
           }
         });
 

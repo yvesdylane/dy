@@ -6,6 +6,11 @@
   <div class="flex flex-wrap gap-2 mb-3">
     <input id="userSearch" placeholder="Search name/phone..."
       class="w-full sm:flex-1 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs outline-none focus:ring-2 focus:ring-brand-500">
+    <select id="userGroupFilter"
+      class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs outline-none focus:ring-2 focus:ring-brand-500">
+      <option value="">All groups</option>
+      <option value="A">A</option><option value="B">B</option>
+    </select>
     <select id="userDeptFilter"
       class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs outline-none focus:ring-2 focus:ring-brand-500">
       <option value="">All depts</option>
@@ -17,6 +22,10 @@
       <option value="">All roles</option>
       <option value="admin">Admin</option><option value="instructor">Instructor</option><option value="intern">Intern</option>
     </select>
+  </div>
+  <div class="flex items-center justify-between mb-2">
+    <span id="userCount" class="text-xs text-zinc-500"></span>
+    <div id="userPagination" class="flex items-center gap-1 text-xs"></div>
   </div>
   <div id="usersList" class="space-y-2"></div>
 </div>

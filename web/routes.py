@@ -248,11 +248,15 @@ async def admin_save_db(telegram_id: str = Depends(verified_tid)):
 
 
 @router.get("/api/admin/users")
-async def admin_list_users(telegram_id: str = Depends(verified_tid)):
-    from sqlalchemy import select
+async def admin_list_users(
+    telegram_id: str = Depends(verified_tid),
+    group: str = Query(None), page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+):
+    from sqlalchemy import func, select
 
     from db.database import async_session
-    from models.models import Role, User
+    from models.models import Group, Role, User
 
     async with async_session() as session:
         admin = await session.execute(
@@ -261,9 +265,23 @@ async def admin_list_users(telegram_id: str = Depends(verified_tid)):
         if not admin.scalar_one_or_none():
             return {"ok": False, "detail": "Unauthorized"}
 
-        users = (await session.execute(select(User).order_by(User.id))).scalars().all()
+        q = select(User)
+        if group:
+            try:
+                g = Group(group)
+            except ValueError:
+                return {"ok": False, "detail": "Invalid group"}
+            q = q.where(User.group == g)
 
-    return {"ok": True, "users": [{
+        count_q = select(func.count(User.id))
+        if group:
+            count_q = count_q.where(User.group == g)
+        total = (await session.execute(count_q)).scalar()
+
+        q = q.order_by(User.id).offset((page - 1) * per_page).limit(per_page)
+        users = (await session.execute(q)).scalars().all()
+
+    return {"ok": True, "total": total, "page": page, "per_page": per_page, "users": [{
         "id": u.id, "name": u.name, "surname": u.surname, "phone": u.phone,
         "telegram_id": u.telegram_id, "gender": u.gender.value,
         "role": u.role.value, "department": u.department.value,

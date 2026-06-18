@@ -41,7 +41,7 @@ async def admin_get_attendance(telegram_id: str = Depends(verified_tid), date_st
 
         if att:
             students_raw = await session.execute(
-                select(User).where(User.role == Role.intern, User.department == att.group)
+                select(User).where(User.role == Role.intern, User.group == att.group)
             )
             students = students_raw.scalars().all()
 
