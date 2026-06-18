@@ -189,20 +189,56 @@ async def announcements(update: Update, _context):
             )).scalars().all()
 
         if not items:
-            await update.message.reply_text("No announcements yet.")
+            await update.effective_message.reply_text("No announcements yet.")
             return
 
-        lines = ["*📢 Announcements:*"]
-        for item in items:
-            lines.append(f"\n*{item.title}*")
-            lines.append(f"{item.content[:200]}")
-            lines.append(f"_{item.created_at.date()}_")
-
-        await update.message.reply_markdown("\n".join(lines))
+        btns = [InlineKeyboardButton(item.title[:40], callback_data=f"info_{item.id}") for item in items]
+        keyboard = [btns[i:i+2] for i in range(0, len(btns), 2)]
+        await update.effective_message.reply_text(
+            "📢 *Announcements:*\nSelect one to view details.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
     except Exception as e:
         logger.error("Info command failed: %s", e)
         reply = reply_fn(update)
         await reply("An error occurred.")
+
+
+async def info_detail_callback(update: Update, _context):
+    import httpx
+
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import Info
+
+    query = update.callback_query
+    await query.answer()
+    info_id = int(query.data.split("_")[1])
+
+    async with async_session() as session:
+        item = (await session.execute(select(Info).where(Info.id == info_id))).scalar_one_or_none()
+
+    if not item:
+        await query.message.reply_text("Announcement not found.")
+        return
+
+    text = f"*{item.title}*\n_{item.created_at.date()}_\n\n{item.content}"
+    await query.message.reply_markdown(text)
+
+    if item.file_url:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(item.file_url)
+                resp.raise_for_status()
+            await query.message.reply_document(
+                document=resp.content,
+                filename=item.file_url.rsplit("/", 1)[-1].split("?")[0],
+                caption=f"📎 {item.title}",
+            )
+        except Exception as e:
+            logger.error("Failed to send info file: %s", e)
 
 
 async def dashboard(update: Update, _context):
@@ -305,7 +341,7 @@ async def info_callback(update: Update, context):
         "info_user": send_user_overview,
         "info_tasks": send_task_overview,
         "info_attendance": lambda tid, u: reply_fn(u)("Attendance info coming soon."),
-        "info_notes": lambda tid, u: reply_fn(u)("Notes info coming soon."),
+        "info_notes": lambda tid, u: notes_list(u, None),
         "info_announcements": lambda tid, u: announcements(u, None),
     }
 
@@ -808,7 +844,7 @@ async def notes_list(update: Update, _context):
 
     user = await get_user(str(update.effective_user.id))
     if not user:
-        await update.message.reply_text("You need an account first.")
+        await update.effective_message.reply_text("You need an account first.")
         return
 
     async with async_session() as session:
@@ -818,12 +854,12 @@ async def notes_list(update: Update, _context):
         notes = (await session.execute(q)).scalars().all()
 
     if not notes:
-        await update.message.reply_text("No notes found.")
+        await update.effective_message.reply_text("No notes found.")
         return
 
     btns = [InlineKeyboardButton(n.title, callback_data=f"note_{n.id}") for n in notes]
     keyboard = [btns[i:i+2] for i in range(0, len(btns), 2)]
-    await update.message.reply_text(
+    await update.effective_message.reply_text(
         "Select a note:",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
@@ -1370,6 +1406,7 @@ handlers = [
     CommandHandler("link", link_cmd),
     CommandHandler("db", db_backup),
     MessageHandler(filters.CONTACT, handle_contact),
+    CallbackQueryHandler(info_detail_callback, pattern=r"^info_\d+$"),
     CallbackQueryHandler(info_callback, pattern="^info_"),
     CallbackQueryHandler(task_detail_callback, pattern="^task_"),
     CallbackQueryHandler(note_detail_callback, pattern="^note_"),

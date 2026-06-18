@@ -24,7 +24,7 @@ async def notify_interns(title, content):
             select(User).where(User.role == Role.intern)
         )).scalars().all()
 
-    msg = f"📢 Announcement: {title}\n\n{content[:200]}"
+    msg = f"📢 Announcement: {title}\n\n{content}"
     for u in interns:
         if u.telegram_id and not u.telegram_id.startswith("pending_"):
             try:
