@@ -60,6 +60,7 @@ class User(Base):
     group = Column(Enum(Group), nullable=True)
     school = Column(String(200), nullable=False)
     dob = Column(Date, nullable=False)
+    image = Column(String(500), nullable=True)
     quarter = Column(Integer, nullable=True)
     fees_paid = Column(Numeric(10, 2), default=0, nullable=True)
     total_fees = Column(Numeric(10, 2), default=40000, nullable=True)

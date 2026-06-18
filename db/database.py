@@ -72,6 +72,10 @@ async def init_db():
                 await conn.execute(sa_text("ALTER TABLE infos ADD COLUMN file_url VARCHAR(500)"))
             except Exception:
                 pass
+            try:
+                await conn.execute(sa_text("ALTER TABLE users ADD COLUMN image VARCHAR(500)"))
+            except Exception:
+                pass
 
         async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 

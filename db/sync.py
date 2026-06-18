@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 
 from models.models import (
@@ -38,7 +38,20 @@ async def sync_database(uploaded_db_path: str) -> str:
 
     try:
         async with AsyncSession(upload_engine) as upload_session:
-            users = (await upload_session.execute(select(User))).scalars().all()
+
+            try:
+                users = (await upload_session.execute(select(User))).scalars().all()
+            except Exception:
+                rows = (await upload_session.execute(text("SELECT * FROM users"))).all()
+                col_names = list(rows[0]._mapping.keys()) if rows else []
+                users = []
+                for row in rows:
+                    u = User()
+                    for col in User.__table__.columns:
+                        if col.name in col_names:
+                            setattr(u, col.name, row._mapping[col.name])
+                    users.append(u)
+
             attendances = (await upload_session.execute(select(Attendance))).scalars().all()
             intern_attendances = (await upload_session.execute(select(InternAttendance))).scalars().all()
             tasks = (await upload_session.execute(select(Task))).scalars().all()

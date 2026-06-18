@@ -290,8 +290,8 @@ async def admin_list_users(
         "linked": not u.telegram_id.startswith("pending_"),
         "fees_paid": float(u.fees_paid) if u.fees_paid else 0,
         "total_fees": float(u.total_fees) if u.total_fees else 0,
+        "image": u.image,
     } for u in users]}
-
 
 @router.post("/api/admin/users")
 async def admin_create_user(telegram_id: str = Depends(verified_tid), data: dict = None):

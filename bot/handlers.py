@@ -58,15 +58,18 @@ def reply_md_fn(update: Update):
 
 
 async def send_user_info(telegram_id: str, update: Update):
+    import httpx
+
     user = await get_user(telegram_id)
-    reply = reply_md_fn(update)
+    reply_text = reply_fn(update)
+    reply_md = reply_md_fn(update)
 
     if not user:
         mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app"
         url_with_id = f"{mini_app_url}?telegram_id={telegram_id}"
         button = InlineKeyboardButton("Create Account", web_app=WebAppInfo(url=url_with_id))
         keyboard = InlineKeyboardMarkup([[button]])
-        await reply(
+        await reply_text(
             "You don't have an account yet. Tap the button below to create one.",
             reply_markup=keyboard,
         )
@@ -74,7 +77,21 @@ async def send_user_info(telegram_id: str, update: Update):
 
     text = format_user_info(user)
     text += "\n\nUse /helpInfo to explore more info commands."
-    await reply(text)
+
+    if user.image:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(user.image)
+                resp.raise_for_status()
+            await update.effective_message.reply_photo(
+                photo=resp.content,
+                caption=text,
+                parse_mode="Markdown",
+            )
+        except Exception:
+            await reply_md(text)
+    else:
+        await reply_md(text)
 
 
 async def send_user_overview(telegram_id: str, update: Update):
@@ -971,12 +988,62 @@ give_note_conv = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel)],
 )
 
+IMAGE_PHOTO = 0
+
+
+async def image_start(update: Update, _context):
+    reply = reply_fn(update)
+    await reply("Send me a photo to set as your profile picture.")
+    return IMAGE_PHOTO
+
+
+async def image_handle_photo(update: Update, context):
+    import asyncio
+
+    from web.cloudinary import upload_to_cloudinary
+
+    telegram_id = str(update.effective_user.id)
+    reply = reply_fn(update)
+
+    user = await get_user(telegram_id)
+    if not user:
+        await reply("You need an account first. Use /start to create one.")
+        return ConversationHandler.END
+
+    photo = update.message.photo[-1]
+    file = await photo.get_file()
+    photo_bytes = await file.download_as_bytearray()
+
+    url = await asyncio.to_thread(upload_to_cloudinary, bytes(photo_bytes), public_id=telegram_id, folder="dy/users")
+
+    from db.database import async_session
+    from models.models import User as UserModel
+
+    async with async_session() as session:
+        async with session.begin():
+            u = (await session.execute(select(UserModel).where(UserModel.telegram_id == telegram_id))).scalar_one_or_none()
+            if u:
+                u.image = url
+
+    await reply("Profile picture updated!")
+    return ConversationHandler.END
+
+
+image_conv = ConversationHandler(
+    entry_points=[CommandHandler("image", image_start)],
+    states={
+        IMAGE_PHOTO: [MessageHandler(filters.PHOTO, image_handle_photo)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
+
 
 handlers = [
     sync_conv,
     give_task_conv,
     submit_conv,
     give_note_conv,
+    image_conv,
     CommandHandler("me", me),
     CommandHandler("info", announcements),
     CommandHandler("qr", qr_command),

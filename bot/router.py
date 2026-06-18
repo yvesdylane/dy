@@ -92,6 +92,7 @@ async def init_bot():
                     BotCommand("link", "Link your phone number"),
                     BotCommand("qr", "Generate attendance QR (staff only)"),
                     BotCommand("db", "Download database backup (admin only)"),
+                    BotCommand("image", "Set your profile picture"),
                     BotCommand("cancel", "Cancel current operation"),
                     BotCommand("skip", "Skip current step"),
                 ],
