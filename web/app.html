@@ -346,7 +346,7 @@
         <select name="department" required
           class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
           <option value="">Department</option>
-          ${['ISM','SWE','CGWD','EDM','CNWS','NS'].map(d =>
+          ${['ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS'].map(d =>
             `<option value="${d}" ${isEdit && data.department === d ? 'selected' : ''}>${d}</option>`).join('')}
         </select>
         <select name="group"
@@ -545,7 +545,7 @@
       '<textarea name="description" placeholder="Description" required' +
       ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + (isEdit ? esc(data.description) : '') + '</textarea>' +
       '<select name="department" required class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
-      '<option value="">Department</option>' + ['ISM','SWE','CGWD','EDM','CNWS','NS'].map(d => '<option value="' + d + '" ' + (isEdit && data.department === d ? 'selected' : '') + '>' + d + '</option>').join('') + '</select>' +
+      '<option value="">Department</option>' + ['ISM','SWE','CGWD','EDM','CSNW','DBM','NS'].map(d => '<option value="' + d + '" ' + (isEdit && data.department === d ? 'selected' : '') + '>' + d + '</option>').join('') + '</select>' +
       '<input name="submission_deadline" type="datetime-local" value="' + (isEdit && data.submission_deadline ? data.submission_deadline.slice(0,16) : '') + '" required' +
       ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
       '<input name="total_mark_on" type="number" placeholder="Total mark" value="' + (isEdit ? data.total_mark_on : '') + '" required' +
@@ -701,7 +701,7 @@
       '<textarea name="content" placeholder="Content" rows="5" required' +
       ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + (isEdit ? esc(note.content || '') : '') + '</textarea>' +
       '<select name="department" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
-      '<option value="">No department</option>' + ['ISM','SWE','CGWD','EDM','CNWS','NS'].map(d => '<option value="' + d + '" ' + (isEdit && note.department === d ? 'selected' : '') + '>' + d + '</option>').join('') + '</select>' +
+      '<option value="">No department</option>' + ['ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS'].map(d => '<option value="' + d + '" ' + (isEdit && note.department === d ? 'selected' : '') + '>' + d + '</option>').join('') + '</select>' +
       '<label class="block text-sm font-medium text-zinc-600 dark:text-zinc-400">File (optional)' +
       '<input type="file" name="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 hover:file:bg-brand-100 dark:hover:file:bg-brand-900 cursor-pointer"></label>' +
       '<p id="noteFormErr" class="text-red-500 text-xs hidden"></p>' +

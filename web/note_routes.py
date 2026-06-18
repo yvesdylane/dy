@@ -77,7 +77,8 @@ async def admin_create_note(
             user = await session.execute(
                 select(User).where(User.telegram_id == telegram_id, User.role.in_([Role.admin, Role.instructor]))
             )
-            if not user.scalar_one_or_none():
+            user = user.scalar_one_or_none()
+            if not user:
                 return {"ok": False, "detail": "Unauthorized"}
 
             file_url = None

@@ -35,6 +35,8 @@ class Department(enum.Enum):
     SWE = "SWE"
     CGWD = "CGWD"
     EDM = "EDM"
+    CSNW =  "CSNW"
+    DBM = "DBM"
     CNWS = "CNWS"
     NS = "NS"
 

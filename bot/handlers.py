@@ -651,7 +651,7 @@ async def give_task_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def give_task_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["task_desc"] = update.message.text
     await update.message.reply_text(
-        "Send the *department* (ISM / SWE / CGWD / EDM / CNWS / NS)\n"
+        "Send the *department* (ISM / SWE / CGWD / EDM / CSNW / DBM / CNWS / NS)\n"
         "Or send `/skip` to use your own department."
     )
     return TASK_DEPT
@@ -670,7 +670,7 @@ async def give_task_dept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         context.user_data["task_dept"] = Department(update.message.text.strip().upper())
     except ValueError:
-        await update.message.reply_text("Invalid department. Try: ISM / SWE / CGWD / EDM / CNWS / NS")
+        await update.message.reply_text("Invalid department. Try: ISM / SWE / CGWD / EDM / CSNW / DBM / CNWS / NS")
         return TASK_DEPT
 
     await update.message.reply_text(
@@ -874,7 +874,7 @@ async def give_note_title(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def skip_note_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["note_content"] = None
     await update.message.reply_text(
-        "Send the *department* (ISM / SWE / CGWD / EDM / CNWS / NS)\n"
+        "Send the *department* (ISM / SWE / CGWD / EDM / CSNW / DBM / CNWS / NS)\n"
         "Or send `/skip` to use your own department."
     )
     return NOTE_DEPT
@@ -883,7 +883,7 @@ async def skip_note_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def give_note_content(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["note_content"] = update.message.text
     await update.message.reply_text(
-        "Send the *department* (ISM / SWE / CGWD / EDM / CNWS / NS)\n"
+        "Send the *department* (ISM / SWE / CGWD / EDM / CSNW / DBM / CNWS / NS)\n"
         "Or send `/skip` to use your own department."
     )
     return NOTE_DEPT
@@ -902,7 +902,7 @@ async def give_note_dept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         context.user_data["note_dept"] = Department(update.message.text.strip().upper())
     except ValueError:
-        await update.message.reply_text("Invalid department. Try: ISM / SWE / CGWD / EDM / CNWS / NS")
+        await update.message.reply_text("Invalid department. Try: ISM / SWE / CGWD / EDM / CSNW / DBM / CNWS / NS")
         return NOTE_DEPT
 
     await update.message.reply_text(
