@@ -93,6 +93,8 @@ async def init_bot():
                     BotCommand("qr", "Generate attendance QR (staff only)"),
                     BotCommand("db", "Download database backup (admin only)"),
                     BotCommand("image", "Set your profile picture"),
+                    BotCommand("usercsv", "Export users to CSV (staff)"),
+                    BotCommand("attendcsv", "Export attendance to CSV (staff)"),
                     BotCommand("cancel", "Cancel current operation"),
                     BotCommand("skip", "Skip current step"),
                 ],
