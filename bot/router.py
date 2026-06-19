@@ -101,7 +101,6 @@ async def init_bot():
                     # ── Admin only ──
                     BotCommand("db", "Download database backup"),
                     BotCommand("sync", "Upload & sync database"),
-                    BotCommand("complaints", "View anonymous complaints"),
                 ],
                 scope=BotCommandScopeAllPrivateChats(),
             )

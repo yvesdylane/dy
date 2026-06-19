@@ -1160,9 +1160,10 @@ image_conv = ConversationHandler(
 COMPLAIN_TYPE, COMPLAIN_CONTENT = range(2)
 
 async def complain_start(update: Update, _context):
+    from models.models import Role
     user = await get_user(str(update.effective_user.id))
-    if not user or user.role != Role.intern:
-        await update.message.reply_text("Only interns can submit complaints or advice.")
+    if not user:
+        await update.message.reply_text("User not found.")
         return ConversationHandler.END
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("💢 Complaint", callback_data="complain_type_complaint")],
@@ -1224,34 +1225,6 @@ complain_conv = ConversationHandler(
     },
     fallbacks=[CommandHandler("cancel", cancel)],
 )
-
-async def list_complaints(update: Update, _context):
-    from db.database import async_session
-    from models.models import Role, UserComplain
-
-    user = await get_user(str(update.effective_user.id))
-    if not user or user.role != Role.admin:
-        await update.message.reply_text("Admins only.")
-        return
-
-    async with async_session() as session:
-        items = (await session.execute(
-            select(UserComplain).order_by(UserComplain.created_at.desc()).limit(20)
-        )).scalars().all()
-
-    if not items:
-        await update.message.reply_text("No complaints or advice yet.")
-        return
-
-    for item in items:
-        icon = "💢" if item.complain_type.value == "complaint" else "💡"
-        lines = [
-            f"*{icon} {item.complain_type.value.title()}*",
-            f"📂 {item.department.value}{f' · Group {item.group.value}' if item.group else ''}",
-            f"📝 {item.content}",
-            f"🕐 {item.created_at.strftime('%Y-%m-%d %H:%M')}",
-        ]
-        await update.message.reply_markdown("\n".join(lines))
 
 # ── User CSV Export ──────────────────────────────────────────────
 
@@ -1599,9 +1572,6 @@ handlers = [
     CommandHandler("db", db_backup),
     CommandHandler("sync", sync_start),
 
-    # ── Admin — view complaints ──
-    CommandHandler("complaints", list_complaints),
-
     # ── Non-command handlers ──
     MessageHandler(filters.CONTACT, handle_contact),
     CallbackQueryHandler(info_detail_callback, pattern=r"^info_\d+$"),
@@ -1610,5 +1580,4 @@ handlers = [
     CallbackQueryHandler(note_detail_callback, pattern="^note_"),
     CallbackQueryHandler(csv_callback, pattern="^csv:"),
     CallbackQueryHandler(acsv_callback, pattern="^acsv:"),
-    CallbackQueryHandler(complain_type_chosen, pattern="^complain_type_"),
 ]

@@ -15,7 +15,11 @@ MARK_HTML_PATH = Path(__file__).parent / "mark.html"
 
 def _get_app_html():
     shell = APP_HTML_PATH.read_text()
-    for name in ("register","stats","users","codes","attendance","tasks","notes","info"):
+    for name in ("register","stats","people","attendance","tasks","notes","bulletin"):
+        fragment = (SECTIONS_DIR / f"{name}.html").read_text()
+        shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
+    # Second pass — resolve nested section placeholders inside wrapper fragments
+    for name in ("users","codes","info"):
         fragment = (SECTIONS_DIR / f"{name}.html").read_text()
         shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
     return shell
@@ -575,6 +579,52 @@ async def register(data: dict):
         return {"ok": True}
     except Exception as e:
         return {"ok": False, "detail": str(e)}
+
+
+@router.get("/api/admin/complaints")
+async def admin_list_complaints(telegram_id: str = Depends(verified_tid), format: str = None):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import Role, User, UserComplain
+
+    async with async_session() as session:
+        admin = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        )
+        if not admin.scalar_one_or_none():
+            return {"ok": False, "detail": "Unauthorized"}
+
+        items = (await session.execute(
+            select(UserComplain).order_by(UserComplain.created_at.desc()).limit(200)
+        )).scalars().all()
+
+    if format == "csv":
+        import csv
+        import io
+        buf = io.StringIO()
+        w = csv.writer(buf)
+        w.writerow(["Type", "Department", "Group", "Content", "Date"])
+        for item in items:
+            w.writerow([
+                item.complain_type.value,
+                item.department.value,
+                item.group.value if item.group else "",
+                item.content,
+                item.created_at.strftime("%Y-%m-%d %H:%M"),
+            ])
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse(buf.getvalue(), media_type="text/csv",
+                                 headers={"Content-Disposition": "attachment; filename=complaints.csv"})
+
+    return {"ok": True, "complaints": [{
+        "id": item.id,
+        "content": item.content,
+        "type": item.complain_type.value,
+        "department": item.department.value,
+        "group": item.group.value if item.group else None,
+        "created_at": item.created_at.strftime("%Y-%m-%d %H:%M"),
+    } for item in items]}
 
 
 @router.get("/api/files/{file_id}")
