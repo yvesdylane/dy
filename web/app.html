@@ -258,14 +258,30 @@
     if (!r.ok) return;
     const list = nameEl('codesList');
     list.innerHTML = r.codes.map(c => `
-      <div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between">
-        <div>
+      <div class="code-row flex items-center gap-2 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <input type="checkbox" class="code-checkbox shrink-0 accent-brand-500" data-id="${c.id}">
+        <div class="flex-1 min-w-0">
           <p class="font-mono text-sm">${c.code}</p>
           <p class="text-xs text-zinc-500">${c.is_used ? 'Used' : 'Available'} · ${c.role}</p>
         </div>
-        <button class="del-code-btn ml-2 p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg text-xs" data-id="${c.id}">✕</button>
+        <button class="del-code-btn p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg text-xs" data-id="${c.id}">✕</button>
       </div>
     `).join('');
+    updateDeleteSelectedBtn();
+  }
+
+  function updateDeleteSelectedBtn() {
+    const checked = document.querySelectorAll('.code-checkbox:checked');
+    const btn = nameEl('deleteSelectedCodesBtn');
+    const count = nameEl('selectedCount');
+    if (checked.length) {
+      btn.classList.remove('hidden');
+      count.classList.remove('hidden');
+      count.textContent = checked.length + ' selected';
+    } else {
+      btn.classList.add('hidden');
+      count.classList.add('hidden');
+    }
   }
 
   async function checkAndShow(idToCheck) {
@@ -345,6 +361,35 @@
             await loadCodes();
           }
         });
+
+        nameEl('selectAllCodes').addEventListener('change', (e) => {
+          document.querySelectorAll('.code-checkbox').forEach(cb => cb.checked = e.target.checked);
+          updateDeleteSelectedBtn();
+        });
+
+        document.addEventListener('change', (e) => {
+          if (e.target.classList.contains('code-checkbox')) updateDeleteSelectedBtn();
+        });
+
+        nameEl('deleteSelectedCodesBtn').addEventListener('click', async () => {
+          const checked = document.querySelectorAll('.code-checkbox:checked');
+          const ids = Array.from(checked).map(cb => parseInt(cb.dataset.id));
+          if (!ids.length || !confirm('Delete ' + ids.length + ' selected code' + (ids.length > 1 ? 's' : '') + '?')) return;
+          nameEl('deleteSelectedCodesBtn').textContent = 'Deleting...';
+          await fetch('/api/admin/codes/delete-batch?telegram_id=' + encodeURIComponent(tid),
+            {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ids})});
+          nameEl('deleteSelectedCodesBtn').textContent = 'Delete Selected';
+          await loadCodes();
+        });
+
+        nameEl('deleteAllCodesBtn').addEventListener('click', async () => {
+          if (!confirm('Delete ALL codes? This cannot be undone.')) return;
+          nameEl('deleteAllCodesBtn').textContent = 'Deleting...';
+          await fetch('/api/admin/codes/delete-batch?telegram_id=' + encodeURIComponent(tid),
+            {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({all: true})});
+          nameEl('deleteAllCodesBtn').textContent = 'Delete All';
+          await loadCodes();
+        });
       } else {
         nameEl('welcomeName').textContent = 'Welcome back, ' + me.name + '!';
         show('welcomeView');
@@ -397,7 +442,7 @@
         <div class="flex gap-2">
           <button type="button" id="modalCancel"
             class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>
-          <button type="submit"
+          <button type="submit" id="userSubmitBtn"
             class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">${isEdit ? 'Save' : 'Create'}</button>
         </div>
       </form>`;
@@ -408,6 +453,9 @@
 
     nameEl('userForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = nameEl('userSubmitBtn');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Saving...';
       const f = e.target;
       const g = (n) => f.elements[n];
       const body = { name: g('name').value, surname: g('surname').value, phone: g('phone').value,
@@ -424,8 +472,8 @@
         : '/api/admin/users?telegram_id=' + encodeURIComponent(tid);
       const method = isEdit ? 'PUT' : 'POST';
       const r = await (await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
-      if (r.ok) { m.classList.add('hidden'); await loadUsers(); }
-      else { const err = nameEl('userFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); }
+      if (r.ok) { m.classList.add('hidden'); await loadUsers(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { const err = nameEl('userFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
     });
   }
 
@@ -585,12 +633,15 @@
       '<input name="file" type="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 file:text-xs"></label>' +
       '<p id="taskFormErr" class="text-red-500 text-xs hidden"></p>' +
       '<div class="flex gap-2"><button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
-      '<button type="submit" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
+      '<button type="submit" id="taskSubmitBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
     m.classList.remove('hidden');
     nameEl('modalCancel').onclick = () => m.classList.add('hidden');
     m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
     nameEl('taskForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = nameEl('taskSubmitBtn');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Saving...';
       const f = e.target;
       const g = (n) => f.elements[n];
       const fd = new FormData();
@@ -603,8 +654,8 @@
       const url = isEdit ? '/api/admin/tasks/' + data.id + '?telegram_id=' + encodeURIComponent(tid) : '/api/admin/tasks?telegram_id=' + encodeURIComponent(tid);
       const method = isEdit ? 'PUT' : 'POST';
       const r = await (await fetch(url, {method, body: fd})).json();
-      if (r.ok) { m.classList.add('hidden'); await loadTasks(); }
-      else { const err = nameEl('taskFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); }
+      if (r.ok) { m.classList.add('hidden'); await loadTasks(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { const err = nameEl('taskFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
     });
   }
   nameEl('addTaskBtn').addEventListener('click', () => showTaskForm());
@@ -737,12 +788,15 @@
       '<input type="file" name="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 hover:file:bg-brand-100 dark:hover:file:bg-brand-900 cursor-pointer"></label>' +
       '<p id="noteFormErr" class="text-red-500 text-xs hidden"></p>' +
       '<div class="flex gap-2"><button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
-      '<button type="submit" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
+      '<button type="submit" id="noteSubmitBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
     m.classList.remove('hidden');
     nameEl('modalCancel').onclick = () => m.classList.add('hidden');
     m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
     nameEl('noteForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = nameEl('noteSubmitBtn');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Saving...';
       const f = e.target;
       const fd = new FormData();
       fd.append('title', f.elements['title'].value);
@@ -752,8 +806,8 @@
       const url = isEdit ? '/api/admin/notes/' + note.id + '?telegram_id=' + encodeURIComponent(tid) : '/api/admin/notes?telegram_id=' + encodeURIComponent(tid);
       const method = isEdit ? 'PUT' : 'POST';
       const r = await (await fetch(url, {method, body: fd})).json();
-      if (r.ok) { m.classList.add('hidden'); await loadNotes(); }
-      else { const err = nameEl('noteFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); }
+      if (r.ok) { m.classList.add('hidden'); await loadNotes(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { const err = nameEl('noteFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
     });
   }
   nameEl('addNoteBtn').addEventListener('click', () => showNoteForm());
@@ -766,29 +820,36 @@
   function showCodeForm() {
     const m = nameEl('modalOverlay');
     const c = nameEl('modalContent');
-    c.innerHTML = '<h3 class="font-bold text-lg">Generate Code</h3>' +
+    c.innerHTML = '<h3 class="font-bold text-lg">Generate Code' +
+      '<p class="text-xs text-zinc-500 font-normal mt-0.5">Enter 1 to create a single code, or more to create multiple at once</p></h3>' +
       '<form id="codeForm" class="space-y-3" onsubmit="return false">' +
       '<label class="block text-sm font-medium">Role' +
       '<select name="role" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
       '<option value="intern">Intern</option><option value="instructor">Instructor</option><option value="admin">Admin</option></select></label>' +
       '<label class="block text-sm font-medium">Expires in (minutes)' +
       '<input name="expiry" type="number" value="60" min="1" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500"></label>' +
+      '<label class="block text-sm font-medium">How many' +
+      '<input name="count" type="number" value="1" min="1" max="100" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500"></label>' +
       '<p id="codeFormErr" class="text-red-500 text-xs hidden"></p>' +
       '<div class="flex gap-2">' +
       '<button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
-      '<button type="submit" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Generate</button></div></form>';
+      '<button type="submit" id="codeSubmitBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Generate</button></div></form>';
     m.classList.remove('hidden');
     nameEl('modalCancel').onclick = () => m.classList.add('hidden');
     m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
     nameEl('codeForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = nameEl('codeSubmitBtn');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Generating...';
       const f = e.target;
       const g = (n) => f.elements[n];
-      const body = { role: g('role').value, expiry_minutes: parseInt(g('expiry').value) || 60 };
+      const body = { role: g('role').value, expiry_minutes: parseInt(g('expiry').value) || 60, count: parseInt(g('count').value) || 1 };
       const r = await (await fetch('/api/admin/codes?telegram_id=' + encodeURIComponent(tid),
         {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      btn.disabled = false; btn.textContent = 'Generate';
       if (r.ok) { m.classList.add('hidden'); await loadCodes(); }
-      else { const err = nameEl('codeFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); }
+      else { const err = nameEl('codeFormErr'); err.textContent = r.detail || 'Error'; err.classList.remove('hidden'); }
     });
   }
 
@@ -848,12 +909,15 @@
       '<input type="file" name="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 hover:file:bg-brand-100 dark:hover:file:bg-brand-900 cursor-pointer"></label>' +
       '<p id="infoFormErr" class="text-red-500 text-xs hidden"></p>' +
       '<div class="flex gap-2"><button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
-      '<button type="submit" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
+      '<button type="submit" id="infoSubmitBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
     m.classList.remove('hidden');
     nameEl('modalCancel').onclick = () => m.classList.add('hidden');
     m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
     nameEl('infoForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const btn = nameEl('infoSubmitBtn');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Saving...';
       const f = e.target;
       const fd = new FormData();
       fd.append('title', f.elements['title'].value);
@@ -862,8 +926,8 @@
       const url = isEdit ? '/api/admin/info/' + data.id + '?telegram_id=' + encodeURIComponent(tid) : '/api/admin/info?telegram_id=' + encodeURIComponent(tid);
       const method = isEdit ? 'PUT' : 'POST';
       const r = await (await fetch(url, {method, body: fd})).json();
-      if (r.ok) { m.classList.add('hidden'); await loadInfo(); }
-      else { const err = nameEl('infoFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); }
+      if (r.ok) { m.classList.add('hidden'); await loadInfo(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { const err = nameEl('infoFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
     });
   }
   nameEl('addInfoBtn').addEventListener('click', () => showInfoForm());

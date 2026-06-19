@@ -453,26 +453,57 @@ async def admin_create_code(telegram_id: str = Depends(verified_tid), data: dict
             if not admin_user:
                 return {"ok": False, "detail": "Unauthorized"}
 
-            code = str(random.randint(100000, 999999))
-            while True:
-                exists = await session.execute(
-                    select(CreationCode).where(CreationCode.code == code)
-                )
-                if not exists.scalar_one_or_none():
-                    break
-                code = str(random.randint(100000, 999999))
-
             role_val = data.get("role", "intern") if data else "intern"
             expiry_minutes = data.get("expiry_minutes", 60) if data else 60
+            count = min(data.get("count", 1) if data else 1, 100)
 
-            cc = CreationCode(
-                code=code, role=Role(role_val),
-                expires_at=datetime.utcnow() + timedelta(minutes=expiry_minutes),
-                created_by=admin_user.id,
+            codes = []
+            for _ in range(count):
+                code = str(random.randint(100000, 999999))
+                while True:
+                    exists = await session.execute(
+                        select(CreationCode).where(CreationCode.code == code)
+                    )
+                    if not exists.scalar_one_or_none():
+                        break
+                    code = str(random.randint(100000, 999999))
+
+                cc = CreationCode(
+                    code=code, role=Role(role_val),
+                    expires_at=datetime.utcnow() + timedelta(minutes=expiry_minutes),
+                    created_by=admin_user.id,
+                )
+                session.add(cc)
+                codes.append({"id": cc.id, "code": cc.code, "role": cc.role.value})
+
+    return {"ok": True, "codes": codes}
+
+
+@router.post("/api/admin/codes/delete-batch")
+async def admin_delete_codes_batch(telegram_id: str = Depends(verified_tid), data: dict = None):
+    from sqlalchemy import select, text
+    from db.database import async_session
+    from models.models import CreationCode, Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
             )
-            session.add(cc)
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
 
-    return {"ok": True, "code": {"id": cc.id, "code": cc.code, "role": cc.role.value}}
+            if data and data.get("all"):
+                await session.execute(text("DELETE FROM creation_codes"))
+            elif data and data.get("ids"):
+                for cc_id in data["ids"]:
+                    cc = await session.get(CreationCode, cc_id)
+                    if cc:
+                        await session.delete(cc)
+            else:
+                return {"ok": False, "detail": "Provide ids or all=true"}
+
+    return {"ok": True}
 
 
 @router.delete("/api/admin/codes/{code_id}")
