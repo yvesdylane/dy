@@ -62,13 +62,15 @@
     </nav>
   </div>
   <div class="flex-1 md:ml-56 min-w-0">
-    <div class="md:hidden flex items-start gap-2 p-4 border-b border-zinc-200 dark:border-zinc-800">
-      <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm shrink-0 mt-0.5">D</div>
-      <div class="min-w-0 flex-1">
-        <h1 id="headerTitle" class="font-bold text-sm">Dashboard</h1>
-        <p id="adminNameMobile" class="text-xs text-zinc-500"></p>
-        <div id="headerPills" class="hidden mt-1.5"></div>
+    <div class="md:hidden flex flex-wrap items-center gap-2 p-4 border-b border-zinc-200 dark:border-zinc-800">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm shrink-0">D</div>
+        <div class="min-w-0">
+          <h1 id="headerTitle" class="font-bold text-sm truncate">Dashboard</h1>
+          <p id="adminNameMobile" class="text-xs text-zinc-500 truncate"></p>
+        </div>
       </div>
+      <div id="headerPills" class="hidden shrink-0"></div>
     </div>
     <div class="p-4 pb-24 md:pb-4">
       <!--SECTION:stats-->
