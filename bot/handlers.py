@@ -102,7 +102,14 @@ async def send_user_info(telegram_id: str, update: Update):
                 parse_mode="Markdown",
             )
         except Exception:
-            await reply_md(text)
+            try:
+                await update.effective_message.reply_document(
+                    document=image_id,
+                    caption=text,
+                    parse_mode="Markdown",
+                )
+            except Exception:
+                await reply_md(text)
     else:
         await reply_md(text)
 

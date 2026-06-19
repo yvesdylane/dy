@@ -90,9 +90,10 @@ async def sync_database(uploaded_db_path: str) -> str:
     await _sync_creation_codes(main_sessionmaker, codes, id_maps)
     reports.append(f"Creation codes: {len(codes)} processed")
 
-    migrated = await _migrate_user_images(main_sessionmaker, users)
-    if migrated:
-        reports.append(f"Profile images migrated: {migrated}")
+    counts = await _migrate_all_files(main_sessionmaker, users, tasks, submissions, infos, notes, id_maps)
+    for label, n in counts.items():
+        if n:
+            reports.append(f"Files migrated — {label}: {n}")
 
     return "\n".join(reports)
 
@@ -107,42 +108,128 @@ def _copy_fields(target, source, table, skip_columns=("id",)):
         setattr(target, col.name, val)
 
 
-async def _migrate_user_images(sessionmaker, users):
+async def _migrate_all_files(sessionmaker, users, tasks, submissions, infos, notes, id_maps):
     from bot.files import migrate_cloudinary_file, upload_file_to_group
     from bot.router import application
 
     bot = application.bot
-    migrated = 0
+    counts = {"users": 0, "tasks": 0, "submissions": 0, "infos": 0, "notes": 0}
+
+    async def _migrate_one(val, hint):
+        if not val:
+            return None, None
+        try:
+            if val.startswith("http"):
+                return await migrate_cloudinary_file(val, hint) or (None, None)
+            tg_file = await bot.get_file(val)
+            fb = await tg_file.download_as_bytearray()
+            return await upload_file_to_group(bytes(fb), hint or val)
+        except Exception as e:
+            logger.error("File migration failed: %s err=%s", val, e)
+            return None, None
+
     async with sessionmaker() as session:
         async with session.begin():
             for item in users:
                 if not item.image:
                     continue
-                existing = (
-                    await session.execute(
-                        select(User).where(User.telegram_id == item.telegram_id)
+                fid, _ = await _migrate_one(item.image, f"profile_{item.telegram_id}.jpg")
+                if not fid:
+                    continue
+                u = (await session.execute(
+                    select(User).where(User.telegram_id == item.telegram_id)
+                )).scalar_one_or_none()
+                if u:
+                    u.image = fid
+                    counts["users"] += 1
+
+            for item in tasks:
+                val = getattr(item, "file_id", None) or getattr(item, "supporting_doc", None)
+                if not val:
+                    continue
+                fid, fn = await _migrate_one(val, getattr(item, "file_name", None) or f"task_{item.id}")
+                if not fid:
+                    continue
+                t = (await session.execute(
+                    select(Task).where(
+                        Task.name == item.name,
+                        Task.department == item.department,
+                        Task.submission_deadline == item.submission_deadline,
                     )
-                ).scalar_one_or_none()
-                if not existing:
+                )).scalar_one_or_none()
+                if t:
+                    t.file_id = fid
+                    t.supporting_doc = fid
+                    if fn:
+                        t.file_name = fn
+                    counts["tasks"] += 1
+
+            for item in submissions:
+                val = getattr(item, "file_id", None) or getattr(item, "submitted_file", None)
+                if not val:
                     continue
-                if existing.image == item.image:
+                fid, fn = await _migrate_one(val, getattr(item, "file_name", None) or f"submission_{item.id}")
+                if not fid:
                     continue
-                try:
-                    if item.image.startswith("http"):
-                        result = await migrate_cloudinary_file(item.image, f"profile_{item.telegram_id}.jpg")
-                        if result:
-                            fid, _ = result
-                            existing.image = fid
-                            migrated += 1
-                    else:
-                        tg_file = await bot.get_file(item.image)
-                        file_bytes = await tg_file.download_as_bytearray()
-                        fid, _ = await upload_file_to_group(bytes(file_bytes), f"profile_{item.telegram_id}.jpg")
-                        existing.image = fid
-                        migrated += 1
-                except Exception as e:
-                    logger.error("Failed to migrate image for user %s: %s", item.telegram_id, e)
-    return migrated
+                mapped_tid = id_maps.get("task", {}).get(item.task_id)
+                mapped_uid = id_maps.get("user", {}).get(item.user_id)
+                if not mapped_tid or not mapped_uid:
+                    continue
+                s = (await session.execute(
+                    select(TaskSubmission).where(
+                        TaskSubmission.task_id == mapped_tid,
+                        TaskSubmission.user_id == mapped_uid,
+                    )
+                )).scalar_one_or_none()
+                if s:
+                    s.file_id = fid
+                    s.submitted_file = fid
+                    if fn:
+                        s.file_name = fn
+                    counts["submissions"] += 1
+
+            for item in infos:
+                val = getattr(item, "file_id", None) or getattr(item, "file_url", None)
+                if not val:
+                    continue
+                fid, fn = await _migrate_one(val, getattr(item, "file_name", None) or f"info_{item.id}")
+                if not fid:
+                    continue
+                inf = (await session.execute(
+                    select(Info).where(
+                        Info.title == item.title,
+                        Info.created_at == item.created_at,
+                    )
+                )).scalar_one_or_none()
+                if inf:
+                    inf.file_id = fid
+                    inf.file_url = fid
+                    if fn:
+                        inf.file_name = fn
+                    counts["infos"] += 1
+
+            for item in notes:
+                val = getattr(item, "file_id", None) or getattr(item, "file_url", None)
+                if not val:
+                    continue
+                fid, fn = await _migrate_one(val, getattr(item, "file_name", None) or f"note_{item.id}")
+                if not fid:
+                    continue
+                n = (await session.execute(
+                    select(Note).where(
+                        Note.title == item.title,
+                        Note.department == item.department,
+                        Note.created_at == item.created_at,
+                    )
+                )).scalar_one_or_none()
+                if n:
+                    n.file_id = fid
+                    n.file_url = fid
+                    if fn:
+                        n.file_name = fn
+                    counts["notes"] += 1
+
+    return counts
 
 
 async def _sync_users(sessionmaker, items, id_maps):
