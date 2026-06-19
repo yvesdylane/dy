@@ -40,6 +40,7 @@ async def admin_list_tasks(telegram_id: str = Depends(verified_tid)):
 
     from db.database import async_session
     from models.models import Role, Task, User
+    from web.cloudinary import sign_url
 
     async with async_session() as session:
         user = await session.execute(
@@ -52,7 +53,7 @@ async def admin_list_tasks(telegram_id: str = Depends(verified_tid)):
 
     return {"ok": True, "tasks": [{
         "id": t.id, "name": t.name, "description": t.description,
-        "department": t.department.value, "supporting_doc": t.supporting_doc,
+        "department": t.department.value, "supporting_doc": sign_url(t.supporting_doc) if t.supporting_doc else None,
         "submission_deadline": t.submission_deadline.isoformat() if t.submission_deadline else None,
         "total_mark_on": t.total_mark_on,
         "created_at": t.created_at.isoformat() if t.created_at else None,

@@ -31,8 +31,10 @@ async def notify_interns(title, content, file_url=None):
     doc_filename = None
     if file_url:
         try:
+            from web.cloudinary import sign_url
+            signed = sign_url(file_url)
             async with httpx.AsyncClient() as client:
-                resp = await client.get(file_url)
+                resp = await client.get(signed)
                 resp.raise_for_status()
             doc_bytes = resp.content
             doc_filename = file_url.rsplit("/", 1)[-1].split("?")[0]
@@ -56,6 +58,7 @@ async def admin_list_info(telegram_id: str = Depends(verified_tid)):
 
     from db.database import async_session
     from models.models import Info, Role, User
+    from web.cloudinary import sign_url
 
     async with async_session() as session:
         user = await session.execute(
@@ -70,7 +73,7 @@ async def admin_list_info(telegram_id: str = Depends(verified_tid)):
 
     return {"ok": True, "info": [{
         "id": item.id, "title": item.title, "content": item.content,
-        "file_url": item.file_url,
+        "file_url": sign_url(item.file_url) if item.file_url else None,
         "created_at": item.created_at.isoformat() if item.created_at else None,
     } for item in info]}
 

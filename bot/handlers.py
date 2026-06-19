@@ -229,8 +229,10 @@ async def info_detail_callback(update: Update, _context):
 
     if item.file_url:
         try:
+            from web.cloudinary import sign_url
+            signed = sign_url(item.file_url)
             async with httpx.AsyncClient() as client:
-                resp = await client.get(item.file_url)
+                resp = await client.get(signed)
                 resp.raise_for_status()
             await query.message.reply_document(
                 document=resp.content,
@@ -238,7 +240,7 @@ async def info_detail_callback(update: Update, _context):
                 caption=f"📎 {item.title}",
             )
         except Exception as e:
-            logger.error("Failed to send info file: %s", e)
+            logger.error("Failed to send info file: url=%s error=%s", item.file_url, e)
 
 
 async def dashboard(update: Update, _context):
@@ -302,8 +304,10 @@ async def task_detail_callback(update: Update, _context):
 
     if t.supporting_doc:
         try:
+            from web.cloudinary import sign_url
+            signed = sign_url(t.supporting_doc)
             async with httpx.AsyncClient() as client:
-                resp = await client.get(t.supporting_doc)
+                resp = await client.get(signed)
                 resp.raise_for_status()
             await query.message.reply_document(
                 document=resp.content,
@@ -311,7 +315,7 @@ async def task_detail_callback(update: Update, _context):
                 caption="📎 Supporting document",
             )
         except Exception as e:
-            logger.error("Failed to send supporting doc: %s", e)
+            logger.error("Failed to send supporting doc: url=%s error=%s", t.supporting_doc, e)
 
 
 async def help_info(update: Update, _context):
@@ -889,8 +893,10 @@ async def note_detail_callback(update: Update, _context):
 
     if n.file_url:
         try:
+            from web.cloudinary import sign_url
+            signed = sign_url(n.file_url)
             async with httpx.AsyncClient() as client:
-                resp = await client.get(n.file_url)
+                resp = await client.get(signed)
                 resp.raise_for_status()
             await query.message.reply_document(
                 document=resp.content,
