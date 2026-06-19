@@ -1,17 +1,17 @@
 <div id="sectionBulletin" class="hidden">
-  <div class="flex items-center justify-between mb-4">
+  <div class="flex flex-wrap items-center gap-2 mb-4">
     <h3 class="font-bold">Bulletin</h3>
-  </div>
-  <div class="flex gap-1 mb-4 p-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 w-fit">
-    <button class="bulletin-tab px-4 py-1.5 text-sm font-medium rounded-md transition-colors bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300" data-bulletin-tab="info">Announcements</button>
-    <button class="bulletin-tab px-4 py-1.5 text-sm font-medium rounded-md transition-colors bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300" data-bulletin-tab="complaints">Complaints</button>
+    <div class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 ml-auto">
+      <button class="bulletin-tab px-3 py-1 text-xs font-medium rounded-md transition-colors bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300" data-bulletin-tab="info">Announcements</button>
+      <button class="bulletin-tab px-3 py-1 text-xs font-medium rounded-md transition-colors bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300" data-bulletin-tab="complaints">Complaints</button>
+    </div>
   </div>
   <!--SECTION:info-->
   <div id="sectionComplaints" class="hidden">
     <div class="flex items-center justify-between mb-3">
-      <p class="text-xs text-zinc-500">Anonymous feedback from users</p>
+      <p class="text-xs text-zinc-500">Anonymous feedback</p>
       <button id="exportComplaintsBtn"
-         class="px-3 py-1.5 rounded-lg bg-zinc-500 hover:bg-zinc-600 text-white text-xs font-medium transition-colors">Export CSV</button>
+         class="px-3 py-1.5 rounded-lg bg-zinc-500 hover:bg-zinc-600 text-white text-xs font-medium transition-colors">CSV</button>
     </div>
     <div id="complaintsList" class="space-y-2"></div>
   </div>
