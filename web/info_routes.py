@@ -9,7 +9,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def notify_interns(title, content):
+async def notify_interns(title, content, file_url=None):
+    import httpx
+
     from sqlalchemy import select
 
     from bot.router import application as tg_app
@@ -25,10 +27,25 @@ async def notify_interns(title, content):
         )).scalars().all()
 
     msg = f"📢 Announcement: {title}\n\n{content}"
+    doc_bytes = None
+    doc_filename = None
+    if file_url:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(file_url)
+                resp.raise_for_status()
+            doc_bytes = resp.content
+            doc_filename = file_url.rsplit("/", 1)[-1].split("?")[0]
+        except Exception:
+            pass
+
     for u in interns:
         if u.telegram_id and not u.telegram_id.startswith("pending_"):
             try:
-                await tg_app.bot.send_message(chat_id=u.telegram_id, text=msg)
+                if doc_bytes:
+                    await tg_app.bot.send_document(chat_id=u.telegram_id, document=doc_bytes, filename=doc_filename, caption=msg)
+                else:
+                    await tg_app.bot.send_message(chat_id=u.telegram_id, text=msg)
             except Exception:
                 pass
 
@@ -85,7 +102,7 @@ async def admin_create_info(
             item = Info(title=title, content=content, file_url=file_url, created_by=user.id)
             session.add(item)
 
-    await notify_interns(item.title, item.content)
+    await notify_interns(item.title, item.content, file_url)
 
     return {"ok": True, "info": {"id": item.id, "title": item.title}}
 

@@ -898,7 +898,10 @@ async def note_detail_callback(update: Update, _context):
                 caption=f"📎 {n.title}",
             )
         except Exception as e:
-            logger.error("Failed to send note file: %s", e)
+            logger.error("Failed to send note file: url=%s error=%s", n.file_url, e)
+            await query.message.reply_text(f"⚠️ Could not send attachment.")
+    else:
+        await query.message.reply_text("ℹ️ No attachment for this note.")
 
 
 # ── /givenotes ─────────────────────────────────────────────────────

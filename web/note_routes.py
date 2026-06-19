@@ -9,7 +9,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def notify_interns(department, title, content):
+async def notify_interns(department, title, content, file_url=None):
+    import httpx
+
     from sqlalchemy import select
 
     from bot.router import application as tg_app
@@ -25,10 +27,25 @@ async def notify_interns(department, title, content):
         )).scalars().all()
 
     msg = f"📝 New Note: {title}\n\n{content}\n\nDepartment: {department.value}"
+    doc_bytes = None
+    doc_filename = None
+    if file_url:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(file_url)
+                resp.raise_for_status()
+            doc_bytes = resp.content
+            doc_filename = file_url.rsplit("/", 1)[-1].split("?")[0]
+        except Exception:
+            pass
+
     for u in interns:
         if u.telegram_id and not u.telegram_id.startswith("pending_"):
             try:
-                await tg_app.bot.send_message(chat_id=u.telegram_id, text=msg)
+                if doc_bytes:
+                    await tg_app.bot.send_document(chat_id=u.telegram_id, document=doc_bytes, filename=doc_filename, caption=msg)
+                else:
+                    await tg_app.bot.send_message(chat_id=u.telegram_id, text=msg)
             except Exception:
                 pass
 
@@ -91,7 +108,7 @@ async def admin_create_note(
 
     note_department = Department(department) if department else None
     if note_department:
-        await notify_interns(note_department, note.title, note.content)
+        await notify_interns(note_department, note.title, note.content, file_url)
 
     return {"ok": True, "note": {"id": note.id, "title": note.title,
                                  "department": note.department.value if note.department else None}}
