@@ -18,16 +18,32 @@ from models.models import (
 
 logger = logging.getLogger(__name__)
 
-TABLES_IN_ORDER = [
-    "user",
-    "attendance",
-    "intern_attendance",
-    "task",
-    "task_submission",
-    "info",
-    "note",
-    "creation_code",
-]
+
+async def _fetch_all(upload_session, model, table_name):
+    try:
+        return (await upload_session.execute(select(model))).scalars().all()
+    except Exception:
+        rows = (await upload_session.execute(text(f"SELECT * FROM {table_name}"))).all()
+        col_names = list(rows[0]._mapping.keys()) if rows else []
+        items = []
+        for row in rows:
+            item = model()
+            for col in model.__table__.columns:
+                if col.name not in col_names:
+                    continue
+                val = row._mapping[col.name]
+                if isinstance(col.type, DateTime) and isinstance(val, str):
+                    from datetime import datetime as _dt
+                    val = _dt.strptime(val, "%Y-%m-%d %H:%M:%S.%f")
+                elif isinstance(col.type, Date) and isinstance(val, str):
+                    from datetime import datetime as _dt
+                    val = _dt.strptime(val, "%Y-%m-%d").date()
+                elif isinstance(col.type, Numeric) and isinstance(val, (int, float)):
+                    from decimal import Decimal
+                    val = Decimal(str(val))
+                setattr(item, col.name, val)
+            items.append(item)
+        return items
 
 
 async def sync_database(uploaded_db_path: str) -> str:
@@ -39,38 +55,14 @@ async def sync_database(uploaded_db_path: str) -> str:
 
     try:
         async with AsyncSession(upload_engine) as upload_session:
-
-            try:
-                users = (await upload_session.execute(select(User))).scalars().all()
-            except Exception:
-                rows = (await upload_session.execute(text("SELECT * FROM users"))).all()
-                col_names = list(rows[0]._mapping.keys()) if rows else []
-                users = []
-                for row in rows:
-                    u = User()
-                    for col in User.__table__.columns:
-                        if col.name not in col_names:
-                            continue
-                        val = row._mapping[col.name]
-                        if isinstance(col.type, DateTime) and isinstance(val, str):
-                            from datetime import datetime as _dt
-                            val = _dt.strptime(val, "%Y-%m-%d %H:%M:%S.%f")
-                        elif isinstance(col.type, Date) and isinstance(val, str):
-                            from datetime import datetime as _dt
-                            val = _dt.strptime(val, "%Y-%m-%d").date()
-                        elif isinstance(col.type, Numeric) and isinstance(val, (int, float)):
-                            from decimal import Decimal
-                            val = Decimal(str(val))
-                        setattr(u, col.name, val)
-                    users.append(u)
-
-            attendances = (await upload_session.execute(select(Attendance))).scalars().all()
-            intern_attendances = (await upload_session.execute(select(InternAttendance))).scalars().all()
-            tasks = (await upload_session.execute(select(Task))).scalars().all()
-            submissions = (await upload_session.execute(select(TaskSubmission))).scalars().all()
-            infos = (await upload_session.execute(select(Info))).scalars().all()
-            notes = (await upload_session.execute(select(Note))).scalars().all()
-            codes = (await upload_session.execute(select(CreationCode))).scalars().all()
+            users = await _fetch_all(upload_session, User, "users")
+            attendances = await _fetch_all(upload_session, Attendance, "attendances")
+            intern_attendances = await _fetch_all(upload_session, InternAttendance, "intern_attendances")
+            tasks = await _fetch_all(upload_session, Task, "tasks")
+            submissions = await _fetch_all(upload_session, TaskSubmission, "task_submissions")
+            infos = await _fetch_all(upload_session, Info, "infos")
+            notes = await _fetch_all(upload_session, Note, "notes")
+            codes = await _fetch_all(upload_session, CreationCode, "creation_codes")
     finally:
         await upload_engine.dispose()
 
