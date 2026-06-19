@@ -90,6 +90,10 @@ async def sync_database(uploaded_db_path: str) -> str:
     await _sync_creation_codes(main_sessionmaker, codes, id_maps)
     reports.append(f"Creation codes: {len(codes)} processed")
 
+    migrated = await _migrate_user_images(main_sessionmaker, users)
+    if migrated:
+        reports.append(f"Profile images migrated: {migrated}")
+
     return "\n".join(reports)
 
 
@@ -101,6 +105,44 @@ def _copy_fields(target, source, table, skip_columns=("id",)):
         if isinstance(val, datetime):
             val = val.replace(tzinfo=None)
         setattr(target, col.name, val)
+
+
+async def _migrate_user_images(sessionmaker, users):
+    from bot.files import migrate_cloudinary_file, upload_file_to_group
+    from bot.router import application
+
+    bot = application.bot
+    migrated = 0
+    async with sessionmaker() as session:
+        async with session.begin():
+            for item in users:
+                if not item.image:
+                    continue
+                existing = (
+                    await session.execute(
+                        select(User).where(User.telegram_id == item.telegram_id)
+                    )
+                ).scalar_one_or_none()
+                if not existing:
+                    continue
+                if existing.image == item.image:
+                    continue
+                try:
+                    if item.image.startswith("http"):
+                        result = await migrate_cloudinary_file(item.image, f"profile_{item.telegram_id}.jpg")
+                        if result:
+                            fid, _ = result
+                            existing.image = fid
+                            migrated += 1
+                    else:
+                        tg_file = await bot.get_file(item.image)
+                        file_bytes = await tg_file.download_as_bytearray()
+                        fid, _ = await upload_file_to_group(bytes(file_bytes), f"profile_{item.telegram_id}.jpg")
+                        existing.image = fid
+                        migrated += 1
+                except Exception as e:
+                    logger.error("Failed to migrate image for user %s: %s", item.telegram_id, e)
+    return migrated
 
 
 async def _sync_users(sessionmaker, items, id_maps):
@@ -123,6 +165,7 @@ async def _sync_users(sessionmaker, items, id_maps):
                         telegram_id=item.telegram_id, gender=item.gender,
                         role=item.role, department=item.department, group=item.group,
                         school=item.school, dob=item.dob, quarter=item.quarter,
+                        image=item.image,
                         fees_paid=item.fees_paid, total_fees=item.total_fees,
                     )
                     session.add(new)
