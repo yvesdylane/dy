@@ -77,26 +77,31 @@ async def init_bot():
 
             await application.bot.set_my_commands(
                 [
+                    # ── All users ──
                     BotCommand("start", "Welcome and bot info"),
                     BotCommand("me", "View your profile"),
                     BotCommand("info", "View announcements"),
                     BotCommand("helpinfo", "Explore info commands"),
                     BotCommand("userinfo", "User overview"),
                     BotCommand("taskinfo", "Browse active tasks"),
-                    BotCommand("givetask", "Create a new task (staff only)"),
-                    BotCommand("submit", "Submit your task work"),
                     BotCommand("notes", "Browse notes"),
-                    BotCommand("givenotes", "Create a new note (staff only)"),
-                    BotCommand("sync", "Upload & sync database (admin only)"),
                     BotCommand("dashboard", "Open mini app dashboard"),
                     BotCommand("link", "Link your phone number"),
-                    BotCommand("qr", "Generate attendance QR (staff only)"),
-                    BotCommand("db", "Download database backup (admin only)"),
                     BotCommand("image", "Set your profile picture"),
-                    BotCommand("usercsv", "Export users to CSV (staff)"),
-                    BotCommand("attendcsv", "Export attendance to CSV (staff)"),
+                    BotCommand("complain", "Submit anonymous complaint or advice"),
+                    BotCommand("submit", "Submit your task work"),
                     BotCommand("cancel", "Cancel current operation"),
                     BotCommand("skip", "Skip current step"),
+                    # ── Staff (instructor / admin) ──
+                    BotCommand("givetask", "Create a new task"),
+                    BotCommand("givenotes", "Create a new note"),
+                    BotCommand("qr", "Generate attendance QR code"),
+                    BotCommand("usercsv", "Export users to CSV"),
+                    BotCommand("attendcsv", "Export attendance to CSV"),
+                    # ── Admin only ──
+                    BotCommand("db", "Download database backup"),
+                    BotCommand("sync", "Upload & sync database"),
+                    BotCommand("complaints", "View anonymous complaints"),
                 ],
                 scope=BotCommandScopeAllPrivateChats(),
             )

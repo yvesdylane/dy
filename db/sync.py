@@ -14,6 +14,7 @@ from models.models import (
     Task,
     TaskSubmission,
     User,
+    UserComplain,
 )
 
 logger = logging.getLogger(__name__)
@@ -63,6 +64,10 @@ async def sync_database(uploaded_db_path: str) -> str:
             infos = await _fetch_all(upload_session, Info, "infos")
             notes = await _fetch_all(upload_session, Note, "notes")
             codes = await _fetch_all(upload_session, CreationCode, "creation_codes")
+            try:
+                user_complains = await _fetch_all(upload_session, UserComplain, "user_complains")
+            except Exception:
+                user_complains = []
     finally:
         await upload_engine.dispose()
 
@@ -89,6 +94,10 @@ async def sync_database(uploaded_db_path: str) -> str:
 
     await _sync_creation_codes(main_sessionmaker, codes, id_maps)
     reports.append(f"Creation codes: {len(codes)} processed")
+
+    if user_complains:
+        await _sync_user_complains(main_sessionmaker, user_complains)
+        reports.append(f"Complaints: {len(user_complains)} processed")
 
     counts = await _migrate_all_files(main_sessionmaker, users, tasks, submissions, infos, notes, id_maps)
     for label, n in counts.items():
@@ -486,3 +495,26 @@ async def _sync_creation_codes(sessionmaker, items, id_maps):
                         created_by=mapped_creator_id,
                     )
                     session.add(new)
+
+
+async def _sync_user_complains(sessionmaker, items):
+    async with sessionmaker() as session:
+        async with session.begin():
+            for item in items:
+                existing = (
+                    await session.execute(
+                        select(UserComplain).where(
+                            UserComplain.content == item.content,
+                            UserComplain.created_at == item.created_at,
+                        )
+                    )
+                ).scalar_one_or_none()
+                if existing:
+                    _copy_fields(existing, item, UserComplain.__table__, ("id", "created_at"))
+                else:
+                    session.add(UserComplain(
+                        content=item.content,
+                        complain_type=item.complain_type,
+                        department=item.department,
+                        group=item.group,
+                    ))

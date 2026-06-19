@@ -46,6 +46,11 @@ class Group(enum.Enum):
     B = "B"
 
 
+class ComplainType(enum.Enum):
+    complaint = "complaint"
+    advice = "advice"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -186,3 +191,14 @@ class Note(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     uploader = relationship("User", back_populates="notes")
+
+
+class UserComplain(Base):
+    __tablename__ = "user_complains"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    content = Column(Text, nullable=False)
+    complain_type = Column(Enum(ComplainType), nullable=False)
+    department = Column(Enum(Department), nullable=False)
+    group = Column(Enum(Group), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

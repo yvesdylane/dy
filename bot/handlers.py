@@ -1155,6 +1155,104 @@ image_conv = ConversationHandler(
     fallbacks=[CommandHandler("cancel", cancel)],
 )
 
+# ── Complaints / Advice ──────────────────────────────────────────
+
+COMPLAIN_TYPE, COMPLAIN_CONTENT = range(2)
+
+async def complain_start(update: Update, _context):
+    user = await get_user(str(update.effective_user.id))
+    if not user or user.role != Role.intern:
+        await update.message.reply_text("Only interns can submit complaints or advice.")
+        return ConversationHandler.END
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("💢 Complaint", callback_data="complain_type_complaint")],
+        [InlineKeyboardButton("💡 Advice", callback_data="complain_type_advice")],
+    ])
+    await update.message.reply_text(
+        "What would you like to share? (Your identity will remain anonymous — "
+        "we only see your department/group)",
+        reply_markup=keyboard,
+    )
+    return COMPLAIN_TYPE
+
+async def complain_type_chosen(update: Update, context):
+    query = update.callback_query
+    await query.answer()
+    ctype = query.data.split("_")[-1]
+    context.user_data["complain_type"] = ctype
+    await query.message.reply_text(
+        f"Great, describe your {ctype} below. (Send /cancel to cancel)"
+    )
+    return COMPLAIN_CONTENT
+
+async def complain_content(update: Update, context):
+    content = update.message.text
+    ctype = context.user_data.get("complain_type")
+    if not ctype:
+        await update.message.reply_text("Something went wrong. Use /complain to start over.")
+        return ConversationHandler.END
+
+    user = await get_user(str(update.effective_user.id))
+    if not user:
+        await update.message.reply_text("User not found.")
+        return ConversationHandler.END
+
+    from db.database import async_session
+    from models.models import ComplainType, UserComplain
+
+    async with async_session() as session:
+        async with session.begin():
+            c = UserComplain(
+                content=content,
+                complain_type=ComplainType.complaint if ctype == "complaint" else ComplainType.advice,
+                department=user.department,
+                group=user.group,
+            )
+            session.add(c)
+
+    await update.message.reply_text(
+        f"✅ Your anonymous {ctype} has been submitted. Thank you for your feedback!"
+    )
+    context.user_data.pop("complain_type", None)
+    return ConversationHandler.END
+
+complain_conv = ConversationHandler(
+    entry_points=[CommandHandler("complain", complain_start)],
+    states={
+        COMPLAIN_TYPE: [CallbackQueryHandler(complain_type_chosen, pattern="^complain_type_")],
+        COMPLAIN_CONTENT: [MessageHandler(filters.TEXT & ~filters.COMMAND, complain_content)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
+
+async def list_complaints(update: Update, _context):
+    from db.database import async_session
+    from models.models import Role, UserComplain
+
+    user = await get_user(str(update.effective_user.id))
+    if not user or user.role != Role.admin:
+        await update.message.reply_text("Admins only.")
+        return
+
+    async with async_session() as session:
+        items = (await session.execute(
+            select(UserComplain).order_by(UserComplain.created_at.desc()).limit(20)
+        )).scalars().all()
+
+    if not items:
+        await update.message.reply_text("No complaints or advice yet.")
+        return
+
+    for item in items:
+        icon = "💢" if item.complain_type.value == "complaint" else "💡"
+        lines = [
+            f"*{icon} {item.complain_type.value.title()}*",
+            f"📂 {item.department.value}{f' · Group {item.group.value}' if item.group else ''}",
+            f"📝 {item.content}",
+            f"🕐 {item.created_at.strftime('%Y-%m-%d %H:%M')}",
+        ]
+        await update.message.reply_markdown("\n".join(lines))
+
 # ── User CSV Export ──────────────────────────────────────────────
 
 CSV_FILTER_OPTIONS = {
@@ -1468,14 +1566,17 @@ async def _acsv_generate(update, context):
 
 
 handlers = [
+    # ── Conversation handlers (keep first — must match before simple commands) ──
     sync_conv,
     give_task_conv,
     submit_conv,
     give_note_conv,
     image_conv,
+    complain_conv,
+
+    # ── All users ──
     CommandHandler("me", me),
     CommandHandler("info", announcements),
-    CommandHandler("qr", qr_command),
     CommandHandler("helpInfo", help_info),
     CommandHandler("helpinfo", help_info),
     CommandHandler("userInfo", user_info),
@@ -1486,14 +1587,28 @@ handlers = [
     CommandHandler("dashboard", dashboard),
     CommandHandler("dash", dashboard),
     CommandHandler("link", link_cmd),
+
+    # ── Staff (instructor / admin) ──
+    CommandHandler("attendcsv", attend_csv_start),
+    CommandHandler("givenotes", give_note_start),
+    CommandHandler("givetask", give_task_start),
+    CommandHandler("qr", qr_command),
+    CommandHandler("usercsv", csv_user_start),
+
+    # ── Admin only ──
     CommandHandler("db", db_backup),
+    CommandHandler("sync", sync_start),
+
+    # ── Admin — view complaints ──
+    CommandHandler("complaints", list_complaints),
+
+    # ── Non-command handlers ──
     MessageHandler(filters.CONTACT, handle_contact),
     CallbackQueryHandler(info_detail_callback, pattern=r"^info_\d+$"),
     CallbackQueryHandler(info_callback, pattern="^info_"),
     CallbackQueryHandler(task_detail_callback, pattern="^task_"),
     CallbackQueryHandler(note_detail_callback, pattern="^note_"),
-    CommandHandler("usercsv", csv_user_start),
-    CommandHandler("attendcsv", attend_csv_start),
     CallbackQueryHandler(csv_callback, pattern="^csv:"),
     CallbackQueryHandler(acsv_callback, pattern="^acsv:"),
+    CallbackQueryHandler(complain_type_chosen, pattern="^complain_type_"),
 ]
