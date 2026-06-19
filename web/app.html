@@ -62,9 +62,13 @@
     </nav>
   </div>
   <div class="flex-1 md:ml-56 min-w-0">
-    <div class="md:hidden flex items-center gap-2 p-4 border-b border-zinc-200 dark:border-zinc-800">
-      <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm">D</div>
-      <div><h1 class="font-bold text-sm">Dashboard</h1><p id="adminNameMobile" class="text-xs text-zinc-500"></p></div>
+    <div class="md:hidden flex items-start gap-2 p-4 border-b border-zinc-200 dark:border-zinc-800">
+      <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm shrink-0 mt-0.5">D</div>
+      <div class="min-w-0 flex-1">
+        <h1 id="headerTitle" class="font-bold text-sm">Dashboard</h1>
+        <p id="adminNameMobile" class="text-xs text-zinc-500"></p>
+        <div id="headerPills" class="hidden mt-1.5"></div>
+      </div>
     </div>
     <div class="p-4 pb-24 md:pb-4">
       <!--SECTION:stats-->
@@ -174,42 +178,61 @@
       b.classList.toggle('dark:text-brand-300', isActive);
       b.classList.toggle('font-semibold', isActive);
     });
+    updateHeader(name);
+  }
+
+  function updateHeader(section) {
+    const title = nameEl('headerTitle');
+    const pills = nameEl('headerPills');
+    if (section === 'people') {
+      const tab = currentPeopleTab || 'users';
+      title.textContent = 'People';
+      pills.innerHTML = '<div class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 w-fit">' +
+        '<button class="people-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'users' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-people-tab="users">Users</button>' +
+        '<button class="people-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'codes' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-people-tab="codes">Codes</button>' +
+        '</div>';
+      pills.classList.remove('hidden');
+    } else if (section === 'bulletin') {
+      const tab = currentBulletinTab || 'info';
+      title.textContent = 'Bulletin';
+      pills.innerHTML = '<div class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 w-fit">' +
+        '<button class="bulletin-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'info' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-bulletin-tab="info">Announcements</button>' +
+        '<button class="bulletin-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'complaints' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-bulletin-tab="complaints">Complaints</button>' +
+        '</div>';
+      pills.classList.remove('hidden');
+    } else {
+      const names = {stats:'Dashboard',attendance:'Attendance',tasks:'Tasks',notes:'Notes'};
+      title.textContent = names[section] || section.charAt(0).toUpperCase() + section.slice(1);
+      pills.classList.add('hidden');
+    }
   }
 
   let currentPeopleTab = 'users';
   function switchPeopleTab(tab) {
     currentPeopleTab = tab;
-    document.querySelectorAll('.people-tab').forEach(b => {
-      const active = b.dataset.peopleTab === tab;
-      b.classList.toggle('bg-brand-500', active);
-      b.classList.toggle('text-white', active);
-      b.classList.toggle('bg-zinc-100', !active);
-      b.classList.toggle('dark:bg-zinc-800', !active);
-      b.classList.toggle('text-zinc-600', !active);
-      b.classList.toggle('dark:text-zinc-300', !active);
-    });
     nameEl('sectionUsers').classList.toggle('hidden', tab !== 'users');
     nameEl('sectionCodes').classList.toggle('hidden', tab !== 'codes');
     if (tab === 'users') loadUsers();
     if (tab === 'codes') loadCodes();
+    updateHeader('people');
   }
 
   let currentBulletinTab = 'info';
   function switchBulletinTab(tab) {
     currentBulletinTab = tab;
-    document.querySelectorAll('.bulletin-tab').forEach(b => {
-      const active = b.dataset.bulletinTab === tab;
-      b.classList.toggle('bg-brand-500', active);
-      b.classList.toggle('text-white', active);
-      b.classList.toggle('bg-zinc-100', !active);
-      b.classList.toggle('dark:bg-zinc-800', !active);
-      b.classList.toggle('text-zinc-600', !active);
-      b.classList.toggle('dark:text-zinc-300', !active);
-    });
     nameEl('sectionInfo').classList.toggle('hidden', tab !== 'info');
     nameEl('sectionComplaints').classList.toggle('hidden', tab !== 'complaints');
     if (tab === 'info') loadInfo();
     if (tab === 'complaints') loadComplaints();
+    updateHeader('bulletin');
   }
 
   async function loadComplaints() {
