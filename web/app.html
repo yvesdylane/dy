@@ -534,7 +534,7 @@
     list.innerHTML = r.tasks.map(t => '<div class="task-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="' + t.id + '">' +
       '<div class="min-w-0 flex-1"><p class="font-medium text-sm truncate">' + esc(t.name) + '</p>' +
       '<p class="text-xs text-zinc-500">' + t.department + ' · ' + (t.submission_deadline ? new Date(t.submission_deadline).toLocaleDateString() : 'No deadline') + '</p></div>' +
-      '<div class="flex items-center gap-2">' + (t.supporting_doc ? '<span class="text-xs">📎</span>' : '') +
+      '<div class="flex items-center gap-2">' + (t.file_id || t.supporting_doc ? '<span class="text-xs">📎</span>' : '') +
       '<span class="text-xs px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300">' + t.department + '</span></div></div>').join('');
   }
   function showTaskDetail(task) {
@@ -547,7 +547,7 @@
       '<div><span class="text-zinc-500">Department</span><p class="font-medium">' + task.department + '</p></div>' +
       '<div><span class="text-zinc-500">Total Mark</span><p class="font-medium">' + task.total_mark_on + '</p></div>' +
       '<div class="col-span-2"><span class="text-zinc-500">Deadline</span><p class="font-medium">' + (task.submission_deadline ? new Date(task.submission_deadline).toLocaleString() : '—') + '</p></div></div>' +
-      (task.supporting_doc ? '<div><span class="text-zinc-500">File</span><p class="font-medium"><a href="' + esc(task.supporting_doc) + '" target="_blank" class="text-brand-600 hover:underline">📎 Download</a></p></div>' : '') + '</div>' +
+      (task.file_id ? '<div><span class="text-zinc-500">File</span><p class="font-medium"><a href="/api/files/' + task.file_id + '" target="_blank" class="text-brand-600 hover:underline">📎 Download</a></p></div>' : task.supporting_doc ? '<div><span class="text-zinc-500">File</span><p class="font-medium"><a href="' + esc(task.supporting_doc) + '" target="_blank" class="text-brand-600 hover:underline">📎 Download</a></p></div>' : '') + '</div>' +
       '<div class="flex gap-2 pt-2">' +
       '<button type="button" id="modalEditTask" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Edit</button>' +
       '<button type="button" id="modalViewSubmissions" class="flex-1 py-2.5 rounded-lg bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 text-sm font-medium">Submissions</button>' +
@@ -692,7 +692,7 @@
     list.innerHTML = allNotes.map(n => {
       const preview = n.content ? n.content.substring(0, 80) + (n.content.length > 80 ? '…' : '') : '';
       const deptBadge = n.department ? '<span class="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">' + n.department + '</span>' : '';
-      const clip = n.file_url ? '<span class="ml-1">📎</span>' : '';
+      const clip = n.file_id ? '<span class="ml-1">📎</span>' : '';
       return '<div class="note-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="' + n.id + '">' +
         '<div class="flex items-center justify-between"><p class="font-medium text-sm truncate">' + esc(n.title) + clip + '</p>' + deptBadge + '</div>' +
         '<p class="text-xs text-zinc-500 mt-1 truncate">' + esc(preview) + '</p></div>';
@@ -702,7 +702,7 @@
     const m = nameEl('modalOverlay');
     const c = nameEl('modalContent');
     const deptBadge = note.department ? '<span class="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800">' + note.department + '</span>' : '';
-    const dl = note.file_url ? '<a href="' + esc(note.file_url) + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : '';
+    const dl = note.file_id ? '<a href="/api/files/' + note.file_id + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : note.file_url ? '<a href="' + esc(note.file_url) + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : '';
     c.innerHTML = '<div class="flex items-center justify-between gap-2"><h3 class="font-bold text-lg break-words">' + esc(note.title) + '</h3>' + deptBadge + '</div>' +
       '<p class="text-sm whitespace-pre-wrap">' + esc(note.content || '') + '</p>' +
       (dl ? '<div>' + dl + '</div>' : '') +
@@ -814,7 +814,7 @@
   function showInfoDetail(item) {
     const m = nameEl('modalOverlay');
     const c = nameEl('modalContent');
-    const dl = item.file_url ? '<a href="' + esc(item.file_url) + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : '';
+    const dl = item.file_id ? '<a href="/api/files/' + item.file_id + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : item.file_url ? '<a href="' + esc(item.file_url) + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : '';
     c.innerHTML = '<h3 class="font-bold text-lg break-words">' + esc(item.title) + '</h3>' +
       '<p class="text-sm whitespace-pre-wrap">' + esc(item.content || '') + '</p>' +
       '<p class="text-xs text-zinc-400">' + new Date(item.created_at).toLocaleString() + '</p>' +

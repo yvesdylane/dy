@@ -225,6 +225,8 @@ async def _sync_tasks(sessionmaker, items, id_maps):
                     new = Task(
                         name=item.name, description=item.description,
                         supporting_doc=item.supporting_doc, department=item.department,
+                        file_id=getattr(item, "file_id", None),
+                        file_name=getattr(item, "file_name", None),
                         submission_deadline=item.submission_deadline,
                         total_mark_on=item.total_mark_on, created_by=mapped_creator_id,
                     )
@@ -263,6 +265,8 @@ async def _sync_task_submissions(sessionmaker, items, id_maps):
                     new = TaskSubmission(
                         task_id=mapped_task_id, user_id=mapped_user_id,
                         submitted_file=item.submitted_file,
+                        file_id=getattr(item, "file_id", None),
+                        file_name=getattr(item, "file_name", None),
                         submitted_at=item.submitted_at,
                         mark_obtained=item.mark_obtained, feedback=item.feedback,
                     )
@@ -293,7 +297,10 @@ async def _sync_infos(sessionmaker, items, id_maps):
                 else:
                     new = Info(
                         title=item.title, content=item.content,
-                        file_url=item.file_url, created_by=mapped_creator_id,
+                        file_url=item.file_url,
+                        file_id=getattr(item, "file_id", None),
+                        file_name=getattr(item, "file_name", None),
+                        created_by=mapped_creator_id,
                     )
                     session.add(new)
 
@@ -323,7 +330,10 @@ async def _sync_notes(sessionmaker, items, id_maps):
                 else:
                     new = Note(
                         title=item.title, content=item.content,
-                        file_url=item.file_url, department=item.department,
+                        file_url=item.file_url,
+                        file_id=getattr(item, "file_id", None),
+                        file_name=getattr(item, "file_name", None),
+                        department=item.department,
                         uploaded_by=mapped_uploader_id,
                     )
                     session.add(new)

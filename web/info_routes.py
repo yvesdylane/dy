@@ -2,16 +2,13 @@ import logging
 
 from fastapi import APIRouter, Depends, Form, Query, UploadFile
 
-from web.cloudinary import upload_to_cloudinary
 from web.security import verified_tid
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def notify_interns(title, content, file_url=None):
-    import httpx
-
+async def notify_interns(title, content, file_id=None, file_name=None):
     from sqlalchemy import select
 
     from bot.router import application as tg_app
@@ -27,25 +24,14 @@ async def notify_interns(title, content, file_url=None):
         )).scalars().all()
 
     msg = f"📢 Announcement: {title}\n\n{content}"
-    doc_bytes = None
-    doc_filename = None
-    if file_url:
-        try:
-            from web.cloudinary import sign_url
-            signed = sign_url(file_url)
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(signed)
-                resp.raise_for_status()
-            doc_bytes = resp.content
-            doc_filename = file_url.rsplit("/", 1)[-1].split("?")[0]
-        except Exception:
-            pass
-
     for u in interns:
         if u.telegram_id and not u.telegram_id.startswith("pending_"):
             try:
-                if doc_bytes:
-                    await tg_app.bot.send_document(chat_id=u.telegram_id, document=doc_bytes, filename=doc_filename, caption=msg)
+                if file_id:
+                    await tg_app.bot.send_document(
+                        chat_id=u.telegram_id, document=file_id,
+                        filename=file_name, caption=msg,
+                    )
                 else:
                     await tg_app.bot.send_message(chat_id=u.telegram_id, text=msg)
             except Exception:
@@ -58,7 +44,6 @@ async def admin_list_info(telegram_id: str = Depends(verified_tid)):
 
     from db.database import async_session
     from models.models import Info, Role, User
-    from web.cloudinary import sign_url
 
     async with async_session() as session:
         user = await session.execute(
@@ -73,7 +58,9 @@ async def admin_list_info(telegram_id: str = Depends(verified_tid)):
 
     return {"ok": True, "info": [{
         "id": item.id, "title": item.title, "content": item.content,
-        "file_url": sign_url(item.file_url) if item.file_url else None,
+        "file_url": item.file_id or item.file_url,
+        "file_id": item.file_id,
+        "file_name": item.file_name,
         "created_at": item.created_at.isoformat() if item.created_at else None,
     } for item in info]}
 
@@ -98,14 +85,22 @@ async def admin_create_info(
             if not user:
                 return {"ok": False, "detail": "Unauthorized"}
 
-            file_url = None
+            file_id = None
+            file_name = None
+            file_url_for_legacy = None
             if file and file.filename:
-                file_url = upload_to_cloudinary(await file.read(), folder="dy")
+                from bot.files import upload_file_to_group
+                file_id, file_name = await upload_file_to_group(await file.read(), file.filename)
+                file_url_for_legacy = file_id
 
-            item = Info(title=title, content=content, file_url=file_url, created_by=user.id)
+            item = Info(
+                title=title, content=content,
+                file_url=file_url_for_legacy, file_id=file_id, file_name=file_name,
+                created_by=user.id,
+            )
             session.add(item)
 
-    await notify_interns(item.title, item.content, file_url)
+    await notify_interns(item.title, item.content, file_id, file_name)
 
     return {"ok": True, "info": {"id": item.id, "title": item.title}}
 
@@ -136,7 +131,11 @@ async def admin_update_info(
             if title is not None: item.title = title
             if content is not None: item.content = content
             if file and file.filename:
-                item.file_url = upload_to_cloudinary(await file.read(), folder="dy")
+                from bot.files import upload_file_to_group
+                file_id, file_name = await upload_file_to_group(await file.read(), file.filename)
+                item.file_url = file_id
+                item.file_id = file_id
+                item.file_name = file_name
 
     return {"ok": True}
 

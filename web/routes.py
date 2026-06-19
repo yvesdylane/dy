@@ -546,6 +546,21 @@ async def register(data: dict):
         return {"ok": False, "detail": str(e)}
 
 
+@router.get("/api/files/{file_id}")
+async def serve_file(file_id: str):
+    from bot.router import application
+
+    if not application:
+        return {"ok": False, "detail": "Bot not initialized"}
+    try:
+        file = await application.bot.get_file(file_id)
+        data = await file.download_as_bytearray()
+        from fastapi.responses import Response
+        return Response(content=data, media_type="application/octet-stream")
+    except Exception as e:
+        return {"ok": False, "detail": str(e)}
+
+
 MARK_QR_MAX_AGE = 3600
 
 

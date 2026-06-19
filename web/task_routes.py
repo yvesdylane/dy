@@ -3,7 +3,6 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, Form, Query, UploadFile
 
-from web.cloudinary import upload_to_cloudinary
 from web.security import verified_tid
 
 logger = logging.getLogger(__name__)
@@ -40,7 +39,6 @@ async def admin_list_tasks(telegram_id: str = Depends(verified_tid)):
 
     from db.database import async_session
     from models.models import Role, Task, User
-    from web.cloudinary import sign_url
 
     async with async_session() as session:
         user = await session.execute(
@@ -53,7 +51,10 @@ async def admin_list_tasks(telegram_id: str = Depends(verified_tid)):
 
     return {"ok": True, "tasks": [{
         "id": t.id, "name": t.name, "description": t.description,
-        "department": t.department.value, "supporting_doc": sign_url(t.supporting_doc) if t.supporting_doc else None,
+        "department": t.department.value,
+        "supporting_doc": t.file_id or t.supporting_doc,
+        "file_id": t.file_id,
+        "file_name": t.file_name,
         "submission_deadline": t.submission_deadline.isoformat() if t.submission_deadline else None,
         "total_mark_on": t.total_mark_on,
         "created_at": t.created_at.isoformat() if t.created_at else None,
@@ -81,13 +82,19 @@ async def admin_create_task(
             if not user:
                 return {"ok": False, "detail": "Unauthorized"}
 
-            supporting_doc = None
+            file_id = None
+            file_name = None
+            supporting_doc_legacy = None
             if file and file.filename:
+                from bot.files import upload_file_to_group
                 file_bytes = await file.read()
-                supporting_doc = upload_to_cloudinary(file_bytes, folder="dy")
+                file_id, file_name = await upload_file_to_group(file_bytes, file.filename)
+                supporting_doc_legacy = file_id
 
             task = Task(
-                name=name, description=description, supporting_doc=supporting_doc,
+                name=name, description=description,
+                supporting_doc=supporting_doc_legacy,
+                file_id=file_id, file_name=file_name,
                 department=Department(department),
                 submission_deadline=datetime.fromisoformat(submission_deadline),
                 total_mark_on=total_mark_on, created_by=user.id,
@@ -129,7 +136,11 @@ async def admin_update_task(
             if submission_deadline is not None: task.submission_deadline = datetime.fromisoformat(submission_deadline)
             if total_mark_on is not None: task.total_mark_on = total_mark_on
             if file and file.filename:
-                task.supporting_doc = upload_to_cloudinary(await file.read(), folder="dy")
+                from bot.files import upload_file_to_group
+                file_id, file_name = await upload_file_to_group(await file.read(), file.filename)
+                task.supporting_doc = file_id
+                task.file_id = file_id
+                task.file_name = file_name
 
     return {"ok": True}
 
@@ -186,7 +197,9 @@ async def admin_list_submissions(task_id: int, telegram_id: str = Depends(verifi
         "id": ts.TaskSubmission.id,
         "user_name": ts.User.name,
         "user_surname": ts.User.surname,
-        "submitted_file": ts.TaskSubmission.submitted_file,
+        "submitted_file": ts.TaskSubmission.file_id or ts.TaskSubmission.submitted_file,
+        "file_id": ts.TaskSubmission.file_id,
+        "file_name": ts.TaskSubmission.file_name,
         "submitted_at": ts.TaskSubmission.submitted_at.isoformat() if ts.TaskSubmission.submitted_at else None,
         "mark_obtained": float(ts.TaskSubmission.mark_obtained) if ts.TaskSubmission.mark_obtained is not None else None,
         "feedback": ts.TaskSubmission.feedback,

@@ -58,8 +58,6 @@ def reply_md_fn(update: Update):
 
 
 async def send_user_info(telegram_id: str, update: Update):
-    import httpx
-
     user = await get_user(telegram_id)
     reply_text = reply_fn(update)
     reply_md = reply_md_fn(update)
@@ -78,13 +76,28 @@ async def send_user_info(telegram_id: str, update: Update):
     text = format_user_info(user)
     text += "\n\nUse /helpInfo to explore more info commands."
 
-    if user.image:
+    image_id = user.image
+    if image_id and image_id.startswith("http"):
+        from bot.files import migrate_cloudinary_file
+        result = await migrate_cloudinary_file(image_id, f"profile_{telegram_id}.jpg")
+        if result:
+            fid, _ = result
+            from db.database import async_session
+            from models.models import User as UserModel
+            async with async_session() as session:
+                async with session.begin():
+                    u = await session.get(UserModel, user.id)
+                    if u:
+                        u.image = fid
+            image_id = fid
+
+    if image_id:
         try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(user.image)
-                resp.raise_for_status()
+            from bot.router import application
+            file = await application.bot.get_file(image_id)
+            photo_bytes = await file.download_as_bytearray()
             await update.effective_message.reply_photo(
-                photo=resp.content,
+                photo=photo_bytes,
                 caption=text,
                 parse_mode="Markdown",
             )
@@ -206,8 +219,6 @@ async def announcements(update: Update, _context):
 
 
 async def info_detail_callback(update: Update, _context):
-    import httpx
-
     from sqlalchemy import select
 
     from db.database import async_session
@@ -227,18 +238,34 @@ async def info_detail_callback(update: Update, _context):
     text = f"*{item.title}*\n_{item.created_at.date()}_\n\n{item.content}"
     await query.message.reply_markdown(text)
 
-    if item.file_url:
+    if item.file_id:
         try:
-            from web.cloudinary import sign_url
-            signed = sign_url(item.file_url)
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(signed)
-                resp.raise_for_status()
             await query.message.reply_document(
-                document=resp.content,
-                filename=item.file_url.rsplit("/", 1)[-1].split("?")[0],
+                document=item.file_id,
+                filename=item.file_name or item.file_id,
                 caption=f"📎 {item.title}",
             )
+        except Exception as e:
+            logger.error("Failed to send info file (file_id): error=%s", e)
+    elif item.file_url:
+        try:
+            from bot.files import migrate_cloudinary_file
+            result = await migrate_cloudinary_file(item.file_url, item.file_name)
+            if result:
+                fid, fname = result
+                from db.database import async_session
+                from models.models import Info
+                async with async_session() as session:
+                    async with session.begin():
+                        obj = await session.get(Info, item.id)
+                        if obj:
+                            obj.file_id = fid
+                            obj.file_name = fname
+                await query.message.reply_document(
+                    document=fid,
+                    filename=fname,
+                    caption=f"📎 {item.title}",
+                )
         except Exception as e:
             logger.error("Failed to send info file: url=%s error=%s", item.file_url, e)
 
@@ -276,10 +303,6 @@ async def task_info(update: Update, _context):
 
 
 async def task_detail_callback(update: Update, _context):
-    from datetime import datetime
-
-    import httpx
-
     from db.database import async_session
     from models.models import Task
 
@@ -302,18 +325,34 @@ async def task_detail_callback(update: Update, _context):
     ]
     await query.message.reply_markdown("\n".join(lines))
 
-    if t.supporting_doc:
+    if t.file_id:
         try:
-            from web.cloudinary import sign_url
-            signed = sign_url(t.supporting_doc)
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(signed)
-                resp.raise_for_status()
             await query.message.reply_document(
-                document=resp.content,
-                filename=t.supporting_doc.rsplit("/", 1)[-1].split("?")[0],
+                document=t.file_id,
+                filename=t.file_name or t.file_id,
                 caption="📎 Supporting document",
             )
+        except Exception as e:
+            logger.error("Failed to send supporting doc (file_id): error=%s", e)
+    elif t.supporting_doc:
+        try:
+            from bot.files import migrate_cloudinary_file
+            result = await migrate_cloudinary_file(t.supporting_doc, t.file_name)
+            if result:
+                fid, fname = result
+                from db.database import async_session
+                from models.models import Task
+                async with async_session() as session:
+                    async with session.begin():
+                        obj = await session.get(Task, t.id)
+                        if obj:
+                            obj.file_id = fid
+                            obj.file_name = fname
+                await query.message.reply_document(
+                    document=fid,
+                    filename=fname,
+                    caption="📎 Supporting document",
+                )
         except Exception as e:
             logger.error("Failed to send supporting doc: url=%s error=%s", t.supporting_doc, e)
 
@@ -658,15 +697,17 @@ async def submit_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     file = await context.bot.get_file(update.message.document.file_id)
     file_bytes = await file.download_as_bytearray()
 
-    from web.cloudinary import upload_to_cloudinary
-    file_url = upload_to_cloudinary(bytes(file_bytes), folder="dy/submissions")
+    from bot.files import upload_file_to_group
+    file_id, file_name = await upload_file_to_group(bytes(file_bytes), update.message.document.file_name or "submission")
 
     async with async_session() as session:
         async with session.begin():
             session.add(TaskSubmission(
                 task_id=task_id,
                 user_id=user.id,
-                submitted_file=file_url,
+                submitted_file=file_id,
+                file_id=file_id,
+                file_name=file_name,
             ))
 
     context.user_data.pop("submit_task_id", None)
@@ -801,11 +842,14 @@ async def give_task_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = await get_user(str(update.effective_user.id))
 
     doc_url = None
+    doc_id = None
+    doc_name = None
     if update.message.document:
         file = await context.bot.get_file(update.message.document.file_id)
         file_bytes = await file.download_as_bytearray()
-        from web.cloudinary import upload_to_cloudinary
-        doc_url = upload_to_cloudinary(bytes(file_bytes), folder="dy/tasks")
+        from bot.files import upload_file_to_group
+        doc_id, doc_name = await upload_file_to_group(bytes(file_bytes), update.message.document.file_name or "task_doc")
+        doc_url = doc_id
 
     async with async_session() as session:
         async with session.begin():
@@ -816,6 +860,8 @@ async def give_task_doc(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 submission_deadline=context.user_data["task_deadline"],
                 total_mark_on=context.user_data["task_mark"],
                 supporting_doc=doc_url,
+                file_id=doc_id,
+                file_name=doc_name,
                 created_by=user.id,
             )
             session.add(task)
@@ -870,8 +916,6 @@ async def notes_list(update: Update, _context):
 
 
 async def note_detail_callback(update: Update, _context):
-    import httpx
-
     from db.database import async_session
     from models.models import Note
 
@@ -891,18 +935,34 @@ async def note_detail_callback(update: Update, _context):
         lines.append(f"\n📝 {n.content}")
     await query.message.reply_markdown("\n".join(lines))
 
-    if n.file_url:
+    if n.file_id:
         try:
-            from web.cloudinary import sign_url
-            signed = sign_url(n.file_url)
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(signed)
-                resp.raise_for_status()
             await query.message.reply_document(
-                document=resp.content,
-                filename=n.file_url.rsplit("/", 1)[-1].split("?")[0],
+                document=n.file_id,
+                filename=n.file_name or n.file_id,
                 caption=f"📎 {n.title}",
             )
+        except Exception as e:
+            logger.error("Failed to send note file (file_id): error=%s", e)
+    elif n.file_url:
+        try:
+            from bot.files import migrate_cloudinary_file
+            result = await migrate_cloudinary_file(n.file_url, n.file_name)
+            if result:
+                fid, fname = result
+                from db.database import async_session
+                from models.models import Note
+                async with async_session() as session:
+                    async with session.begin():
+                        obj = await session.get(Note, n.id)
+                        if obj:
+                            obj.file_id = fid
+                            obj.file_name = fname
+                await query.message.reply_document(
+                    document=fid,
+                    filename=fname,
+                    caption=f"📎 {n.title}",
+                )
         except Exception as e:
             logger.error("Failed to send note file: url=%s error=%s", n.file_url, e)
             await query.message.reply_text(f"⚠️ Could not send attachment.")
@@ -999,12 +1059,15 @@ async def give_note_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user = await get_user(str(update.effective_user.id))
 
-    file_url = None
+    file_id = None
+    file_name = None
+    file_url_for_legacy = None
     if update.message.document:
         file = await context.bot.get_file(update.message.document.file_id)
         file_bytes = await file.download_as_bytearray()
-        from web.cloudinary import upload_to_cloudinary
-        file_url = upload_to_cloudinary(bytes(file_bytes), folder="dy/notes")
+        from bot.files import upload_file_to_group
+        file_id, file_name = await upload_file_to_group(bytes(file_bytes), update.message.document.file_name or "note")
+        file_url_for_legacy = file_id
 
     async with async_session() as session:
         async with session.begin():
@@ -1012,7 +1075,9 @@ async def give_note_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 title=context.user_data["note_title"],
                 content=context.user_data["note_content"],
                 department=context.user_data["note_dept"],
-                file_url=file_url,
+                file_url=file_url_for_legacy,
+                file_id=file_id,
+                file_name=file_name,
                 uploaded_by=user.id,
             )
             session.add(note)
@@ -1043,9 +1108,7 @@ async def image_start(update: Update, _context):
 
 
 async def image_handle_photo(update: Update, context):
-    import asyncio
-
-    from web.cloudinary import upload_to_cloudinary
+    from bot.files import upload_file_to_group
 
     telegram_id = str(update.effective_user.id)
     reply = reply_fn(update)
@@ -1059,7 +1122,10 @@ async def image_handle_photo(update: Update, context):
     file = await photo.get_file()
     photo_bytes = await file.download_as_bytearray()
 
-    url = await asyncio.to_thread(upload_to_cloudinary, bytes(photo_bytes), public_id=telegram_id, folder="dy/users")
+    file_id, _ = await upload_file_to_group(
+        bytes(photo_bytes),
+        f"profile_{telegram_id}.jpg",
+    )
 
     from db.database import async_session
     from models.models import User as UserModel
@@ -1068,7 +1134,7 @@ async def image_handle_photo(update: Update, context):
         async with session.begin():
             u = (await session.execute(select(UserModel).where(UserModel.telegram_id == telegram_id))).scalar_one_or_none()
             if u:
-                u.image = url
+                u.image = file_id
 
     await reply("Profile picture updated!")
     return ConversationHandler.END
