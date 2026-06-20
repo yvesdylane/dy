@@ -18,6 +18,8 @@ Meet **[dy](https://t.me/dyDMCBOT)** — a side project that started as "let me 
 | 📝 **Tasks** | Create, browse, and submit work — staff gives, interns submit |
 | 📒 **Notes** | Share departmental notes with file uploads |
 | 📢 **Info / Announcements** | Broadcast messages — `/info` to see them |
+| 🙊 **Anonymous Complaints** | `/complain` to submit feedback — no identity stored |
+| ✈️ **Leave Requests** | `/leave` to apply, staff review & approve/reject |
 | 👥 **Users** | Role-based (admin / instructor / intern), phone-link to Telegram |
 | 🔗 **Phone Linking** | Admin creates users → they `/link` via contact share to connect |
 | 💾 **DB Sync** | `/sync` upload a `.db` file to merge data — also re-uploads all files to the storage group |
@@ -42,6 +44,8 @@ Everything responds only to commands — no passive replies. Minimal by design.
 | `/submit` | All | Submit your work for a task |
 | `/notes` | All | Browse notes (buttons) |
 | `/givenotes` | Staff ✋ | Create a note (step-by-step wizard) |
+| `/leave` | Interns | Apply for leave (date picker + reason) |
+| `/complain` | All | Submit anonymous complaint or advice |
 | `/dashboard` | All | Open the web mini app |
 | `/link` | All | Link phone to your account |
 | `/qr` | Staff ✋ | Generate attendance QR code |
@@ -109,7 +113,7 @@ The app will be at `http://localhost:8000`, bot webhook at `/telegram`, dashboar
 
 ## 💾 Sync & Backup
 
-- **`/sync`** — Upload a `.db` file. The bot merges users, attendance, tasks, submissions, notes, info, and creation codes. After merging, it re-uploads every file found in the old DB (profile images, task attachments, submission files, note/info attachments) to the current storage group and updates all `file_id` references automatically.
+- **`/sync`** — Upload a `.db` file. The bot merges users, attendance, tasks, submissions, notes, info, creation codes, complaints, and leave requests. After merging, it re-uploads every file found in the old DB (profile images, task attachments, submission files, note/info attachments) to the current storage group and updates all `file_id` references automatically.
 
 - **`/db`** — Download the current live database for manual backup.
 
@@ -128,6 +132,12 @@ The app will be at `http://localhost:8000`, bot webhook at `/telegram`, dashboar
 I'm **[Yves Dylane](https://github.com/yvesdylane)** — curious dev, always building, always breaking things. This is a side project I actually use, and I keep coming back to add stuff I wish existed.
 
 If you're reading this and have ideas, suggestions, or just want to say hi — hit me up. I'm here to learn.
+
+---
+
+<p align="center">
+  ⭐ If you find dy useful, <a href="https://github.com/yvesdylane/dy">star the repo</a> — it really helps!
+</p>
 
 ---
 
