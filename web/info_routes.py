@@ -19,12 +19,12 @@ async def notify_interns(title, content, file_id=None, file_name=None):
         return
 
     async with async_session() as session:
-        interns = (await session.execute(
-            select(User).where(User.role == Role.intern)
+        users = (await session.execute(
+            select(User).where(User.role.in_([Role.intern, Role.instructor, Role.admin]))
         )).scalars().all()
 
     msg = f"📢 Announcement: {title}\n\n{content}"
-    for u in interns:
+    for u in users:
         if u.telegram_id and not u.telegram_id.startswith("pending_"):
             try:
                 if file_id:

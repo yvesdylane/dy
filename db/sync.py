@@ -136,12 +136,10 @@ async def _migrate_all_files(sessionmaker, users, tasks, submissions, infos, not
     async def _migrate_one(val, hint):
         if not val:
             return None, None
+        if not val.startswith("http"):
+            return val, None
         try:
-            if val.startswith("http"):
-                return await migrate_cloudinary_file(val, hint) or (None, None)
-            tg_file = await bot.get_file(val)
-            fb = await tg_file.download_as_bytearray()
-            return await upload_file_to_group(bytes(fb), hint or val)
+            return await migrate_cloudinary_file(val, hint) or (None, None)
         except Exception as e:
             logger.error("File migration failed: %s err=%s", val, e)
             return None, None
