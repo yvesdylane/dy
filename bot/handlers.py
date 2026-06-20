@@ -1367,11 +1367,14 @@ async def leave_view(update: Update, context):
 
     lr_id = int(query.data.split("_")[-1])
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
     from db.database import async_session
     from models.models import LeaveRequest
 
     async with async_session() as session:
-        lr = await session.get(LeaveRequest, lr_id)
+        lr = (await session.execute(
+            select(LeaveRequest).options(selectinload(LeaveRequest.user)).where(LeaveRequest.id == lr_id)
+        )).scalar_one_or_none()
         if not lr:
             await query.message.edit_text("Leave request not found.")
             return

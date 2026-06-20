@@ -1123,6 +1123,8 @@
           sessionStorage.removeItem('qrS');
           if (qd && qs) {
             window.location.href = '/mark?d=' + encodeURIComponent(qd) + '&s=' + encodeURIComponent(qs);
+          } else if (res.role === 'admin') {
+            window.location.href = '/app?telegram_id=' + encodeURIComponent(tid);
           } else {
             if (tg) { tg.HapticFeedback?.notificationOccurred?.('success'); tg.close(); }
             else location.reload();

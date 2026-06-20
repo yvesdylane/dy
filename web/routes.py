@@ -576,7 +576,7 @@ async def register(data: dict):
                     dob=datetime.strptime(data["dob"], "%Y-%m-%d").date(),
                 ))
 
-        return {"ok": True}
+        return {"ok": True, "role": role.value}
     except Exception as e:
         return {"ok": False, "detail": str(e)}
 
