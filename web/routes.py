@@ -658,6 +658,7 @@ async def submit_leave(telegram_id: str = Depends(verified_tid), data: dict = No
 @router.get("/api/admin/leaves")
 async def admin_list_leaves(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
 
     from db.database import async_session
     from models.models import LeaveRequest, Role, User
@@ -670,7 +671,9 @@ async def admin_list_leaves(telegram_id: str = Depends(verified_tid)):
             return {"ok": False, "detail": "Unauthorized"}
 
         items = (await session.execute(
-            select(LeaveRequest).order_by(LeaveRequest.created_at.desc()).limit(200)
+            select(LeaveRequest)
+            .options(selectinload(LeaveRequest.user))
+            .order_by(LeaveRequest.created_at.desc()).limit(200)
         )).scalars().all()
 
         result = []

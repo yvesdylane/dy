@@ -1326,12 +1326,15 @@ async def leave_reason_received(update: Update, context):
 
 async def _leave_show_list(update: Update, context):
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
     from db.database import async_session
     from models.models import LeaveRequest, LeaveStatus
 
     async with async_session() as session:
         pending = (await session.execute(
-            select(LeaveRequest).where(LeaveRequest.status == LeaveStatus.pending)
+            select(LeaveRequest)
+            .options(selectinload(LeaveRequest.user))
+            .where(LeaveRequest.status == LeaveStatus.pending)
             .order_by(LeaveRequest.created_at.desc())
         )).scalars().all()
 
@@ -1399,12 +1402,18 @@ async def leave_review(update: Update, context):
     new_status = "approved" if action == "approve" else "rejected"
 
     from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
     from db.database import async_session
     from models.models import LeaveRequest, LeaveStatus, User, Role
 
     async with async_session() as session:
         async with session.begin():
-            lr = await session.get(LeaveRequest, lr_id)
+            lr = await session.execute(
+                select(LeaveRequest)
+                .options(selectinload(LeaveRequest.user))
+                .where(LeaveRequest.id == lr_id)
+            )
+            lr = lr.scalar_one_or_none()
             if not lr:
                 await query.message.edit_text("Leave request not found.")
                 return
@@ -1416,6 +1425,9 @@ async def leave_review(update: Update, context):
             lr.status = LeaveStatus(new_status)
             if reviewer:
                 lr.reviewed_by = reviewer.id
+
+            intern_user = lr.user
+            leave_date = lr.date
 
             # If approved and attendance exists for this date, mark as exempted
             if new_status == "approved":
@@ -1445,10 +1457,25 @@ async def leave_review(update: Update, context):
                         ia.status = "exempted"
 
     await query.message.edit_text(
-        f"{'✅' if new_status == 'approved' else '❌'} Leave for *{lr.user.name}* on *{lr.date}* {new_status}."
-        if lr.user else f"Leave {new_status}.",
+        f"{'✅' if new_status == 'approved' else '❌'} Leave for *{intern_user.name}* on *{leave_date}* {new_status}.",
         parse_mode="Markdown",
     )
+
+    # Notify the intern
+    from bot.router import application
+    try:
+        if intern_user and intern_user.telegram_id:
+            emoji = "✅" if new_status == "approved" else "❌"
+            await application.bot.send_message(
+                chat_id=int(intern_user.telegram_id),
+                text=(
+                    f"Your leave request for *{leave_date.isoformat()}* has been *{new_status}*.\n\n"
+                    f"Reason: {lr.reason}"
+                ),
+                parse_mode="Markdown",
+            )
+    except Exception as e:
+        logger.warning("Failed to notify intern about leave: %s", e)
 
     # Show updated list
     update.callback_query = query
