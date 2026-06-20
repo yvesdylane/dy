@@ -22,7 +22,7 @@ async def admin_get_attendance(telegram_id: str = Depends(verified_tid), date_st
     from sqlalchemy import select
 
     from db.database import async_session
-    from models.models import Attendance, InternAttendance, Role, User
+    from models.models import Attendance, InternAttendance, LeaveRequest, LeaveStatus, Role, User
 
     async with async_session() as session:
         admin = await session.execute(
@@ -39,6 +39,17 @@ async def admin_get_attendance(telegram_id: str = Depends(verified_tid), date_st
         )
         att = att.scalar_one_or_none()
 
+        # Get approved leaves for this date
+        exempted_user_ids = set()
+        if att:
+            leaves = (await session.execute(
+                select(LeaveRequest).where(
+                    LeaveRequest.date == d,
+                    LeaveRequest.status == LeaveStatus.approved,
+                )
+            )).scalars().all()
+            exempted_user_ids = {lr.user_id for lr in leaves}
+
         if att:
             students_raw = await session.execute(
                 select(User).where(User.role == Role.intern, User.group == att.group)
@@ -53,13 +64,33 @@ async def admin_get_attendance(telegram_id: str = Depends(verified_tid), date_st
             student_list = []
             for s in students:
                 ia = ia_map.get(s.id)
-                student_list.append({
-                    "user_id": s.id,
-                    "name": s.name,
-                    "surname": s.surname,
-                    "enter_at": ia.enter_at.strftime("%H:%M") if ia and ia.enter_at else None,
-                    "left_at": ia.left_at.strftime("%H:%M") if ia and ia.left_at else None,
-                })
+                if ia and ia.status == "exempted":
+                    student_list.append({
+                        "user_id": s.id,
+                        "name": s.name,
+                        "surname": s.surname,
+                        "status": "exempted",
+                        "enter_at": None,
+                        "left_at": None,
+                    })
+                elif s.id in exempted_user_ids:
+                    student_list.append({
+                        "user_id": s.id,
+                        "name": s.name,
+                        "surname": s.surname,
+                        "status": "exempted",
+                        "enter_at": None,
+                        "left_at": None,
+                    })
+                else:
+                    student_list.append({
+                        "user_id": s.id,
+                        "name": s.name,
+                        "surname": s.surname,
+                        "status": None,
+                        "enter_at": ia.enter_at.strftime("%H:%M") if ia and ia.enter_at else None,
+                        "left_at": ia.left_at.strftime("%H:%M") if ia and ia.left_at else None,
+                    })
 
             return {
                 "ok": True, "exists": True, "date": date_str,
@@ -104,6 +135,11 @@ async def admin_save_attendance(telegram_id: str = Depends(verified_tid), data: 
                     )
                 )
                 ia = existing.scalar_one_or_none()
+
+                # Skip exempted rows — they come from approved leaves
+                if ia and ia.status == "exempted":
+                    continue
+
                 if enter_at or left_at:
                     if ia:
                         if enter_at:

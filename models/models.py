@@ -51,6 +51,12 @@ class ComplainType(enum.Enum):
     advice = "advice"
 
 
+class LeaveStatus(enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -78,6 +84,8 @@ class User(Base):
     created_tasks = relationship("Task", back_populates="creator")
     infos = relationship("Info", back_populates="creator")
     notes = relationship("Note", back_populates="uploader")
+    leave_requests = relationship("LeaveRequest", foreign_keys="LeaveRequest.user_id")
+    reviewed_leaves = relationship("LeaveRequest", foreign_keys="LeaveRequest.reviewed_by")
 
 
 class CreationCode(Base):
@@ -118,6 +126,7 @@ class InternAttendance(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     enter_at = Column(DateTime, nullable=False)
     left_at = Column(DateTime, nullable=True)
+    status = Column(String(20), nullable=True)
 
     attendance = relationship("Attendance", back_populates="intern_attendances")
     user = relationship("User", back_populates="attendances")
@@ -202,3 +211,18 @@ class UserComplain(Base):
     department = Column(Enum(Department), nullable=False)
     group = Column(Enum(Group), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class LeaveRequest(Base):
+    __tablename__ = "leave_requests"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    date = Column(Date, nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(Enum(LeaveStatus), default=LeaveStatus.pending)
+    reviewed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", foreign_keys=[user_id])
+    reviewer = relationship("User", foreign_keys=[reviewed_by])

@@ -210,8 +210,20 @@
         '" data-bulletin-tab="complaints">Complaints</button>' +
         '</div>';
       pills.classList.remove('hidden');
+    } else if (section === 'attendance') {
+      const tab = currentAttTab || 'registers';
+      title.textContent = 'Attendance';
+      pills.innerHTML = '<div class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 w-fit">' +
+        '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'registers' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-att-tab="registers">Registers</button>' +
+        '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'leaves' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-att-tab="leaves">Leaves</button>' +
+        '</div>';
+      pills.classList.remove('hidden');
     } else {
-      const names = {stats:'Dashboard',attendance:'Attendance',tasks:'Tasks',notes:'Notes'};
+      const names = {stats:'Dashboard',tasks:'Tasks',notes:'Notes'};
       title.textContent = names[section] || section.charAt(0).toUpperCase() + section.slice(1);
       pills.classList.add('hidden');
     }
@@ -235,6 +247,15 @@
     if (tab === 'info') loadInfo();
     if (tab === 'complaints') loadComplaints();
     updateHeader('bulletin');
+  }
+
+  let currentAttTab = 'registers';
+  function switchAttTab(tab) {
+    currentAttTab = tab;
+    nameEl('sectionRegisters').classList.toggle('hidden', tab !== 'registers');
+    nameEl('sectionLeaves').classList.toggle('hidden', tab !== 'leaves');
+    if (tab === 'leaves') loadLeaves();
+    updateHeader('attendance');
   }
 
   async function loadComplaints() {
@@ -396,7 +417,7 @@
             if (section === 'users') await loadUsers();
             if (section === 'codes') await loadCodes();
             if (section === 'people') { await switchPeopleTab('users'); }
-            if (section === 'attendance') await loadAttendance(document.getElementById('attDate').value);
+            if (section === 'attendance') { switchAttTab(currentAttTab); if (currentAttTab === 'registers' && nameEl('attDate').value) await loadAttendance(nameEl('attDate').value); }
             if (section === 'tasks') await loadTasks();
             if (section === 'notes') await loadNotes();
             if (section === 'info') await loadInfo();
@@ -416,6 +437,11 @@
         document.addEventListener('click', (e) => {
           const tab = e.target.closest('.bulletin-tab');
           if (tab) switchBulletinTab(tab.dataset.bulletinTab);
+        });
+
+        document.addEventListener('click', (e) => {
+          const tab = e.target.closest('.att-tab');
+          if (tab) switchAttTab(tab.dataset.attTab);
         });
 
         nameEl('exportComplaintsBtn')?.addEventListener('click', () => {
@@ -659,6 +685,39 @@
     const ds = nameEl('attDate').value;
     await fetch('/api/admin/attendance?telegram_id=' + encodeURIComponent(tid) + '&date_str=' + encodeURIComponent(ds), {method:'DELETE'});
     await loadAttendance(ds);
+  });
+
+  // --- Leaves ---
+  async function loadLeaves() {
+    const r = await (await fetch('/api/admin/leaves?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('leavesList');
+    const filter = nameEl('leaveStatusFilter').value;
+    const items = filter ? r.leaves.filter(l => l.status === filter) : r.leaves;
+    list.innerHTML = items.map(l => {
+      const statusColor = l.status === 'approved' ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950' :
+        l.status === 'rejected' ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950' :
+        'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950';
+      return '<div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">' +
+        '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(l.user_name) + '</p>' +
+        '<span class="text-xs px-2 py-0.5 rounded-full ' + statusColor + '">' + l.status + '</span></div>' +
+        '<p class="text-xs text-zinc-500 mt-1">' + l.department + (l.group ? ' · Group ' + l.group : '') + ' · ' + l.date + '</p>' +
+        '<p class="text-xs text-zinc-400 mt-1 italic">"' + esc(l.reason) + '"</p>' +
+        '<p class="text-xs text-zinc-400 mt-0.5">' + l.created_at + '</p>' +
+        (l.status === 'pending' ? '<div class="flex gap-2 mt-2"><button class="leave-review-btn px-3 py-1 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs font-medium" data-id="' + l.id + '" data-action="approve">Approve</button>' +
+        '<button class="leave-review-btn px-3 py-1 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium" data-id="' + l.id + '" data-action="reject">Reject</button></div>' : '') +
+        '</div>';
+    }).join('');
+  }
+  nameEl('leaveStatusFilter')?.addEventListener('change', loadLeaves);
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.leave-review-btn');
+    if (!btn) return;
+    const id = parseInt(btn.dataset.id);
+    const action = btn.dataset.action;
+    await fetch('/api/admin/leaves/' + id + '/review?telegram_id=' + encodeURIComponent(tid),
+      {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: action})});
+    await loadLeaves();
   });
 
   // --- Tasks ---

@@ -19,7 +19,7 @@ def _get_app_html():
         fragment = (SECTIONS_DIR / f"{name}.html").read_text()
         shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
     # Second pass — resolve nested section placeholders inside wrapper fragments
-    for name in ("users","codes","info"):
+    for name in ("users","codes","info","registers","leaves"):
         fragment = (SECTIONS_DIR / f"{name}.html").read_text()
         shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
     return shell
@@ -625,6 +625,125 @@ async def admin_list_complaints(telegram_id: str = Depends(verified_tid), format
         "group": item.group.value if item.group else None,
         "created_at": item.created_at.strftime("%Y-%m-%d %H:%M"),
     } for item in items]}
+
+
+@router.post("/api/leave")
+async def submit_leave(telegram_id: str = Depends(verified_tid), data: dict = None):
+    from datetime import date
+
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import LeaveRequest, User
+
+    async with async_session() as session:
+        async with session.begin():
+            user = await session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            user = user.scalar_one_or_none()
+            if not user:
+                return {"ok": False, "detail": "User not found"}
+
+            leave_date = date.fromisoformat(data["date"])
+            session.add(LeaveRequest(
+                user_id=user.id,
+                date=leave_date,
+                reason=data["reason"],
+            ))
+
+    return {"ok": True}
+
+
+@router.get("/api/admin/leaves")
+async def admin_list_leaves(telegram_id: str = Depends(verified_tid)):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import LeaveRequest, Role, User
+
+    async with async_session() as session:
+        admin = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        )
+        if not admin.scalar_one_or_none():
+            return {"ok": False, "detail": "Unauthorized"}
+
+        items = (await session.execute(
+            select(LeaveRequest).order_by(LeaveRequest.created_at.desc()).limit(200)
+        )).scalars().all()
+
+        result = []
+        for lr in items:
+            u = lr.user
+            result.append({
+                "id": lr.id,
+                "user_id": lr.user_id,
+                "user_name": f"{u.name} {u.surname}",
+                "department": u.department.value,
+                "group": u.group.value if u.group else None,
+                "date": lr.date.isoformat(),
+                "reason": lr.reason,
+                "status": lr.status.value,
+                "created_at": lr.created_at.strftime("%Y-%m-%d %H:%M"),
+            })
+
+    return {"ok": True, "leaves": result}
+
+
+@router.post("/api/admin/leaves/{leave_id}/review")
+async def admin_review_leave(leave_id: int, telegram_id: str = Depends(verified_tid), data: dict = None):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import InternAttendance, LeaveRequest, LeaveStatus, Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            lr = await session.get(LeaveRequest, leave_id)
+            if not lr:
+                return {"ok": False, "detail": "Leave request not found"}
+
+            new_status = data.get("status")
+            if new_status not in ("approved", "rejected"):
+                return {"ok": False, "detail": "Invalid status"}
+
+            lr.status = LeaveStatus(new_status)
+            lr.reviewed_by = admin.scalar_one().id
+
+            if new_status == "approved":
+                from datetime import datetime
+                from models.models import Attendance
+                att = await session.execute(
+                    select(Attendance).where(Attendance.date == lr.date)
+                )
+                att = att.scalar_one_or_none()
+                if att:
+                    existing = await session.execute(
+                        select(InternAttendance).where(
+                            InternAttendance.attendance_id == att.id,
+                            InternAttendance.user_id == lr.user_id,
+                        )
+                    )
+                    ia = existing.scalar_one_or_none()
+                    if not ia:
+                        ia = InternAttendance(
+                            attendance_id=att.id,
+                            user_id=lr.user_id,
+                            enter_at=datetime.combine(lr.date, datetime.min.time()),
+                            status="exempted",
+                        )
+                        session.add(ia)
+                    else:
+                        ia.status = "exempted"
+
+    return {"ok": True}
 
 
 @router.get("/api/files/{file_id}")

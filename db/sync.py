@@ -10,6 +10,7 @@ from models.models import (
     CreationCode,
     Info,
     InternAttendance,
+    LeaveRequest,
     Note,
     Task,
     TaskSubmission,
@@ -68,6 +69,10 @@ async def sync_database(uploaded_db_path: str) -> str:
                 user_complains = await _fetch_all(upload_session, UserComplain, "user_complains")
             except Exception:
                 user_complains = []
+            try:
+                leave_requests = await _fetch_all(upload_session, LeaveRequest, "leave_requests")
+            except Exception:
+                leave_requests = []
     finally:
         await upload_engine.dispose()
 
@@ -98,6 +103,10 @@ async def sync_database(uploaded_db_path: str) -> str:
     if user_complains:
         await _sync_user_complains(main_sessionmaker, user_complains)
         reports.append(f"Complaints: {len(user_complains)} processed")
+
+    if leave_requests:
+        await _sync_leave_requests(main_sessionmaker, leave_requests, id_maps)
+        reports.append(f"Leave requests: {len(leave_requests)} processed")
 
     counts = await _migrate_all_files(main_sessionmaker, users, tasks, submissions, infos, notes, id_maps)
     for label, n in counts.items():
@@ -518,3 +527,39 @@ async def _sync_user_complains(sessionmaker, items):
                         department=item.department,
                         group=item.group,
                     ))
+
+
+async def _sync_leave_requests(sessionmaker, items, id_maps):
+    async with sessionmaker() as session:
+        async with session.begin():
+            for item in items:
+                mapped_user_id = id_maps.get("user", {}).get(item.user_id)
+                if not mapped_user_id:
+                    logger.warning("Skipping leave %s: user %s not mapped", item.id, item.user_id)
+                    continue
+
+                mapped_reviewer = id_maps.get("user", {}).get(item.reviewed_by) if item.reviewed_by else None
+
+                existing = (
+                    await session.execute(
+                        select(LeaveRequest).where(
+                            LeaveRequest.user_id == mapped_user_id,
+                            LeaveRequest.date == item.date,
+                        )
+                    )
+                ).scalar_one_or_none()
+
+                if existing:
+                    _copy_fields(existing, item, LeaveRequest.__table__, ("id", "user_id", "created_at"))
+                    existing.user_id = mapped_user_id
+                    if mapped_reviewer:
+                        existing.reviewed_by = mapped_reviewer
+                else:
+                    new = LeaveRequest(
+                        user_id=mapped_user_id,
+                        date=item.date,
+                        reason=item.reason,
+                        status=item.status,
+                        reviewed_by=mapped_reviewer,
+                    )
+                    session.add(new)

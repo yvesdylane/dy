@@ -89,6 +89,7 @@ async def init_bot():
                     BotCommand("link", "Link your phone number"),
                     BotCommand("image", "Set your profile picture"),
                     BotCommand("complain", "Submit anonymous complaint or advice"),
+                    BotCommand("leave", "Apply for leave or review requests"),
                     BotCommand("submit", "Submit your task work"),
                     BotCommand("cancel", "Cancel current operation"),
                     BotCommand("skip", "Skip current step"),
