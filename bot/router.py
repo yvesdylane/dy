@@ -19,6 +19,19 @@ async def start(update: Update, _context):
     mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app?telegram_id={telegram_id}"
     button = InlineKeyboardButton("Open App", web_app=WebAppInfo(url=mini_app_url))
     keyboard = InlineKeyboardMarkup([[button]])
+
+    # Refresh menu button URL so it always matches current deployment
+    try:
+        await update.get_bot().set_chat_menu_button(
+            menu_button={
+                "type": "web_app",
+                "text": "dy",
+                "web_app": {"url": f"{settings.mini_app_url.rstrip('/')}/app"},
+            }
+        )
+    except Exception as e:
+        logger.warning("Failed to set menu button: %s", e)
+
     logo_path = ASSETS_DIR / "logo.png"
     description = (
         "👋 *Welcome to dy!*\n\n"
