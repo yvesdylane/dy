@@ -581,6 +581,47 @@
         if (g('fees_paid')) body.fees_paid = parseFloat(g('fees_paid').value) || 0;
         if (g('telegram_id')) body.telegram_id = g('telegram_id').value;
       }
+
+      // If role changed, require type-to-confirm first
+      if (isEdit && body.role && body.role !== data.role) {
+        btn.disabled = false; btn.textContent = 'Save';
+        const fullName = (data.name + ' ' + data.surname).trim();
+        c.innerHTML = `
+          <h3 class="font-bold text-lg text-brand-600 dark:text-brand-400">Change Role</h3>
+          <p class="text-sm text-zinc-600 dark:text-zinc-400">Changing role from <strong>${esc(data.role)}</strong> to <strong>${esc(body.role)}</strong>. Type <strong>${esc(fullName)}</strong> to confirm.</p>
+          <input id="confirmRoleInput" type="text" placeholder="Type their name..."
+            class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500 mt-2">
+          <p id="confirmRoleErr" class="text-red-500 text-xs hidden mt-1"></p>
+          <div class="flex gap-2 pt-2">
+            <button type="button" id="confirmRoleBack" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Back</button>
+            <button type="button" id="confirmRoleBtn" disabled
+              class="flex-1 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium opacity-50 cursor-not-allowed">Change Role</button>
+          </div>`;
+        const roleInput = nameEl('confirmRoleInput');
+        const roleBtn = nameEl('confirmRoleBtn');
+        const roleErr = nameEl('confirmRoleErr');
+        const doSave = async () => {
+          roleBtn.disabled = true; roleBtn.textContent = 'Saving...';
+          const r = await (await fetch('/api/admin/users/' + data.id + '?telegram_id=' + encodeURIComponent(tid), {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+          if (r.ok) { m.classList.add('hidden'); await loadUsers(); }
+          else { roleErr.textContent = r.detail; roleErr.classList.remove('hidden'); roleBtn.disabled = false; roleBtn.textContent = 'Change Role'; }
+        };
+        roleInput.addEventListener('input', () => {
+          const match = roleInput.value.trim() === fullName;
+          roleBtn.disabled = !match;
+          roleBtn.className = match
+            ? 'flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium'
+            : 'flex-1 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium opacity-50 cursor-not-allowed';
+          roleErr.classList.add('hidden');
+        });
+        roleInput.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' && !roleBtn.disabled) roleBtn.click();
+        });
+        nameEl('confirmRoleBack').onclick = () => { showUserForm(data); };
+        roleBtn.onclick = doSave;
+        return;
+      }
+
       const url = isEdit
         ? '/api/admin/users/' + data.id + '?telegram_id=' + encodeURIComponent(tid)
         : '/api/admin/users?telegram_id=' + encodeURIComponent(tid);
@@ -620,10 +661,40 @@
     nameEl('modalClose').onclick = () => m.classList.add('hidden');
     nameEl('modalEditUser').onclick = () => { m.classList.add('hidden'); showUserForm(u); };
     nameEl('modalDeleteUser').onclick = async () => {
-      if (!confirm("Delete " + esc(u.name) + " " + esc(u.surname) + "?")) return;
-      await fetch('/api/admin/users/' + u.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
-      m.classList.add('hidden');
-      await loadUsers();
+      const fullName = (u.name + ' ' + u.surname).trim();
+      c.innerHTML = `
+        <h3 class="font-bold text-lg text-red-600 dark:text-red-400">Delete User</h3>
+        <p class="text-sm text-zinc-600 dark:text-zinc-400">This cannot be undone. Type <strong>${esc(fullName)}</strong> to confirm.</p>
+        <input id="confirmDeleteInput" type="text" placeholder="Type their name..."
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-red-500 mt-2">
+        <p id="confirmDeleteErr" class="text-red-500 text-xs hidden mt-1"></p>
+        <div class="flex gap-2 pt-2">
+          <button type="button" id="confirmDeleteBack" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Back</button>
+          <button type="button" id="confirmDeleteBtn" disabled
+            class="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium opacity-50 cursor-not-allowed">Delete</button>
+        </div>`;
+      const input = nameEl('confirmDeleteInput');
+      const confirmBtn = nameEl('confirmDeleteBtn');
+      const err = nameEl('confirmDeleteErr');
+      input.addEventListener('input', () => {
+        const match = input.value.trim() === fullName;
+        confirmBtn.disabled = !match;
+        confirmBtn.className = match
+          ? 'flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium'
+          : 'flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium opacity-50 cursor-not-allowed';
+        err.classList.add('hidden');
+      });
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && !confirmBtn.disabled) confirmBtn.click();
+      });
+      nameEl('confirmDeleteBack').onclick = () => { showUserDetail(u); };
+      confirmBtn.onclick = async () => {
+        if (input.value.trim() !== fullName) return;
+        confirmBtn.disabled = true; confirmBtn.textContent = 'Deleting...';
+        const r = await (await fetch('/api/admin/users/' + u.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'})).json();
+        if (r.ok) { m.classList.add('hidden'); await loadUsers(); }
+        else { err.textContent = r.detail; err.classList.remove('hidden'); confirmBtn.disabled = false; confirmBtn.textContent = 'Delete'; }
+      };
     };
     m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
   }
