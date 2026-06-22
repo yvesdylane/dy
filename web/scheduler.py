@@ -205,14 +205,52 @@ async def _auto_complete_cleaning():
             logger.info("Auto-completed cleaning duty for %s on %s (%d members)", duty.group.name, today, len(duty.group.members))
 
 
+async def _backup_db():
+    import io
+    import shutil
+    from pathlib import Path
+    from uuid import uuid4
+
+    from bot.router import application
+    from config import settings
+
+    if not application:
+        logger.warning("Bot not available, skipping DB backup")
+        return
+
+    db_path = Path("dy.db")
+    if not db_path.exists():
+        logger.warning("dy.db not found, skipping backup")
+        return
+
+    backup_path = Path(f"/tmp/dy_backup_{uuid4().hex[:8]}.db")
+    try:
+        shutil.copy2(str(db_path), str(backup_path))
+        with open(backup_path, "rb") as f:
+            buf = io.BytesIO(f.read())
+        buf.name = f"dy_backup_{date.today().isoformat()}.db"
+        await application.bot.send_document(
+            chat_id=int(settings.telegram_group_id),
+            document=buf,
+            caption=f"📦 DB Backup — {date.today().isoformat()}",
+        )
+        logger.info("DB backup sent to group")
+    except Exception as e:
+        logger.error("DB backup failed: %s", e)
+    finally:
+        if backup_path.exists():
+            backup_path.unlink()
+
+
 def start_scheduler():
     scheduler.add_job(auto_create_attendance, CronTrigger(hour=7, minute=0))
     scheduler.add_job(_assign_todays_cleaning, CronTrigger(hour=6, minute=0))
     scheduler.add_job(_notify_cleaning_morning, CronTrigger(hour=9, minute=0))
     scheduler.add_job(_notify_cleaning_afternoon, CronTrigger(hour=15, minute=30))
     scheduler.add_job(_auto_complete_cleaning, CronTrigger(hour=20, minute=0))
+    scheduler.add_job(_backup_db, CronTrigger(hour=22, minute=0))
     scheduler.start()
-    logger.info("Scheduler started (attendance + cleaning)")
+    logger.info("Scheduler started (attendance + cleaning + backup)")
 
 
 def stop_scheduler():
