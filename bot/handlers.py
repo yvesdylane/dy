@@ -1882,23 +1882,26 @@ async def cleaning_cmd(update: Update, context):
 UPDATE_SELECT, UPDATE_VALUE = range(2)
 
 
+async def _show_update_menu(update: Update, context, text="What would you like to update?"):
+    keyboard = [
+        [InlineKeyboardButton("Name", callback_data="update_name"),
+         InlineKeyboardButton("Surname", callback_data="update_surname")],
+        [InlineKeyboardButton("Gender", callback_data="update_gender")],
+        [InlineKeyboardButton("Done", callback_data="update_done")],
+    ]
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+    else:
+        await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+    return UPDATE_SELECT
+
+
 async def update_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = await get_user(str(update.effective_user.id))
     if not user:
         await update.message.reply_text("User not found.")
         return ConversationHandler.END
-
-    keyboard = [
-        [InlineKeyboardButton("Name", callback_data="update_name"),
-         InlineKeyboardButton("Surname", callback_data="update_surname")],
-        [InlineKeyboardButton("Gender", callback_data="update_gender")],
-        [InlineKeyboardButton("Cancel", callback_data="update_cancel")],
-    ]
-    await update.message.reply_text(
-        "What would you like to update?",
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-    return UPDATE_SELECT
+    return await _show_update_menu(update, context)
 
 
 async def update_field_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1906,8 +1909,8 @@ async def update_field_callback(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
 
     field = query.data.replace("update_", "")
-    if field == "cancel":
-        await query.edit_message_text("Cancelled.")
+    if field == "done":
+        await query.edit_message_text("Done!")
         return ConversationHandler.END
 
     context.user_data["update_field"] = field
@@ -1951,11 +1954,12 @@ async def update_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     return UPDATE_VALUE
 
     await update.message.reply_text(f"✅ {field.capitalize()} updated!")
-    return ConversationHandler.END
+    # Ask if they want to update more
+    return await _show_update_menu(update, context, "Anything else?")
 
 
-async def update_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Cancelled.")
+async def update_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Done!")
     return ConversationHandler.END
 
 
@@ -1965,7 +1969,7 @@ update_conv = ConversationHandler(
         UPDATE_SELECT: [CallbackQueryHandler(update_field_callback, pattern=r"^update_")],
         UPDATE_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, update_value)],
     },
-    fallbacks=[CommandHandler("cancel", update_cancel)],
+    fallbacks=[CommandHandler("cancel", update_done)],
 )
 
 
