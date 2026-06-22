@@ -164,11 +164,53 @@ async def _notify_cleaning_afternoon():
                 logger.warning("Failed to remind %s about cleaning: %s", u.telegram_id, e)
 
 
+async def _auto_complete_cleaning():
+    from datetime import datetime
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from db.database import async_session
+    from models.models import CleaningCompletion, CleaningDuty, CleaningGroupMember
+
+    today = date.today()
+    async with async_session() as session:
+        async with session.begin():
+            duty = (await session.execute(
+                select(CleaningDuty)
+                .options(
+                    selectinload(CleaningDuty.group).selectinload(CleaningGroup.members),
+                    selectinload(CleaningDuty.completions),
+                )
+                .where(CleaningDuty.date == today)
+            )).scalar_one_or_none()
+
+            if not duty:
+                return
+
+            completed_user_ids = {c.user_id for c in duty.completions}
+            now = datetime.utcnow()
+            for m in duty.group.members:
+                if m.user_id in completed_user_ids:
+                    continue
+                session.add(CleaningCompletion(
+                    duty_id=duty.id,
+                    user_id=m.user_id,
+                    completed_at=now,
+                ))
+                m.cycle_cleaned = True
+
+            duty.status = "completed"
+            duty.completed_at = now
+            logger.info("Auto-completed cleaning duty for %s on %s (%d members)", duty.group.name, today, len(duty.group.members))
+
+
 def start_scheduler():
     scheduler.add_job(auto_create_attendance, CronTrigger(hour=7, minute=0))
     scheduler.add_job(_assign_todays_cleaning, CronTrigger(hour=6, minute=0))
     scheduler.add_job(_notify_cleaning_morning, CronTrigger(hour=9, minute=0))
     scheduler.add_job(_notify_cleaning_afternoon, CronTrigger(hour=15, minute=30))
+    scheduler.add_job(_auto_complete_cleaning, CronTrigger(hour=20, minute=0))
     scheduler.start()
     logger.info("Scheduler started (attendance + cleaning)")
 

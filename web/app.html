@@ -831,7 +831,14 @@
 
     // Cycle progress
     const progress = r.cycle_progress;
-    const cycleText = progress.done
+    let cycleEl = nameEl('cleaningCycleProgress');
+    if (!cycleEl) {
+      cycleEl = document.createElement('div');
+      cycleEl.id = 'cleaningCycleProgress';
+      cycleEl.className = 'text-xs';
+      nameEl('cleaningToday').after(cycleEl);
+    }
+    cycleEl.innerHTML = progress.done
       ? '<span class="text-green-600 text-xs font-medium">Cycle complete — resetting</span>'
       : '<span class="text-xs text-zinc-500">' + progress.cleaned + '/' + progress.total + ' members cleaned this cycle</span>';
 
@@ -871,6 +878,7 @@
         '<div class="flex items-center gap-2 text-xs text-zinc-500">' +
         '<span class="text-green-600">✓</span> ' +
         esc(m.name) + ' ' + esc(m.surname) +
+        '<button class="unmark-cleaned-btn ml-auto px-1.5 py-0.5 rounded text-xs text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950" data-member-id="' + m.id + '" title="Remove from cleaned list">↩</button>' +
         '</div>'
       ).join('');
     } else {
@@ -933,6 +941,15 @@
     const res = await (await fetch('/api/admin/cleaning/duties/' + dutyId + '/complete?telegram_id=' + encodeURIComponent(tid),
       {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id: userId})})).json();
     if (res.ok) await loadCleaning();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.unmark-cleaned-btn');
+    if (!btn) return;
+    const memberId = parseInt(btn.dataset.memberId);
+    await fetch('/api/admin/cleaning/members/' + memberId + '/toggle-cycle?telegram_id=' + encodeURIComponent(tid),
+      {method:'POST'});
+    await loadCleaning();
   });
 
   document.addEventListener('click', async (e) => {
