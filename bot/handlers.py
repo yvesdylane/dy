@@ -458,8 +458,19 @@ async def handle_contact(update: Update, _context):
                 return
 
             if user.telegram_id and not user.telegram_id.startswith("pending_") and user.telegram_id != caller_id:
+                old_tid = user.telegram_id
+                user.telegram_id = caller_id
+                try:
+                    from bot.router import application
+                    if application:
+                        await application.bot.send_message(
+                            chat_id=int(old_tid),
+                            text="⚠️ Your phone number has been linked to a new account. If this wasn't you, please contact support.",
+                        )
+                except Exception:
+                    pass
                 await update.message.reply_text(
-                    "This phone is linked to a different account.",
+                    f"Linked! Welcome {user.name} {user.surname}.",
                     reply_markup=ReplyKeyboardRemove(),
                 )
                 return

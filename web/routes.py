@@ -560,7 +560,18 @@ async def register(data: dict):
                 )
                 existing_user = existing_phone.scalar_one_or_none()
                 if existing_user:
+                    old_tid = existing_user.telegram_id
                     existing_user.telegram_id = data["telegram_id"]
+                    if old_tid and not old_tid.startswith("pending_") and old_tid != data["telegram_id"]:
+                        try:
+                            from bot.router import application
+                            if application:
+                                await application.bot.send_message(
+                                    chat_id=int(old_tid),
+                                    text="⚠️ Your phone number has been linked to a new account. If this wasn't you, please contact support.",
+                                )
+                        except Exception:
+                            pass
                     return {"ok": True, "role": existing_user.role.value, "linked": True}
 
                 code_val = data.get("code", "")
