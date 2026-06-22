@@ -19,8 +19,10 @@
       <details class="group">
         <summary class="text-xs text-zinc-500 cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-300 select-none">
           Already cleaned this cycle (<span id="cleaningCleanedCount">0</span>)
-          <button id="addCleanedBtn" class="ml-2 px-2 py-0.5 rounded bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-400 text-xs font-medium hover:bg-brand-200 dark:hover:bg-brand-800" onclick="event.stopPropagation()">Add Cleaned</button>
         </summary>
+        <div class="flex items-center gap-2 mt-2 mb-1">
+          <button id="addCleanedBtn" class="px-2 py-0.5 rounded bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-400 text-xs font-medium hover:bg-brand-200 dark:hover:bg-brand-800">Add Cleaned</button>
+        </div>
         <div id="cleaningCleanedList" class="mt-2 space-y-1"></div>
       </details>
     </div>
