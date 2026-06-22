@@ -19,7 +19,7 @@ def _get_app_html():
         fragment = (SECTIONS_DIR / f"{name}.html").read_text()
         shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
     # Second pass — resolve nested section placeholders inside wrapper fragments
-    for name in ("users","codes","info","registers","leaves"):
+    for name in ("users","codes","info","registers","leaves","cleaning"):
         fragment = (SECTIONS_DIR / f"{name}.html").read_text()
         shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
     return shell
@@ -625,6 +625,501 @@ async def admin_list_complaints(telegram_id: str = Depends(verified_tid), format
         "group": item.group.value if item.group else None,
         "created_at": item.created_at.strftime("%Y-%m-%d %H:%M"),
     } for item in items]}
+
+
+# ── Cleaning Roster ─────────────────────────────────────────────
+
+
+@router.get("/api/admin/cleaning/groups")
+async def admin_list_cleaning_groups(telegram_id: str = Depends(verified_tid)):
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from db.database import async_session
+    from models.models import CleaningGroup, CleaningGroupMember, Role, User
+
+    async with async_session() as session:
+        admin = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        )
+        if not admin.scalar_one_or_none():
+            return {"ok": False, "detail": "Unauthorized"}
+
+        groups = (await session.execute(
+            select(CleaningGroup)
+            .options(selectinload(CleaningGroup.members).selectinload(CleaningGroupMember.user))
+            .order_by(CleaningGroup.turn_order)
+        )).scalars().all()
+
+    result = []
+    all_cleaned = []
+    for g in groups:
+        pending = []
+        cleaned = []
+        for m in g.members:
+            u = m.user
+            entry = {
+                "id": m.id,
+                "user_id": u.id,
+                "name": u.name,
+                "surname": u.surname,
+                "gender": u.gender.value,
+                "cycle_cleaned": m.cycle_cleaned,
+            }
+            if m.cycle_cleaned:
+                cleaned.append(entry)
+            else:
+                pending.append(entry)
+        result.append({
+            "id": g.id,
+            "name": g.name,
+            "department": g.department.value,
+            "turn_order": g.turn_order,
+            "members": pending,
+        })
+        all_cleaned.extend(cleaned)
+
+    return {"ok": True, "groups": result, "cleaned_members": all_cleaned}
+
+
+@router.get("/api/admin/cleaning/status")
+async def admin_cleaning_status(telegram_id: str = Depends(verified_tid)):
+    from datetime import date
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from db.database import async_session
+    from models.models import CleaningDuty, CleaningGroup, CleaningGroupMember, Role, User
+
+    async with async_session() as session:
+        admin_user = (await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        )).scalar_one_or_none()
+        if not admin_user:
+            return {"ok": False, "detail": "Unauthorized"}
+
+        groups_count = (await session.execute(
+            select(CleaningGroup).where(CleaningGroup.department == admin_user.department)
+        )).scalars().all()
+
+        has_groups = len(groups_count) > 0
+
+        today = date.today()
+        duty = (await session.execute(
+            select(CleaningDuty)
+            .options(
+                selectinload(CleaningDuty.group).selectinload(CleaningGroup.members).selectinload(CleaningGroupMember.user),
+                selectinload(CleaningDuty.completions),
+            )
+            .where(CleaningDuty.date == today)
+        )).scalar_one_or_none()
+
+        # Check cycle progress
+        all_members = (await session.execute(
+            select(CleaningGroupMember)
+        )).scalars().all()
+        total_members = len(all_members)
+        cleaned_count = sum(1 for m in all_members if m.cycle_cleaned)
+        cycle_done = total_members > 0 and cleaned_count >= total_members
+
+    today_duty = None
+    if duty:
+        members_list = []
+        for m in duty.group.members:
+            completed = any(c.user_id == m.user_id for c in duty.completions)
+            members_list.append({
+                "id": m.id,
+                "user_id": m.user_id,
+                "name": m.user.name,
+                "surname": m.user.surname,
+                "completed": completed,
+            })
+        today_duty = {
+            "id": duty.id,
+            "group_id": duty.group.id,
+            "group_name": duty.group.name,
+            "date": duty.date.isoformat(),
+            "status": duty.status,
+            "members": members_list,
+        }
+
+    return {
+        "ok": True,
+        "has_groups": has_groups,
+        "today_duty": today_duty,
+        "cycle_progress": {"total": total_members, "cleaned": cleaned_count, "done": cycle_done},
+    }
+
+
+@router.post("/api/admin/cleaning/start")
+async def admin_start_cleaning(telegram_id: str = Depends(verified_tid), data: dict = None):
+    from datetime import date
+
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import (
+        CleaningGroup, CleaningGroupMember, Department, Gender, Role, User,
+    )
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            admin = admin.scalar_one_or_none()
+            if not admin:
+                return {"ok": False, "detail": "Unauthorized"}
+
+            dept = Department.SWE
+            already_cleaned_ids = set(data.get("already_cleaned_ids", []))
+
+            interns = (await session.execute(
+                select(User).where(User.role == Role.intern, User.department == dept)
+            )).scalars().all()
+
+            if len(interns) < 2:
+                return {"ok": False, "detail": "Not enough interns for cleaning groups"}
+
+            males = [u for u in interns if u.gender == Gender.male]
+            females = [u for u in interns if u.gender == Gender.female]
+            import random
+            random.shuffle(males)
+            random.shuffle(females)
+
+            group_size = max(3, min(5, (len(interns) + 2) // 3))
+            groups = []
+            while males or females:
+                group = []
+                if males and (len(groups) < len(males) or not females):
+                    group.append(males.pop())
+                while len(group) < group_size and females:
+                    group.append(females.pop())
+                while len(group) < group_size and males:
+                    group.append(males.pop())
+                if group:
+                    groups.append(group)
+
+            existing = (await session.execute(
+                select(CleaningGroup)
+            )).scalars().all()
+            for g in existing:
+                await session.delete(g)
+
+            for i, members in enumerate(groups):
+                cg = CleaningGroup(
+                    name=f"Cleaning Group {chr(65 + i)}",
+                    department=dept,
+                    turn_order=i,
+                )
+                session.add(cg)
+                await session.flush()
+                for u in members:
+                    session.add(CleaningGroupMember(
+                        group_id=cg.id,
+                        user_id=u.id,
+                        cycle_cleaned=u.id in already_cleaned_ids,
+                    ))
+
+    return {"ok": True}
+
+
+@router.post("/api/admin/cleaning/members/{member_id}/toggle-cycle")
+async def admin_toggle_cycle_cleaned(member_id: int, telegram_id: str = Depends(verified_tid)):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import CleaningGroupMember, Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            member = await session.get(CleaningGroupMember, member_id)
+            if not member:
+                return {"ok": False, "detail": "Member not found"}
+            member.cycle_cleaned = not member.cycle_cleaned
+
+    return {"ok": True, "cycle_cleaned": member.cycle_cleaned}
+
+
+@router.post("/api/admin/cleaning/cleaned-members")
+async def admin_add_cleaned_members(telegram_id: str = Depends(verified_tid), data: dict = None):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import CleaningGroup, CleaningGroupMember, Role, User
+
+    user_ids = data.get("user_ids", [])
+    if not user_ids:
+        return {"ok": False, "detail": "user_ids required"}
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            first_group = (await session.execute(
+                select(CleaningGroup).order_by(CleaningGroup.turn_order).limit(1)
+            )).scalar_one_or_none()
+            if not first_group:
+                return {"ok": False, "detail": "No cleaning groups exist"}
+
+            for uid in user_ids:
+                member = (await session.execute(
+                    select(CleaningGroupMember).where(CleaningGroupMember.user_id == uid)
+                )).scalar_one_or_none()
+                if member:
+                    member.cycle_cleaned = True
+                else:
+                    session.add(CleaningGroupMember(
+                        group_id=first_group.id,
+                        user_id=uid,
+                        cycle_cleaned=True,
+                    ))
+
+    return {"ok": True}
+async def admin_add_cleaning_members(group_id: int, telegram_id: str = Depends(verified_tid), data: dict = None):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import CleaningGroup, CleaningGroupMember, Role, User
+
+    user_ids = data.get("user_ids", [])
+    if not user_ids:
+        return {"ok": False, "detail": "user_ids required"}
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            group = await session.get(CleaningGroup, group_id)
+            if not group:
+                return {"ok": False, "detail": "Group not found"}
+
+            for uid in user_ids:
+                existing = (await session.execute(
+                    select(CleaningGroupMember).where(CleaningGroupMember.user_id == uid)
+                )).scalar_one_or_none()
+                if existing:
+                    existing.group_id = group_id
+                    existing.cycle_cleaned = False
+                else:
+                    session.add(CleaningGroupMember(group_id=group_id, user_id=uid))
+
+    return {"ok": True}
+
+
+@router.delete("/api/admin/cleaning/members/{member_id}")
+async def admin_remove_cleaning_member(member_id: int, telegram_id: str = Depends(verified_tid)):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import CleaningGroupMember, Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            member = await session.get(CleaningGroupMember, member_id)
+            if not member:
+                return {"ok": False, "detail": "Member not found"}
+            await session.delete(member)
+
+    return {"ok": True}
+
+
+@router.put("/api/admin/cleaning/members/{member_id}/move")
+async def admin_move_cleaning_member(member_id: int, telegram_id: str = Depends(verified_tid), data: dict = None):
+    from db.database import async_session
+    from models.models import CleaningGroup, CleaningGroupMember, Role, User
+
+    new_group_id = data.get("group_id")
+    if not new_group_id:
+        return {"ok": False, "detail": "group_id required"}
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            member = await session.get(CleaningGroupMember, member_id)
+            if not member:
+                return {"ok": False, "detail": "Member not found"}
+
+            group = await session.get(CleaningGroup, new_group_id)
+            if not group:
+                return {"ok": False, "detail": "Target group not found"}
+
+            member.group_id = new_group_id
+
+    return {"ok": True}
+async def admin_list_cleaning_duties(telegram_id: str = Depends(verified_tid), limit: int = 14):
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from db.database import async_session
+    from models.models import CleaningDuty, Role, User
+
+    async with async_session() as session:
+        admin = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        )
+        if not admin.scalar_one_or_none():
+            return {"ok": False, "detail": "Unauthorized"}
+
+        duties = (await session.execute(
+            select(CleaningDuty)
+            .options(
+                selectinload(CleaningDuty.group),
+                selectinload(CleaningDuty.completions),
+            )
+            .order_by(CleaningDuty.date.desc())
+            .limit(limit)
+        )).scalars().all()
+
+    return {"ok": True, "duties": [{
+        "id": d.id,
+        "group_name": d.group.name,
+        "date": d.date.isoformat(),
+        "status": d.status,
+        "completed_count": sum(1 for c in d.completions),
+    } for d in duties]}
+
+
+@router.post("/api/admin/cleaning/duties/{duty_id}/complete")
+async def admin_complete_cleaning(duty_id: int, telegram_id: str = Depends(verified_tid), data: dict = None):
+    from datetime import datetime
+
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import CleaningCompletion, CleaningDuty, Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            duty = await session.get(CleaningDuty, duty_id)
+            if not duty:
+                return {"ok": False, "detail": "Duty not found"}
+
+            user_id = data.get("user_id")
+            if not user_id:
+                return {"ok": False, "detail": "user_id required"}
+
+            existing = (await session.execute(
+                select(CleaningCompletion).where(
+                    CleaningCompletion.duty_id == duty_id,
+                    CleaningCompletion.user_id == user_id,
+                )
+            )).scalar_one_or_none()
+
+            if existing:
+                return {"ok": False, "detail": "Already marked complete"}
+
+            session.add(CleaningCompletion(
+                duty_id=duty_id,
+                user_id=user_id,
+            ))
+
+            # Update member's cycle_cleaned flag
+            from models.models import CleaningGroupMember
+            member = (await session.execute(
+                select(CleaningGroupMember).where(
+                    CleaningGroupMember.group_id == duty.group_id,
+                    CleaningGroupMember.user_id == user_id,
+                )
+            )).scalar_one_or_none()
+            if member:
+                member.cycle_cleaned = True
+
+            # If all completions match group member count, mark duty complete
+            members_count = (await session.execute(
+                select(CleaningGroupMember).where(CleaningGroupMember.group_id == duty.group_id)
+            )).scalars().all()
+            completions_count = (await session.execute(
+                select(CleaningCompletion).where(CleaningCompletion.duty_id == duty_id)
+            )).scalars().all()
+            if len(completions_count) >= len(members_count):
+                duty.status = "completed"
+                duty.completed_at = datetime.utcnow()
+
+    return {"ok": True, "completed": True}
+
+
+@router.post("/api/admin/cleaning/reset-cycles")
+async def admin_reset_cleaning_cycles(telegram_id: str = Depends(verified_tid)):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import CleaningGroupMember, Role, User
+
+    async with async_session() as session:
+        async with session.begin():
+            admin = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+            )
+            if not admin.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
+
+            members = (await session.execute(
+                select(CleaningGroupMember)
+            )).scalars().all()
+            for m in members:
+                m.cycle_cleaned = False
+
+    return {"ok": True}
+
+
+@router.get("/api/admin/cleaning/interns")
+async def admin_cleaning_interns(telegram_id: str = Depends(verified_tid)):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import Department, Role, User
+
+    async with async_session() as session:
+        admin = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        )
+        if not admin.scalar_one_or_none():
+            return {"ok": False, "detail": "Unauthorized"}
+
+        interns = (await session.execute(
+            select(User).where(User.role == Role.intern, User.department == Department.SWE)
+            .order_by(User.name)
+        )).scalars().all()
+
+    return {"ok": True, "interns": [{
+        "id": u.id,
+        "name": u.name,
+        "surname": u.surname,
+        "gender": u.gender.value,
+    } for u in interns]}
 
 
 @router.post("/api/leave")

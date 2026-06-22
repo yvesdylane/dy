@@ -1807,6 +1807,48 @@ async def _acsv_generate(update, context):
     del context.user_data["acsv_filters"]
 
 
+# ── Cleaning Command ────────────────────────────────────────────
+
+
+async def cleaning_cmd(update: Update, context):
+    from datetime import date
+
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from db.database import async_session
+    from models.models import CleaningDuty, CleaningGroup, CleaningGroupMember
+
+    user = await get_user(str(update.effective_user.id))
+    if not user:
+        await update.message.reply_text("User not found.")
+        return
+
+    async with async_session() as session:
+        today = date.today()
+        duty = (await session.execute(
+            select(CleaningDuty)
+            .options(
+                selectinload(CleaningDuty.group).selectinload(CleaningGroup.members).selectinload(CleaningGroupMember.user),
+                selectinload(CleaningDuty.completions),
+            )
+            .where(CleaningDuty.date == today)
+        )).scalar_one_or_none()
+
+    if not duty:
+        await update.message.reply_text("No cleaning duty assigned today.")
+        return
+
+    lines = [f"🧹 *Today's Cleaning Duty*", f"Group: *{duty.group.name}*", ""]
+    completed_ids = {c.user_id for c in duty.completions} if duty.completions else set()
+    for m in duty.group.members:
+        status = "✅ Done" if m.user_id in completed_ids else "⬜ Pending"
+        marker = " ⬅️ You" if m.user_id == user.id else ""
+        lines.append(f"• {m.user.name} {m.user.surname} — {status}{marker}")
+
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
 handlers = [
     # ── Conversation handlers (keep first — must match before simple commands) ──
     sync_conv,
@@ -1830,6 +1872,7 @@ handlers = [
     CommandHandler("dashboard", dashboard),
     CommandHandler("dash", dashboard),
     CommandHandler("link", link_cmd),
+    CommandHandler("cleaning", cleaning_cmd),
 
     # ── Staff (instructor / admin) ──
     CommandHandler("attendcsv", attend_csv_start),

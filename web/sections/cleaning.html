@@ -1,0 +1,32 @@
+<div id="sectionCleaning" class="space-y-4">
+  <div id="cleaningUnstarted" class="hidden">
+    <p class="text-sm text-zinc-500">No cleaning plan set up yet.</p>
+    <button id="startCleaningBtn" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Start Cleaning Plan</button>
+  </div>
+  <div id="cleaningActive" class="hidden space-y-4">
+    <div id="cleaningToday" class="p-4 rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950">
+      <p class="text-xs text-brand-600 dark:text-brand-400 font-medium">Today's Duty</p>
+      <p id="cleaningTodayGroup" class="text-lg font-bold mt-1"></p>
+      <p id="cleaningTodayDate" class="text-xs text-zinc-500"></p>
+      <div id="cleaningTodayMembers" class="mt-2 space-y-1"></div>
+    </div>
+    <div class="flex items-center justify-between">
+      <p class="text-xs text-zinc-500">Cleaning groups and rotation</p>
+      <button id="resetCleaningBtn" class="px-3 py-1.5 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium">Reset All Cycles</button>
+    </div>
+    <div id="cleaningGroupsList" class="space-y-2"></div>
+    <div id="cleaningCleanedSection" class="hidden">
+      <details class="group">
+        <summary class="text-xs text-zinc-500 cursor-pointer hover:text-zinc-700 dark:hover:text-zinc-300 select-none">
+          Already cleaned this cycle (<span id="cleaningCleanedCount">0</span>)
+          <button id="addCleanedBtn" class="ml-2 px-2 py-0.5 rounded bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-400 text-xs font-medium hover:bg-brand-200 dark:hover:bg-brand-800" onclick="event.stopPropagation()">Add Cleaned</button>
+        </summary>
+        <div id="cleaningCleanedList" class="mt-2 space-y-1"></div>
+      </details>
+    </div>
+    <div id="cleaningDutyHistory">
+      <p class="text-xs text-zinc-500 mb-2">Duty History</p>
+      <div id="cleaningHistoryList" class="space-y-1"></div>
+    </div>
+  </div>
+</div>

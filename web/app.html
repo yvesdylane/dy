@@ -220,6 +220,9 @@
         '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
           (tab === 'leaves' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
         '" data-att-tab="leaves">Leaves</button>' +
+        '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'cleaning' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-att-tab="cleaning">Cleaning</button>' +
         '</div>';
       pills.classList.remove('hidden');
     } else {
@@ -254,7 +257,9 @@
     currentAttTab = tab;
     nameEl('sectionRegisters').classList.toggle('hidden', tab !== 'registers');
     nameEl('sectionLeaves').classList.toggle('hidden', tab !== 'leaves');
+    nameEl('sectionCleaning').classList.toggle('hidden', tab !== 'cleaning');
     if (tab === 'leaves') loadLeaves();
+    if (tab === 'cleaning') loadCleaning();
     updateHeader('attendance');
   }
 
@@ -789,6 +794,303 @@
     await fetch('/api/admin/leaves/' + id + '/review?telegram_id=' + encodeURIComponent(tid),
       {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: action})});
     await loadLeaves();
+  });
+
+  // --- Cleaning ---
+  async function loadCleaning() {
+    const r = await (await fetch('/api/admin/cleaning/status?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const unstarted = nameEl('cleaningUnstarted');
+    const active = nameEl('cleaningActive');
+    if (!r.has_groups) {
+      unstarted.classList.remove('hidden');
+      active.classList.add('hidden');
+      return;
+    }
+    unstarted.classList.add('hidden');
+    active.classList.remove('hidden');
+
+    // Today's duty
+    const todayDiv = nameEl('cleaningToday');
+    if (r.today_duty) {
+      todayDiv.classList.remove('hidden');
+      nameEl('cleaningTodayGroup').textContent = r.today_duty.group_name;
+      nameEl('cleaningTodayDate').textContent = r.today_duty.date;
+      const membersDiv = nameEl('cleaningTodayMembers');
+      membersDiv.innerHTML = r.today_duty.members.map(m =>
+        '<div class="flex items-center gap-2 text-sm">' +
+        '<span class="flex-1">' + esc(m.name) + ' ' + esc(m.surname) + '</span>' +
+        (m.completed
+          ? '<span class="text-green-600 text-xs font-medium">✅ Done</span>'
+          : '<button class="mark-cleaned-btn px-2 py-0.5 rounded bg-green-500 hover:bg-green-600 text-white text-xs" data-duty-id="' + r.today_duty.id + '" data-user-id="' + m.user_id + '">Mark Cleaned</button>')
+        + '</div>'
+      ).join('');
+    } else {
+      todayDiv.classList.add('hidden');
+    }
+
+    // Cycle progress
+    const progress = r.cycle_progress;
+    const cycleText = progress.done
+      ? '<span class="text-green-600 text-xs font-medium">Cycle complete — resetting</span>'
+      : '<span class="text-xs text-zinc-500">' + progress.cleaned + '/' + progress.total + ' members cleaned this cycle</span>';
+
+    // Groups
+    await loadCleaningGroups();
+  }
+
+  async function loadCleaningGroups() {
+    const r = await (await fetch('/api/admin/cleaning/groups?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('cleaningGroupsList');
+    list.innerHTML = r.groups.map(g =>
+      '<div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">' +
+      '<div class="flex items-center justify-between mb-1">' +
+      '<p class="font-medium text-sm">' + esc(g.name) + ' <span class="text-xs text-zinc-500 font-normal">(Order ' + (g.turn_order + 1) + ')</span></p>' +
+      '<button class="edit-group-btn px-2 py-1 rounded text-xs bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600" data-group-id="' + g.id + '" data-group-name="' + esc(g.name) + '">Edit</button>' +
+      '</div>' +
+      '<div class="mt-1 space-y-0.5">' +
+      (g.members.length
+        ? g.members.map(m =>
+          '<div class="flex items-center gap-2 text-xs">' +
+          '<span>' + esc(m.name) + ' ' + esc(m.surname) + '</span>' +
+          '<button class="remove-member-btn ml-auto px-1.5 py-0.5 rounded text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950" data-member-id="' + m.id + '" title="Remove from group">✕</button>' +
+          '</div>'
+        ).join('')
+        : '<p class="text-xs text-zinc-400 italic">All members have cleaned this cycle</p>'
+      ) +
+      '</div></div>'
+    ).join('');
+
+    // Cleaned members section
+    const cleanedSection = nameEl('cleaningCleanedSection');
+    if (r.cleaned_members && r.cleaned_members.length) {
+      cleanedSection.classList.remove('hidden');
+      nameEl('cleaningCleanedCount').textContent = r.cleaned_members.length;
+      nameEl('cleaningCleanedList').innerHTML = r.cleaned_members.map(m =>
+        '<div class="flex items-center gap-2 text-xs text-zinc-500">' +
+        '<span class="text-green-600">✓</span> ' +
+        esc(m.name) + ' ' + esc(m.surname) +
+        '</div>'
+      ).join('');
+    } else {
+      cleanedSection.classList.add('hidden');
+    }
+  }
+
+  async function loadCleaningDuties() {
+    const r = await (await fetch('/api/admin/cleaning/duties?telegram_id=' + encodeURIComponent(tid) + '&limit=14')).json();
+    if (!r.ok) return;
+    const list = nameEl('cleaningHistoryList');
+    list.innerHTML = r.duties.map(d =>
+      '<div class="flex items-center gap-2 text-xs p-1.5 rounded bg-zinc-50 dark:bg-zinc-900">' +
+      '<span class="font-medium w-24">' + d.date + '</span>' +
+      '<span class="flex-1">' + esc(d.group_name) + '</span>' +
+      '<span class="text-zinc-500">' + d.completed_count + '/' + (d.status === 'completed' ? '✅' : '⬜') + '</span>' +
+      '</div>'
+    ).join('');
+  }
+
+  // --- Cleaning Event Listeners ---
+  nameEl('startCleaningBtn')?.addEventListener('click', async () => {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const r = await (await fetch('/api/admin/cleaning/interns?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    let html = '<h3 class="font-bold text-lg">Start Cleaning Plan</h3>' +
+      '<p class="text-xs text-zinc-500 mb-3">Select interns who have already cleaned (they skip the first rotation):</p>' +
+      '<div class="space-y-1 max-h-60 overflow-y-auto">';
+    r.interns.forEach(u => {
+      html += '<label class="flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer">' +
+        '<input type="checkbox" class="cleaning-intern-cb accent-brand-500" data-id="' + u.id + '">' +
+        esc(u.name) + ' ' + esc(u.surname) + ' <span class="text-xs text-zinc-400">(' + u.gender + ')</span>' +
+        '</label>';
+    });
+    html += '</div><div class="flex gap-2 pt-3">' +
+      '<button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
+      '<button type="button" id="startCleaningConfirmBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Generate Groups</button></div>';
+    c.innerHTML = html;
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('startCleaningConfirmBtn').onclick = async () => {
+      const checked = document.querySelectorAll('.cleaning-intern-cb:checked');
+      const ids = Array.from(checked).map(cb => parseInt(cb.dataset.id));
+      const btn = nameEl('startCleaningConfirmBtn');
+      btn.disabled = true; btn.textContent = 'Generating...';
+      const res = await (await fetch('/api/admin/cleaning/start?telegram_id=' + encodeURIComponent(tid),
+        {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({already_cleaned_ids: ids})})).json();
+      if (res.ok) { m.classList.add('hidden'); await loadCleaning(); }
+      else { alert(res.detail); btn.disabled = false; btn.textContent = 'Generate Groups'; }
+    };
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.mark-cleaned-btn');
+    if (!btn) return;
+    const dutyId = parseInt(btn.dataset.dutyId);
+    const userId = parseInt(btn.dataset.userId);
+    const res = await (await fetch('/api/admin/cleaning/duties/' + dutyId + '/complete?telegram_id=' + encodeURIComponent(tid),
+      {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id: userId})})).json();
+    if (res.ok) await loadCleaning();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.remove-member-btn');
+    if (!btn) return;
+    if (!confirm('Remove this member from the group?')) return;
+    const memberId = parseInt(btn.dataset.memberId);
+    await fetch('/api/admin/cleaning/members/' + memberId + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+    await loadCleaningGroups();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.edit-group-btn');
+    if (!btn) return;
+    const groupId = parseInt(btn.dataset.groupId);
+    const groupName = btn.dataset.groupName;
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+
+    // Fetch all interns not already in a group, plus current members
+    const internsR = await (await fetch('/api/admin/cleaning/interns?telegram_id=' + encodeURIComponent(tid))).json();
+    const groupsR = await (await fetch('/api/admin/cleaning/groups?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!internsR.ok || !groupsR.ok) return;
+
+    const group = groupsR.groups.find(g => g.id === groupId);
+    const currentMemberIds = group ? group.members.map(m => m.user_id) : [];
+
+    // All interns not already in ANY group as pending members
+    const allPendingIds = new Set();
+    groupsR.groups.forEach(g => g.members.forEach(m => allPendingIds.add(m.user_id)));
+
+    // Track cleaned member IDs for labeling
+    const cleanedIds = new Set((groupsR.cleaned_members || []).map(m => m.user_id));
+
+    const available = internsR.interns.filter(u => !allPendingIds.has(u.id) || currentMemberIds.includes(u.id));
+
+    let html = '<h3 class="font-bold text-lg mb-2">Edit ' + esc(groupName) + '</h3>';
+
+    // Current members
+    if (group && group.members.length) {
+      html += '<p class="text-xs text-zinc-500 mb-1">Current members:</p>';
+      html += '<div class="space-y-1 mb-3">';
+      group.members.forEach(m => {
+        html += '<div class="flex items-center gap-2 text-sm px-2 py-1 rounded bg-zinc-50 dark:bg-zinc-900">' +
+          '<span class="flex-1">' + esc(m.name) + ' ' + esc(m.surname) + '</span>' +
+          '<select class="move-member-select text-xs px-1 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900" data-member-id="' + m.id + '">';
+        groupsR.groups.forEach(tg => {
+          html += '<option value="' + tg.id + '"' + (tg.id === groupId ? ' selected' : '') + '>' + esc(tg.name) + '</option>';
+        });
+        html += '</select>' +
+          '<button class="remove-member-inline px-1.5 py-0.5 rounded text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950" data-member-id="' + m.id + '">✕</button>' +
+          '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Add new members
+    html += '<p class="text-xs text-zinc-500 mb-1">Add members:</p>';
+    html += '<div class="space-y-1 max-h-40 overflow-y-auto mb-3">';
+    available.forEach(u => {
+      const cleanedLabel = cleanedIds.has(u.id) ? ' <span class="text-green-600 text-xs">(cleaned)</span>' : '';
+      html += '<label class="flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer">' +
+        '<input type="checkbox" class="add-member-cb accent-brand-500" data-id="' + u.id + '">' +
+        esc(u.name) + ' ' + esc(u.surname) + cleanedLabel +
+        '</label>';
+    });
+    html += '</div>';
+    html += '<div class="flex gap-2 pt-2">' +
+      '<button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Done</button>' +
+      '<button type="button" id="addMembersConfirmBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Add Selected</button></div>';
+
+    c.innerHTML = html;
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e2) => { if (e2.target === m) m.classList.add('hidden'); };
+
+    nameEl('addMembersConfirmBtn').onclick = async () => {
+      const checked = document.querySelectorAll('.add-member-cb:checked');
+      const ids = Array.from(checked).map(cb => parseInt(cb.dataset.id));
+      if (!ids.length) return;
+      const btn2 = nameEl('addMembersConfirmBtn');
+      btn2.disabled = true; btn2.textContent = 'Adding...';
+      const res = await (await fetch('/api/admin/cleaning/groups/' + groupId + '/members?telegram_id=' + encodeURIComponent(tid),
+        {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_ids: ids})})).json();
+      if (res.ok) { m.classList.add('hidden'); await loadCleaningGroups(); }
+      else { alert(res.detail); btn2.disabled = false; btn2.textContent = 'Add Selected'; }
+    };
+
+    // Inline remove
+    document.querySelectorAll('.remove-member-inline').forEach(el => {
+      el.onclick = async () => {
+        const mid = parseInt(el.dataset.memberId);
+        await fetch('/api/admin/cleaning/members/' + mid + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+        m.classList.add('hidden');
+        await loadCleaningGroups();
+      };
+    });
+
+    // Inline move
+    document.querySelectorAll('.move-member-select').forEach(el => {
+      el.onchange = async () => {
+        const mid = parseInt(el.dataset.memberId);
+        const newGroupId = parseInt(el.value);
+        await fetch('/api/admin/cleaning/members/' + mid + '/move?telegram_id=' + encodeURIComponent(tid),
+          {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({group_id: newGroupId})});
+        m.classList.add('hidden');
+        await loadCleaningGroups();
+      };
+    });
+  });
+
+  nameEl('resetCleaningBtn')?.addEventListener('click', async () => {
+    if (!confirm('Reset all cleaning cycle flags? This starts a new cycle.')) return;
+    await fetch('/api/admin/cleaning/reset-cycles?telegram_id=' + encodeURIComponent(tid), {method:'POST'});
+    await loadCleaning();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('#addCleanedBtn');
+    if (!btn) return;
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+
+    const internsR = await (await fetch('/api/admin/cleaning/interns?telegram_id=' + encodeURIComponent(tid))).json();
+    const groupsR = await (await fetch('/api/admin/cleaning/groups?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!internsR.ok || !groupsR.ok) return;
+
+    const cleanedIds = new Set((groupsR.cleaned_members || []).map(mem => mem.user_id));
+    const available = internsR.interns.filter(u => !cleanedIds.has(u.id));
+
+    let html = '<h3 class="font-bold text-lg mb-2">Mark interns as already cleaned</h3>' +
+      '<p class="text-xs text-zinc-500 mb-3">These interns will skip the current cleaning rotation.</p>' +
+      '<div class="space-y-1 max-h-60 overflow-y-auto mb-3">';
+    available.forEach(u => {
+      html += '<label class="flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer">' +
+        '<input type="checkbox" class="add-cleaned-cb accent-brand-500" data-id="' + u.id + '">' +
+        esc(u.name) + ' ' + esc(u.surname) +
+        '</label>';
+    });
+    html += '</div><div class="flex gap-2 pt-2">' +
+      '<button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
+      '<button type="button" id="addCleanedConfirmBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Mark Cleaned</button></div>';
+    c.innerHTML = html;
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e2) => { if (e2.target === m) m.classList.add('hidden'); };
+
+    nameEl('addCleanedConfirmBtn').onclick = async () => {
+      const checked = document.querySelectorAll('.add-cleaned-cb:checked');
+      const ids = Array.from(checked).map(cb => parseInt(cb.dataset.id));
+      if (!ids.length) return;
+      const btn2 = nameEl('addCleanedConfirmBtn');
+      btn2.disabled = true; btn2.textContent = 'Marking...';
+      const res = await (await fetch('/api/admin/cleaning/cleaned-members?telegram_id=' + encodeURIComponent(tid),
+        {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_ids: ids})})).json();
+      if (res.ok) { m.classList.add('hidden'); await loadCleaning(); }
+      else { alert(res.detail); btn2.disabled = false; btn2.textContent = 'Mark Cleaned'; }
+    };
   });
 
   // --- Tasks ---

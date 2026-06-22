@@ -7,6 +7,10 @@ from sqlalchemy.types import Date, DateTime, Numeric
 
 from models.models import (
     Attendance,
+    CleaningCompletion,
+    CleaningDuty,
+    CleaningGroup,
+    CleaningGroupMember,
     CreationCode,
     Info,
     InternAttendance,
@@ -73,6 +77,22 @@ async def sync_database(uploaded_db_path: str) -> str:
                 leave_requests = await _fetch_all(upload_session, LeaveRequest, "leave_requests")
             except Exception:
                 leave_requests = []
+            try:
+                cleaning_groups = await _fetch_all(upload_session, CleaningGroup, "cleaning_groups")
+            except Exception:
+                cleaning_groups = []
+            try:
+                cleaning_members = await _fetch_all(upload_session, CleaningGroupMember, "cleaning_group_members")
+            except Exception:
+                cleaning_members = []
+            try:
+                cleaning_duties = await _fetch_all(upload_session, CleaningDuty, "cleaning_duties")
+            except Exception:
+                cleaning_duties = []
+            try:
+                cleaning_completions = await _fetch_all(upload_session, CleaningCompletion, "cleaning_completions")
+            except Exception:
+                cleaning_completions = []
     finally:
         await upload_engine.dispose()
 
@@ -107,6 +127,19 @@ async def sync_database(uploaded_db_path: str) -> str:
     if leave_requests:
         await _sync_leave_requests(main_sessionmaker, leave_requests, id_maps)
         reports.append(f"Leave requests: {len(leave_requests)} processed")
+
+    if cleaning_groups:
+        await _sync_cleaning_groups(main_sessionmaker, cleaning_groups)
+        reports.append(f"Cleaning groups: {len(cleaning_groups)} processed")
+    if cleaning_members:
+        await _sync_cleaning_members(main_sessionmaker, cleaning_members)
+        reports.append(f"Cleaning members: {len(cleaning_members)} processed")
+    if cleaning_duties:
+        await _sync_cleaning_duties(main_sessionmaker, cleaning_duties)
+        reports.append(f"Cleaning duties: {len(cleaning_duties)} processed")
+    if cleaning_completions:
+        await _sync_cleaning_completions(main_sessionmaker, cleaning_completions)
+        reports.append(f"Cleaning completions: {len(cleaning_completions)} processed")
 
     counts = await _migrate_all_files(main_sessionmaker, users, tasks, submissions, infos, notes, id_maps)
     for label, n in counts.items():
@@ -324,6 +357,7 @@ async def _sync_intern_attendances(sessionmaker, items, id_maps):
                 if existing:
                     existing.enter_at = item.enter_at
                     existing.left_at = item.left_at
+                    existing.status = item.status
                 else:
                     session.add(
                         InternAttendance(
@@ -331,6 +365,7 @@ async def _sync_intern_attendances(sessionmaker, items, id_maps):
                             user_id=mapped_user_id,
                             enter_at=item.enter_at,
                             left_at=item.left_at,
+                            status=item.status,
                         )
                     )
 
@@ -561,3 +596,86 @@ async def _sync_leave_requests(sessionmaker, items, id_maps):
                         reviewed_by=mapped_reviewer,
                     )
                     session.add(new)
+
+
+async def _sync_cleaning_groups(sessionmaker, items):
+    async with sessionmaker() as session:
+        async with session.begin():
+            for item in items:
+                existing = (
+                    await session.execute(
+                        select(CleaningGroup).where(CleaningGroup.name == item.name)
+                    )
+                ).scalar_one_or_none()
+                if existing:
+                    _copy_fields(existing, item, CleaningGroup.__table__, ("id", "created_at"))
+                else:
+                    session.add(CleaningGroup(
+                        name=item.name,
+                        department=item.department,
+                        turn_order=item.turn_order,
+                    ))
+
+
+async def _sync_cleaning_members(sessionmaker, items):
+    async with sessionmaker() as session:
+        async with session.begin():
+            for item in items:
+                existing = (
+                    await session.execute(
+                        select(CleaningGroupMember).where(
+                            CleaningGroupMember.group_id == item.group_id,
+                            CleaningGroupMember.user_id == item.user_id,
+                        )
+                    )
+                ).scalar_one_or_none()
+                if existing:
+                    existing.cycle_cleaned = item.cycle_cleaned
+                else:
+                    session.add(CleaningGroupMember(
+                        group_id=item.group_id,
+                        user_id=item.user_id,
+                        cycle_cleaned=item.cycle_cleaned,
+                    ))
+
+
+async def _sync_cleaning_duties(sessionmaker, items):
+    async with sessionmaker() as session:
+        async with session.begin():
+            for item in items:
+                existing = (
+                    await session.execute(
+                        select(CleaningDuty).where(CleaningDuty.date == item.date)
+                    )
+                ).scalar_one_or_none()
+                if existing:
+                    _copy_fields(existing, item, CleaningDuty.__table__, ("id", "created_at"))
+                else:
+                    session.add(CleaningDuty(
+                        group_id=item.group_id,
+                        date=item.date,
+                        status=item.status,
+                        completed_at=item.completed_at,
+                    ))
+
+
+async def _sync_cleaning_completions(sessionmaker, items):
+    async with sessionmaker() as session:
+        async with session.begin():
+            for item in items:
+                existing = (
+                    await session.execute(
+                        select(CleaningCompletion).where(
+                            CleaningCompletion.duty_id == item.duty_id,
+                            CleaningCompletion.user_id == item.user_id,
+                        )
+                    )
+                ).scalar_one_or_none()
+                if existing:
+                    existing.completed_at = item.completed_at
+                else:
+                    session.add(CleaningCompletion(
+                        duty_id=item.duty_id,
+                        user_id=item.user_id,
+                        completed_at=item.completed_at,
+                    ))
