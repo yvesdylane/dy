@@ -12,6 +12,7 @@ SECTIONS_DIR = Path(__file__).parent / "sections"
 REGISTER_HTML_PATH = Path(__file__).parent / "register-standalone.html"
 MARK_HTML_PATH = Path(__file__).parent / "mark.html"
 LAUNCH_HTML_PATH = Path(__file__).parent / "launch.html"
+SCANNER_HTML_PATH = Path(__file__).parent / "scanner.html"
 
 
 def _get_app_html():
@@ -142,6 +143,12 @@ async def launch_redirect():
     return HTMLResponse(LAUNCH_HTML_PATH.read_text())
 
 
+@router.get("/scanner")
+async def scanner_page():
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(SCANNER_HTML_PATH.read_text())
+
+
 @router.get("/mark")
 async def mark_redirect():
     return RedirectResponse(url="/app/mark")
@@ -170,12 +177,48 @@ async def get_me(telegram_id: str = Depends(verified_tid)):
         logger.info("=== /api/me — user not found, returning ===")
         return {"exists": False}
     logger.info("=== /api/me — found user: %s %s, role: %s, returning ===", user.name, user.surname, user.role.value)
+
+    from datetime import date
+
+    from sqlalchemy import select
+
+    from models.models import Attendance, Group, InternAttendance
+
+    today_status = None
+    if user.role.value == "intern":
+        weekday = date.today().weekday()
+        if weekday != 6:
+            today_group = Group.A if weekday in (0, 2, 4) else Group.B
+            async with async_session() as s2:
+                att = (
+                    await s2.execute(
+                        select(Attendance).where(
+                            Attendance.date == date.today(),
+                            Attendance.group == today_group,
+                        )
+                    )
+                ).scalar_one_or_none()
+                if att:
+                    entry = (
+                        await s2.execute(
+                            select(InternAttendance).where(
+                                InternAttendance.attendance_id == att.id,
+                                InternAttendance.user_id == user.id,
+                            )
+                        )
+                    ).scalar_one_or_none()
+                    if entry and entry.enter_at and not entry.left_at:
+                        today_status = "exit"
+                    elif not entry or (entry.enter_at and entry.left_at):
+                        today_status = "entry"
+
     return {
         "exists": True,
         "id": user.id,
         "name": user.name,
         "surname": user.surname,
         "role": user.role.value,
+        "today_status": today_status,
     }
 
 

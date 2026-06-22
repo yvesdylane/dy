@@ -24,6 +24,7 @@
           return;
         }
       }
+
       var _tg = window.Telegram?.WebApp;
       var _tid = null;
       if (_tg && _tg.initDataUnsafe && _tg.initDataUnsafe.user) {
@@ -32,8 +33,25 @@
       if (!_tid) {
         _tid = new URLSearchParams(window.location.search).get('telegram_id');
       }
-      if (_tid) {
-        window.location.href = '/app?telegram_id=' + encodeURIComponent(_tid);
+
+      if (_tid && _tg && _tg.initData) {
+        (async function() {
+          try {
+            var _res = await fetch('/api/me', { headers: { 'X-Init-Data': _tg.initData } });
+            var _data = await _res.json();
+            if (_data.exists && _data.role === 'intern') {
+              window.location.href = '/scanner';
+            } else if (_data.exists) {
+              window.location.href = '/app?telegram_id=' + encodeURIComponent(_tid);
+            } else {
+              window.location.href = '/app/register?telegram_id=' + encodeURIComponent(_tid);
+            }
+          } catch(e) {
+            window.location.href = '/app?telegram_id=' + encodeURIComponent(_tid);
+          }
+        })();
+      } else if (_tid) {
+        window.location.href = '/app/register?telegram_id=' + encodeURIComponent(_tid);
       } else {
         window.location.href = '/app';
       }
