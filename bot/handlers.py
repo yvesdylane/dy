@@ -421,8 +421,9 @@ async def handle_contact(update: Update, _context):
         return
     phone = contact.phone_number
     if not phone.startswith("+"):
-        phone = "+" + phone
-    telegram_id = str(contact.user_id)
+        phone = "+237" + phone
+    caller_id = str(update.effective_user.id)
+    contact_user_id = str(contact.user_id)
 
     from db.database import async_session
     from models.models import User
@@ -433,6 +434,22 @@ async def handle_contact(update: Update, _context):
                 await session.execute(select(User).where(User.phone == phone))
             ).scalar_one_or_none()
 
+            # If this is the caller's own contact, trust it and link/update
+            if caller_id == contact_user_id:
+                if user:
+                    user.telegram_id = caller_id
+                    await update.message.reply_text(
+                        f"Linked! Welcome back {user.name} {user.surname}.",
+                        reply_markup=ReplyKeyboardRemove(),
+                    )
+                    return
+                else:
+                    await update.message.reply_text(
+                        "No account found with this phone number.",
+                        reply_markup=ReplyKeyboardRemove(),
+                    )
+                    return
+
             if not user:
                 await update.message.reply_text(
                     "No account found with this phone number.",
@@ -440,21 +457,21 @@ async def handle_contact(update: Update, _context):
                 )
                 return
 
-            if user.telegram_id and not user.telegram_id.startswith("pending_") and user.telegram_id != telegram_id:
+            if user.telegram_id and not user.telegram_id.startswith("pending_") and user.telegram_id != caller_id:
                 await update.message.reply_text(
                     "This phone is linked to a different account.",
                     reply_markup=ReplyKeyboardRemove(),
                 )
                 return
 
-            if user.telegram_id == telegram_id:
+            if user.telegram_id == caller_id:
                 await update.message.reply_text(
                     "Already linked!",
                     reply_markup=ReplyKeyboardRemove(),
                 )
                 return
 
-            user.telegram_id = telegram_id
+            user.telegram_id = caller_id
 
     await update.message.reply_text(
         f"Linked! Welcome {user.name} {user.surname}.",

@@ -545,11 +545,23 @@ async def register(data: dict):
     try:
         async with async_session() as session:
             async with session.begin():
-                existing = await session.execute(
+                existing_tid = await session.execute(
                     select(User).where(User.telegram_id == data["telegram_id"])
                 )
-                if existing.scalar_one_or_none():
+                if existing_tid.scalar_one_or_none():
                     return {"ok": False, "detail": "User already registered"}
+
+                phone = data["phone"]
+                if not phone.startswith("+"):
+                    phone = "+237" + phone
+
+                existing_phone = await session.execute(
+                    select(User).where(User.phone == phone)
+                )
+                existing_user = existing_phone.scalar_one_or_none()
+                if existing_user:
+                    existing_user.telegram_id = data["telegram_id"]
+                    return {"ok": True, "role": existing_user.role.value, "linked": True}
 
                 code_val = data.get("code", "")
                 if not code_val:
@@ -568,7 +580,7 @@ async def register(data: dict):
                 cc.is_used = True
 
                 session.add(User(
-                    name=data["name"], surname=data["surname"], phone=data["phone"],
+                    name=data["name"], surname=data["surname"], phone=phone,
                     telegram_id=data["telegram_id"], gender=Gender(data["gender"]),
                     role=role, department=Department(data["department"]),
                     group=Group(data["group"]) if data.get("group") else None,
