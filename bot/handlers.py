@@ -567,7 +567,7 @@ async def db_backup(update: Update, _context):
 TASK_NAME, TASK_DESC, TASK_DEPT, TASK_DEADLINE, TASK_MARK, TASK_DOC = range(6)
 NOTE_TITLE, NOTE_CONTENT, NOTE_DEPT, NOTE_FILE = range(4)
 SYNC_FILE = 0
-SUBMIT_SELECT, SUBMIT_FILE = range(2)
+SUBMIT_SELECT, SUBMIT_FILE, SUBMIT_URL = range(3)
 LEAVE_DATE, LEAVE_REASON = range(2)
 
 
@@ -710,7 +710,10 @@ async def submit_select(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
     context.user_data["submit_task_id"] = task_id
-    await query.message.reply_text(f"Upload your submission for *{t.name}*:")
+    await query.message.reply_text(
+        f"Upload your submission for *{t.name}*.\n"
+        "Send a file, or type /skip to provide a URL instead.",
+    )
     return SUBMIT_FILE
 
 
@@ -724,8 +727,12 @@ async def submit_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Something went wrong. Start again with /submit.")
         return ConversationHandler.END
 
+    if update.message.text and update.message.text.strip() == "/skip":
+        await update.message.reply_text("Add a URL for your submission (or type /skip to finish):")
+        return SUBMIT_URL
+
     if not update.message.document:
-        await update.message.reply_text("Please upload a file.")
+        await update.message.reply_text("Please upload a file, or type /skip to provide a URL.")
         return SUBMIT_FILE
 
     msg = await update.message.reply_text("Uploading submission...")
@@ -736,6 +743,32 @@ async def submit_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     from bot.files import upload_file_to_group
     file_id, file_name = await upload_file_to_group(bytes(file_bytes), update.message.document.file_name or "submission")
 
+    context.user_data["submit_file_id"] = file_id
+    context.user_data["submit_file_name"] = file_name
+
+    await msg.edit_text("File uploaded! Add a URL for your submission (or type /skip to finish):")
+    return SUBMIT_URL
+
+
+async def submit_url(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from db.database import async_session
+    from models.models import TaskSubmission
+
+    user = await get_user(str(update.effective_user.id))
+    task_id = context.user_data.get("submit_task_id")
+    if not task_id or not user:
+        await update.message.reply_text("Something went wrong. Start again with /submit.")
+        return ConversationHandler.END
+
+    url = None
+    if update.message.text and update.message.text.strip() != "/skip":
+        url = update.message.text.strip()
+
+    msg = await update.message.reply_text("Saving submission...")
+
+    file_id = context.user_data.pop("submit_file_id", None)
+    file_name = context.user_data.pop("submit_file_name", None)
+
     async with async_session() as session:
         async with session.begin():
             session.add(TaskSubmission(
@@ -744,6 +777,7 @@ async def submit_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 submitted_file=file_id,
                 file_id=file_id,
                 file_name=file_name,
+                submitted_url=url,
             ))
 
     context.user_data.pop("submit_task_id", None)
@@ -755,7 +789,14 @@ submit_conv = ConversationHandler(
     entry_points=[CommandHandler("submit", submit_start)],
     states={
         SUBMIT_SELECT: [CallbackQueryHandler(submit_select, pattern="^submit_")],
-        SUBMIT_FILE: [MessageHandler(filters.Document.ALL, submit_file)],
+        SUBMIT_FILE: [
+            MessageHandler(filters.Document.ALL, submit_file),
+            MessageHandler(filters.Regex(r"^/skip$"), submit_file),
+        ],
+        SUBMIT_URL: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, submit_url),
+            MessageHandler(filters.Regex(r"^/skip$"), submit_url),
+        ],
     },
     fallbacks=[CommandHandler("cancel", cancel)],
 )

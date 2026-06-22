@@ -440,6 +440,7 @@ async def _sync_task_submissions(sessionmaker, items, id_maps):
                         submitted_file=item.submitted_file,
                         file_id=getattr(item, "file_id", None),
                         file_name=getattr(item, "file_name", None),
+                        submitted_url=getattr(item, "submitted_url", None),
                         submitted_at=item.submitted_at,
                         mark_obtained=item.mark_obtained, feedback=item.feedback,
                     )
