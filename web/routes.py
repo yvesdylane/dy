@@ -47,12 +47,12 @@ HUB_HTML = """<!DOCTYPE html>
       if(tg) tg.ready();
       console.log('hub: tg=',!!tg,'user=',tg?.initDataUnsafe?.user);
 
-      var sp=new URLSearchParams(window.location.search).get('tgWebAppStartParam');
+      var sp=new URLSearchParams(window.location.hash.replace(/^#/,'')).get('tgWebAppStartParam')||new URLSearchParams(window.location.search).get('tgWebAppStartParam');
       if(sp&&sp.length>1&&sp[0]==='M'){
         var c=sp.slice(1).replace(/-/g,'+').replace(/_/g,'/');
         var decoded=atob(c);var sep=decoded.indexOf('|');
         if(sep>0){
-          window.location.href='/app/mark?d='+encodeURIComponent(decoded.slice(0,sep))+'&s='+encodeURIComponent(decoded.slice(sep+1));
+          window.location.href='/mark?d='+encodeURIComponent(decoded.slice(0,sep))+'&s='+encodeURIComponent(decoded.slice(sep+1));
           return;
         }
       }

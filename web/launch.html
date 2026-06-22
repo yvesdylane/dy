@@ -14,7 +14,7 @@
   <div class="spinner"></div>
   <script>
     try {
-      var _sp = new URLSearchParams(window.location.search).get('tgWebAppStartParam');
+      var _sp = new URLSearchParams(window.location.hash.replace(/^#/, '')).get('tgWebAppStartParam') || new URLSearchParams(window.location.search).get('tgWebAppStartParam');
       if (_sp && _sp.length > 1 && _sp[0] === 'M') {
         var _c = _sp.slice(1).replace(/-/g, '+').replace(/_/g, '/');
         var _decoded = atob(_c);
