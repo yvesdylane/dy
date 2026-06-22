@@ -103,6 +103,7 @@ async def init_bot():
                     BotCommand("image", "Set your profile picture"),
                     BotCommand("complain", "Submit anonymous complaint or advice"),
                     BotCommand("leave", "Apply for leave or review requests"),
+                    BotCommand("update", "Update your name, surname or gender"),
                     BotCommand("cleaning", "View today's cleaning duty"),
                     BotCommand("submit", "Submit your task work"),
                     BotCommand("cancel", "Cancel current operation"),

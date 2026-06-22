@@ -1877,6 +1877,98 @@ async def cleaning_cmd(update: Update, context):
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
+# ── Update Command ──────────────────────────────────────────────
+
+UPDATE_SELECT, UPDATE_VALUE = range(2)
+
+
+async def update_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = await get_user(str(update.effective_user.id))
+    if not user:
+        await update.message.reply_text("User not found.")
+        return ConversationHandler.END
+
+    keyboard = [
+        [InlineKeyboardButton("Name", callback_data="update_name"),
+         InlineKeyboardButton("Surname", callback_data="update_surname")],
+        [InlineKeyboardButton("Gender", callback_data="update_gender")],
+        [InlineKeyboardButton("Cancel", callback_data="update_cancel")],
+    ]
+    await update.message.reply_text(
+        "What would you like to update?",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+    return UPDATE_SELECT
+
+
+async def update_field_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    field = query.data.replace("update_", "")
+    if field == "cancel":
+        await query.edit_message_text("Cancelled.")
+        return ConversationHandler.END
+
+    context.user_data["update_field"] = field
+    labels = {"name": "Name", "surname": "Surname", "gender": "Gender (male/female)"}
+    await query.edit_message_text(f"Enter your new {labels.get(field, field)}:")
+    return UPDATE_VALUE
+
+
+async def update_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from sqlalchemy import select
+
+    from db.database import async_session
+    from models.models import Gender, User
+
+    field = context.user_data.get("update_field")
+    if not field:
+        await update.message.reply_text("Session expired. Use /update to start over.")
+        return ConversationHandler.END
+
+    value = update.message.text.strip()
+    tid = str(update.effective_user.id)
+
+    async with async_session() as session:
+        async with session.begin():
+            user = (await session.execute(
+                select(User).where(User.telegram_id == tid)
+            )).scalar_one_or_none()
+            if not user:
+                await update.message.reply_text("User not found.")
+                return ConversationHandler.END
+
+            if field == "name":
+                user.name = value
+            elif field == "surname":
+                user.surname = value
+            elif field == "gender":
+                try:
+                    user.gender = Gender(value.lower())
+                except ValueError:
+                    await update.message.reply_text("Invalid gender. Use 'male' or 'female'.")
+                    return UPDATE_VALUE
+
+    await update.message.reply_text(f"✅ {field.capitalize()} updated!")
+    return ConversationHandler.END
+
+
+async def update_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Cancelled.")
+    return ConversationHandler.END
+
+
+update_conv = ConversationHandler(
+    entry_points=[CommandHandler("update", update_start)],
+    states={
+        UPDATE_SELECT: [CallbackQueryHandler(update_field_callback, pattern=r"^update_")],
+        UPDATE_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, update_value)],
+    },
+    fallbacks=[CommandHandler("cancel", update_cancel)],
+)
+
+
 handlers = [
     # ── Conversation handlers (keep first — must match before simple commands) ──
     sync_conv,
@@ -1886,6 +1978,7 @@ handlers = [
     image_conv,
     complain_conv,
     leave_conv,
+    update_conv,
 
     # ── All users ──
     CommandHandler("me", me),
