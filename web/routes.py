@@ -11,6 +11,7 @@ APP_HTML_PATH = Path(__file__).parent / "app.html"
 SECTIONS_DIR = Path(__file__).parent / "sections"
 REGISTER_HTML_PATH = Path(__file__).parent / "register-standalone.html"
 MARK_HTML_PATH = Path(__file__).parent / "mark.html"
+LAUNCH_HTML_PATH = Path(__file__).parent / "launch.html"
 
 
 def _get_app_html():
@@ -137,7 +138,8 @@ async def mark_page():
 
 @router.get("/s")
 async def launch_redirect():
-    return RedirectResponse(url="/app")
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(LAUNCH_HTML_PATH.read_text())
 
 
 @router.get("/mark")
