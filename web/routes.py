@@ -11,7 +11,6 @@ APP_HTML_PATH = Path(__file__).parent / "app.html"
 SECTIONS_DIR = Path(__file__).parent / "sections"
 REGISTER_HTML_PATH = Path(__file__).parent / "register-standalone.html"
 MARK_HTML_PATH = Path(__file__).parent / "mark.html"
-LAUNCH_HTML_PATH = Path(__file__).parent / "launch.html"
 SCANNER_HTML_PATH = Path(__file__).parent / "scanner.html"
 
 
@@ -100,12 +99,8 @@ HUB_HTML = """<!DOCTYPE html>
       var me=await resp.json();
       console.log('hub: /api/me body',JSON.stringify(me));
       if(!me.exists){console.log('hub: user not found → register');window.location.href='/app/register?telegram_id='+encodeURIComponent(tid);}
-      else if(me.role==='admin'){console.log('hub: admin → dashboard');window.location.href='/app/admin?telegram_id='+encodeURIComponent(tid);}
-      else{
-        console.log('hub: non-admin role',me.role,'→ close');
-        document.body.innerHTML='<p style="color:#a1a1aa;font-family:sans-serif;text-align:center;padding:40px 20px;font-size:14px">No dashboard available for your role yet.</p>';
-        setTimeout(function(){if(tg) tg.close();},3000);
-      }
+      else if(me.role==='intern'){console.log('hub: intern → scanner');window.location.href='/scanner';}
+      else{console.log('hub: admin/instructor → dashboard');window.location.href='/app/admin?telegram_id='+encodeURIComponent(tid);}
     }catch(e){console.error('hub: error',e);window.location.href='/app/register';}
   })();
   </script>
@@ -140,7 +135,7 @@ async def mark_page():
 @router.get("/s")
 async def launch_redirect():
     from fastapi.responses import HTMLResponse
-    return HTMLResponse(LAUNCH_HTML_PATH.read_text())
+    return HTMLResponse(HUB_HTML)
 
 
 @router.get("/scanner")
