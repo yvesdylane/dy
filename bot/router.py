@@ -114,6 +114,7 @@ async def init_bot():
                     BotCommand("qr", "Generate attendance QR code"),
                     BotCommand("usercsv", "Export users to CSV"),
                     BotCommand("attendcsv", "Export attendance to CSV"),
+                    BotCommand("pics", "Download user profile pictures"),
                     # ── Admin only ──
                     BotCommand("db", "Download database backup"),
                     BotCommand("sync", "Upload & sync database"),
