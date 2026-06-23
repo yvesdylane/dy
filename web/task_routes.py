@@ -200,6 +200,7 @@ async def admin_list_submissions(task_id: int, telegram_id: str = Depends(verifi
         "submitted_file": ts.TaskSubmission.file_id or ts.TaskSubmission.submitted_file,
         "file_id": ts.TaskSubmission.file_id,
         "file_name": ts.TaskSubmission.file_name,
+        "submitted_url": ts.TaskSubmission.submitted_url,
         "submitted_at": ts.TaskSubmission.submitted_at.isoformat() if ts.TaskSubmission.submitted_at else None,
         "mark_obtained": float(ts.TaskSubmission.mark_obtained) if ts.TaskSubmission.mark_obtained is not None else None,
         "feedback": ts.TaskSubmission.feedback,

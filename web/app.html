@@ -1289,8 +1289,10 @@
       return '<div class="submission-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900" data-id="' + s.id + '">' +
         '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(s.user_name) + ' ' + esc(s.user_surname) + '</p>' +
         '<span class="text-xs text-zinc-500">' + new Date(s.submitted_at).toLocaleDateString() + '</span></div>' +
-        '<div class="flex items-center gap-2 mt-1">' +
+        '<div class="flex items-center gap-2 mt-1 flex-wrap">' +
         (s.submitted_file ? '<a href="' + esc(s.submitted_file) + '" target="_blank" class="text-xs text-brand-600 hover:underline">📎 File</a>' : '') +
+        (s.submitted_url ? '<a href="' + esc(s.submitted_url) + '" target="_blank" class="text-xs text-brand-600 hover:underline" title="' + esc(s.submitted_url) + '">🔗 Link</a>' +
+          '<button onclick="navigator.clipboard.writeText(\'' + esc(s.submitted_url) + '\').then(()=>{this.textContent=\'Copied!\';setTimeout(()=>{this.textContent=\'Copy\'},1500)}).catch(()=>{})" class="text-xs px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800">Copy</button>' : '') +
         '<span class="text-xs text-zinc-400">·</span>' +
         '<span class="text-xs ' + (marked ? 'text-green-600' : 'text-zinc-400') + '">' + (marked ? s.mark_obtained + '/' + task.total_mark_on : 'Not graded') + '</span>' +
         '</div>' +
