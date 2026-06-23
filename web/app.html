@@ -139,16 +139,6 @@
     console.log('dy: tid final', tid);
   } catch(e) { console.error('dy: setup error', e); }
 
-  const origFetch = window.fetch;
-  window.fetch = function(url, opts) {
-    opts = opts || {};
-    opts.headers = opts.headers || {};
-    if (tg && tg.initData) {
-      opts.headers['X-Init-Data'] = tg.initData;
-    }
-    return origFetch.call(this, url, opts);
-  };
-
   const cs = tg ? tg.colorScheme : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   document.documentElement.classList.toggle('dark', cs === 'dark');
 
@@ -410,7 +400,7 @@
       console.log('dy: /api/me status', resp.status);
       const me = await resp.json();
       console.log('dy: /api/me response', JSON.stringify(me));
-      if (!me.exists) { show('registerView'); return; }
+      if (!me.exists) { console.log('dy: → registerView (user_not_exists)'); show('registerView'); return; }
       if (me.role === 'admin') {
         const fullName = me.name + ' ' + me.surname;
         nameEl('adminNameSide').textContent = fullName;
@@ -453,8 +443,8 @@
           })
         );
 
-        nameEl('addUserBtn').addEventListener('click', () => showUserForm());
-        nameEl('addCodeBtn').addEventListener('click', () => showCodeForm());
+        nameEl('addUserBtn')?.addEventListener('click', () => showUserForm());
+        nameEl('addCodeBtn')?.addEventListener('click', () => showCodeForm());
 
         document.addEventListener('click', (e) => {
           const tab = e.target.closest('.people-tab');
@@ -480,19 +470,19 @@
           window.open('/api/admin/complaints?telegram_id=' + encodeURIComponent(tid) + '&format=csv', '_blank');
         });
 
-        nameEl('userSearch').addEventListener('input', renderUsers);
-        nameEl('userDeptFilter').addEventListener('change', renderUsers);
-        nameEl('userRoleFilter').addEventListener('change', renderUsers);
-        nameEl('userGroupFilter').addEventListener('change', () => { userPage = 1; loadUsers(); });
+        nameEl('userSearch')?.addEventListener('input', renderUsers);
+        nameEl('userDeptFilter')?.addEventListener('change', renderUsers);
+        nameEl('userRoleFilter')?.addEventListener('change', renderUsers);
+        nameEl('userGroupFilter')?.addEventListener('change', () => { userPage = 1; loadUsers(); });
 
-        nameEl('usersList').addEventListener('click', (e) => {
+        nameEl('usersList')?.addEventListener('click', (e) => {
           const row = e.target.closest('.user-row');
           if (row) {
             const u = allUsers.find(x => x.id == row.dataset.id);
             if (u) showUserDetail(u);
           }
         });
-        nameEl('userPagination').addEventListener('click', (e) => {
+        nameEl('userPagination')?.addEventListener('click', (e) => {
           const btn = e.target.closest('[data-page]');
           if (btn && !btn.disabled) {
             userPage = parseInt(btn.dataset.page);
@@ -508,7 +498,7 @@
           }
         });
 
-        nameEl('selectAllCodes').addEventListener('change', (e) => {
+        nameEl('selectAllCodes')?.addEventListener('change', (e) => {
           document.querySelectorAll('.code-checkbox').forEach(cb => cb.checked = e.target.checked);
           updateDeleteSelectedBtn();
         });
@@ -517,7 +507,7 @@
           if (e.target.classList.contains('code-checkbox')) updateDeleteSelectedBtn();
         });
 
-        nameEl('deleteSelectedCodesBtn').addEventListener('click', async () => {
+        nameEl('deleteSelectedCodesBtn')?.addEventListener('click', async () => {
           const checked = document.querySelectorAll('.code-checkbox:checked');
           const ids = Array.from(checked).map(cb => parseInt(cb.dataset.id));
           if (!ids.length || !confirm('Delete ' + ids.length + ' selected code' + (ids.length > 1 ? 's' : '') + '?')) return;
@@ -528,7 +518,7 @@
           await loadCodes();
         });
 
-        nameEl('deleteAllCodesBtn').addEventListener('click', async () => {
+        nameEl('deleteAllCodesBtn')?.addEventListener('click', async () => {
           if (!confirm('Delete ALL codes? This cannot be undone.')) return;
           nameEl('deleteAllCodesBtn').textContent = 'Deleting...';
           await fetch('/api/admin/codes/delete-batch?telegram_id=' + encodeURIComponent(tid),
@@ -541,6 +531,7 @@
         show('welcomeView');
       }
     } catch(e) {
+      console.log('dy: → registerView (checkAndShow_error)', e);
       show('registerView');
     }
   }
@@ -1554,8 +1545,9 @@
   (async () => {
     try {
       if (tid) { await checkAndShow(tid); return; }
+      console.log('dy: → registerView (no_tid)');
       show('registerView');
-    } catch(e) { console.error('dy: init error', e); show('registerView'); }
+    } catch(e) { console.error('dy: init error', e); console.log('dy: → registerView (init_error)'); show('registerView'); }
   })();
 
   const form = document.getElementById('registerForm');
