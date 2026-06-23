@@ -926,7 +926,7 @@
     const grid = nameEl('codesGrid');
     const status = nameEl('codesStatus');
     grid.innerHTML = '';
-    const codes = r.active || [];
+    const codes = r.codes || [];
     const now = Date.now();
     codes.forEach(c => {
       const remaining = Math.max(0, Math.floor((new Date(c.expires_at).getTime() - now) / 1000));

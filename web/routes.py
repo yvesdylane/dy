@@ -1429,7 +1429,7 @@ def _generate_code(exclude: set) -> str:
             return code
 
 
-@router.post("/api/admin/attendance/codes/start")
+@router.post("/api/admin/codes/start")
 async def admin_codes_start(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select, delete as sa_delete
 
@@ -1456,7 +1456,7 @@ async def admin_codes_start(telegram_id: str = Depends(verified_tid)):
     return {"ok": True, "codes": codes}
 
 
-@router.get("/api/admin/attendance/codes/active")
+@router.get("/api/admin/codes/active")
 async def admin_codes_active(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select, delete as sa_delete
 
@@ -1484,7 +1484,7 @@ async def admin_codes_active(telegram_id: str = Depends(verified_tid)):
     return {"ok": True, "codes": [{"code": c.code, "expires_at": c.expires_at.isoformat()} for c in all_codes]}
 
 
-@router.post("/api/admin/attendance/codes/stop")
+@router.post("/api/admin/codes/stop")
 async def admin_codes_stop(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import delete as sa_delete
 
