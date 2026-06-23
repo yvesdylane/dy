@@ -1325,19 +1325,81 @@ async def serve_file(file_id: str):
 MARK_QR_MAX_AGE = 3600
 
 
+async def _mark_attendance(session, telegram_id: str) -> dict:
+    from datetime import date, datetime
+
+    from sqlalchemy import select
+
+    from models.models import Attendance, Group, InternAttendance, User
+
+    user = await session.execute(
+        select(User).where(User.telegram_id == telegram_id)
+    )
+    user = user.scalar_one_or_none()
+
+    if not user:
+        return {"ok": False, "needs_register": True, "telegram_id": telegram_id, "message": "Create an account first"}
+
+    weekday = date.today().weekday()
+    if weekday == 6:
+        return {"ok": False, "message": "No attendance on Sundays"}
+
+    today_group = Group.A if weekday in (0, 2, 4) else Group.B
+
+    if user.group != today_group:
+        return {
+            "ok": False,
+            "message": f"Today is Group {today_group.value}, you are Group {user.group.value}",
+        }
+
+    att = await session.execute(
+        select(Attendance).where(
+            Attendance.date == date.today(),
+            Attendance.group == today_group,
+        )
+    )
+    att = att.scalar_one_or_none()
+    if not att:
+        att = Attendance(date=date.today(), group=today_group)
+        session.add(att)
+        await session.flush()
+
+    entry = await session.execute(
+        select(InternAttendance).where(
+            InternAttendance.attendance_id == att.id,
+            InternAttendance.user_id == user.id,
+        )
+    )
+    entry = entry.scalar_one_or_none()
+
+    now = datetime.utcnow()
+    if not entry:
+        entry = InternAttendance(
+            attendance_id=att.id,
+            user_id=user.id,
+            enter_at=now,
+        )
+        session.add(entry)
+        msg = f"✅ Entry marked at {now.strftime('%H:%M')}"
+    elif entry.enter_at and not entry.left_at:
+        entry.left_at = now
+        msg = f"✅ Exit marked at {now.strftime('%H:%M')}"
+    else:
+        return {"ok": False, "message": "Attendance already completed for today"}
+
+    return {"ok": True, "message": msg}
+
+
 @router.get("/api/mark")
 async def mark_attendance(
     telegram_id: str = Depends(verified_tid),
     d: str = Query(...),
     s: str = Query(...),
 ):
-    from datetime import date, datetime
-
-    from sqlalchemy import select
+    from datetime import date
 
     from config import settings
     from db.database import async_session
-    from models.models import Attendance, Group, InternAttendance, User
     from web.security import verify_qr_payload
 
     qr_data = verify_qr_payload(d, s, settings.telegram_token, MARK_QR_MAX_AGE)
@@ -1349,62 +1411,121 @@ async def mark_attendance(
 
     async with async_session() as session:
         async with session.begin():
-            user = await session.execute(
-                select(User).where(User.telegram_id == telegram_id)
-            )
-            user = user.scalar_one_or_none()
+            result = await _mark_attendance(session, telegram_id)
 
-            if not user:
-                return {
-                    "ok": False,
-                    "needs_register": True,
-                    "telegram_id": telegram_id,
-                    "message": "Create an account first",
-                }
+    return result
 
-            weekday = date.today().weekday()
-            if weekday == 6:
-                return {"ok": False, "message": "No attendance on Sundays"}
 
-            today_group = Group.A if weekday in (0, 2, 4) else Group.B
+import secrets
+from datetime import timedelta
 
-            if user.group != today_group:
-                return {
-                    "ok": False,
-                    "message": f"Today is Group {today_group.value}, you are Group {user.group.value}",
-                }
+ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
-            att = await session.execute(
-                select(Attendance).where(
-                    Attendance.date == date.today(),
-                    Attendance.group == today_group,
-                )
-            )
-            att = att.scalar_one_or_none()
-            if not att:
-                att = Attendance(date=date.today(), group=today_group)
-                session.add(att)
-                await session.flush()
 
-            entry = await session.execute(
-                select(InternAttendance).where(
-                    InternAttendance.attendance_id == att.id,
-                    InternAttendance.user_id == user.id,
-                )
-            )
-            entry = entry.scalar_one_or_none()
+def _generate_code(exclude: set) -> str:
+    while True:
+        code = "".join(secrets.choice(ALPHABET) for _ in range(5))
+        if code not in exclude:
+            return code
 
+
+@router.post("/api/admin/attendance/codes/start")
+async def admin_codes_start(telegram_id: str = Depends(verified_tid)):
+    from sqlalchemy import select, delete as sa_delete
+
+    from db.database import async_session
+    from models.models import AttendanceCode
+
+    async with async_session() as session:
+        async with session.begin():
+            await session.execute(sa_delete(AttendanceCode))
             now = datetime.utcnow()
-            if not entry:
-                entry = InternAttendance(
-                    attendance_id=att.id,
-                    user_id=user.id,
-                    enter_at=now,
-                )
-                session.add(entry)
-                msg = f"✅ Entry marked at {now.strftime('%H:%M')}"
-            else:
-                entry.left_at = now
-                msg = f"✅ Exit marked at {now.strftime('%H:%M')}"
+            existing = set()
+            new_codes = []
+            for _ in range(16):
+                c = _generate_code(existing)
+                existing.add(c)
+                new_codes.append(AttendanceCode(
+                    code=c,
+                    expires_at=now + timedelta(seconds=60),
+                ))
+            session.add_all(new_codes)
+            await session.flush()
+            codes = [{"code": nc.code, "expires_at": nc.expires_at.isoformat()} for nc in new_codes]
 
-    return {"ok": True, "message": msg}
+    return {"ok": True, "codes": codes}
+
+
+@router.get("/api/admin/attendance/codes/active")
+async def admin_codes_active(telegram_id: str = Depends(verified_tid)):
+    from sqlalchemy import select, delete as sa_delete
+
+    from db.database import async_session
+    from models.models import AttendanceCode
+
+    async with async_session() as session:
+        async with session.begin():
+            now = datetime.utcnow()
+            await session.execute(sa_delete(AttendanceCode).where(AttendanceCode.expires_at < now))
+            remaining = (await session.execute(select(AttendanceCode))).scalars().all()
+            existing = {c.code for c in remaining}
+            new_codes = []
+            for _ in range(16 - len(remaining)):
+                c = _generate_code(existing)
+                existing.add(c)
+                new_codes.append(AttendanceCode(
+                    code=c,
+                    expires_at=now + timedelta(seconds=60),
+                ))
+            session.add_all(new_codes)
+            await session.flush()
+            all_codes = remaining + new_codes
+
+    return {"ok": True, "codes": [{"code": c.code, "expires_at": c.expires_at.isoformat()} for c in all_codes]}
+
+
+@router.post("/api/admin/attendance/codes/stop")
+async def admin_codes_stop(telegram_id: str = Depends(verified_tid)):
+    from sqlalchemy import delete as sa_delete
+
+    from db.database import async_session
+    from models.models import AttendanceCode
+
+    async with async_session() as session:
+        async with session.begin():
+            await session.execute(sa_delete(AttendanceCode))
+
+    return {"ok": True}
+
+
+@router.post("/api/bot/use-code")
+async def bot_use_code(data: dict):
+    from sqlalchemy import select, delete as sa_delete
+
+    from db.database import async_session
+    from models.models import AttendanceCode
+
+    code_str = data.get("code", "").strip().upper()
+    telegram_id = str(data.get("telegram_id", ""))
+
+    async with async_session() as session:
+        async with session.begin():
+            now = datetime.utcnow()
+            row = await session.execute(
+                select(AttendanceCode).where(AttendanceCode.code == code_str)
+            )
+            row = row.scalar_one_or_none()
+
+            if not row:
+                return {"ok": False, "message": "Invalid or expired code"}
+
+            if row.expires_at < now:
+                await session.delete(row)
+                return {"ok": False, "message": "Code expired"}
+
+            result = await _mark_attendance(session, telegram_id)
+
+            if result.get("ok"):
+                await session.delete(row)
+
+    return result

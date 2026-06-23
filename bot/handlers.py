@@ -2062,4 +2062,96 @@ handlers = [
     CallbackQueryHandler(leave_view, pattern=r"^leave_view_\d+$"),
     CallbackQueryHandler(leave_review, pattern=r"^leave_(approve|reject)_\d+$"),
     CallbackQueryHandler(_leave_show_list, pattern="^leave_list$"),
+    # ── Attendance code handler (last — catches /{5-char codes}) ──
+    MessageHandler(filters.Regex(r"^/[A-Z0-9]{5}$"), handle_attendance_code),
 ]
+
+
+async def handle_attendance_code(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from datetime import date, datetime
+
+    from sqlalchemy import select, delete as sa_delete
+
+    from db.database import async_session
+    from models.models import Attendance, AttendanceCode, Group, InternAttendance, User
+
+    code_str = update.message.text.lstrip("/").upper()
+    telegram_id = str(update.effective_user.id)
+
+    async with async_session() as session:
+        async with session.begin():
+            now = datetime.utcnow()
+            row = await session.execute(
+                select(AttendanceCode).where(AttendanceCode.code == code_str)
+            )
+            row = row.scalar_one_or_none()
+
+            if not row:
+                await update.message.reply_text("Invalid or expired code.")
+                return
+
+            if row.expires_at < now:
+                await session.delete(row)
+                await update.message.reply_text("Code expired.")
+                return
+
+            user = await session.execute(
+                select(User).where(User.telegram_id == telegram_id)
+            )
+            user = user.scalar_one_or_none()
+
+            if not user:
+                await update.message.reply_text("You need to create an account first. Use /start.")
+                return
+
+            weekday = date.today().weekday()
+            if weekday == 6:
+                await update.message.reply_text("No attendance on Sundays.")
+                return
+
+            today_group = Group.A if weekday in (0, 2, 4) else Group.B
+
+            if user.group != today_group:
+                await update.message.reply_text(
+                    f"Today is Group {today_group.value}, you are Group {user.group.value}."
+                )
+                return
+
+            att = await session.execute(
+                select(Attendance).where(
+                    Attendance.date == date.today(),
+                    Attendance.group == today_group,
+                )
+            )
+            att = att.scalar_one_or_none()
+            if not att:
+                att = Attendance(date=date.today(), group=today_group)
+                session.add(att)
+                await session.flush()
+
+            entry = await session.execute(
+                select(InternAttendance).where(
+                    InternAttendance.attendance_id == att.id,
+                    InternAttendance.user_id == user.id,
+                )
+            )
+            entry = entry.scalar_one_or_none()
+
+            if not entry:
+                entry = InternAttendance(
+                    attendance_id=att.id,
+                    user_id=user.id,
+                    enter_at=now,
+                )
+                session.add(entry)
+                msg = f"✅ Entry marked at {now.strftime('%H:%M')}"
+            elif entry.enter_at and not entry.left_at:
+                entry.left_at = now
+                msg = f"✅ Exit marked at {now.strftime('%H:%M')}"
+            else:
+                await session.delete(row)
+                await update.message.reply_text("Attendance already completed for today.")
+                return
+
+            await session.delete(row)
+            await update.message.reply_text(msg)

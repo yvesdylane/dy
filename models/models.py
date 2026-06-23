@@ -277,3 +277,12 @@ class CleaningCompletion(Base):
 
     duty = relationship("CleaningDuty", back_populates="completions")
     user = relationship("User")
+
+
+class AttendanceCode(Base):
+    __tablename__ = "attendance_codes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(5), nullable=False, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
