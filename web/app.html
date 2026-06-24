@@ -801,8 +801,8 @@
         '<p class="text-xs text-zinc-500 mt-1">' + l.department + (l.group ? ' · Group ' + l.group : '') + ' · ' + l.date + '</p>' +
         '<p class="text-xs text-zinc-400 mt-1 italic">"' + esc(l.reason) + '"</p>' +
         '<p class="text-xs text-zinc-400 mt-0.5">' + l.created_at + '</p>' +
-        (l.status === 'pending' ? '<div class="flex gap-2 mt-2"><button class="leave-review-btn px-3 py-1 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs font-medium" data-id="' + l.id + '" data-action="approve">Approve</button>' +
-        '<button class="leave-review-btn px-3 py-1 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium" data-id="' + l.id + '" data-action="reject">Reject</button></div>' : '') +
+        (l.status === 'pending' ? '<div class="flex gap-2 mt-2"><button class="leave-review-btn px-3 py-1 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs font-medium" data-id="' + l.id + '" data-action="approved">Approve</button>' +
+        '<button class="leave-review-btn px-3 py-1 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium" data-id="' + l.id + '" data-action="rejected">Reject</button></div>' : '') +
         '</div>';
     }).join('');
   }
@@ -812,9 +812,10 @@
     if (!btn) return;
     const id = parseInt(btn.dataset.id);
     const action = btn.dataset.action;
-    await fetch('/api/admin/leaves/' + id + '/review?telegram_id=' + encodeURIComponent(tid),
-      {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: action})});
-    await loadLeaves();
+    const r = await (await fetch('/api/admin/leaves/' + id + '/review?telegram_id=' + encodeURIComponent(tid),
+      {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: action})})).json();
+    if (r.ok) await loadLeaves();
+    else alert(r.detail || 'Failed to review leave');
   });
 
   // --- Cleaning ---
