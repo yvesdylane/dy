@@ -211,8 +211,8 @@
           (tab === 'leaves' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
         '" data-att-tab="leaves">Leaves</button>' +
         '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
-          (tab === 'codes' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
-        '" data-att-tab="codes">Codes</button>' +
+          (tab === 'pass' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-att-tab="pass">Pass</button>' +
         '</div>';
       pills.classList.remove('hidden');
     } else if (section === 'tasks') {
@@ -259,9 +259,9 @@
     currentAttTab = tab;
     nameEl('sectionRegisters').classList.toggle('hidden', tab !== 'registers');
     nameEl('sectionLeaves').classList.toggle('hidden', tab !== 'leaves');
-    nameEl('codesView').classList.toggle('hidden', tab !== 'codes');
+    nameEl('passView').classList.toggle('hidden', tab !== 'pass');
     if (tab === 'leaves') loadLeaves();
-    if (tab === 'codes') loadAttendanceCodes();
+    if (tab === 'pass') loadPass();
     updateHeader('attendance');
   }
 
@@ -917,14 +917,14 @@
     ).join('');
   }
 
-  // --- Attendance Codes ---
-  let codesPollInterval = null;
+  // --- Attendance Pass ---
+  let passPollInterval = null;
 
-  async function loadAttendanceCodes() {
+  async function loadPass() {
     const r = await (await fetch('/api/admin/codes/active?telegram_id=' + encodeURIComponent(tid))).json();
     if (!r.ok) return;
-    const grid = nameEl('codesGrid');
-    const status = nameEl('codesStatus');
+    const grid = nameEl('passGrid');
+    const status = nameEl('passStatus');
     grid.innerHTML = '';
     const codes = r.codes || [];
     const now = Date.now();
@@ -938,29 +938,29 @@
     });
     status.textContent = codes.length + '/16 active';
     grid.classList.toggle('hidden', codes.length === 0);
-    nameEl('codesStartBtn').classList.toggle('hidden', codes.length > 0);
-    nameEl('codesStopBtn').classList.toggle('hidden', codes.length === 0);
+    nameEl('passStartBtn').classList.toggle('hidden', codes.length > 0);
+    nameEl('passStopBtn').classList.toggle('hidden', codes.length === 0);
   }
 
-  nameEl('codesStartBtn')?.addEventListener('click', async () => {
-    const btn = nameEl('codesStartBtn');
+  nameEl('passStartBtn')?.addEventListener('click', async () => {
+    const btn = nameEl('passStartBtn');
     btn.disabled = true;
     btn.textContent = 'Starting...';
     const r = await (await fetch('/api/admin/codes/start?telegram_id=' + encodeURIComponent(tid), {method:'POST'})).json();
     if (r.ok) {
-      await loadAttendanceCodes();
-      codesPollInterval = setInterval(loadAttendanceCodes, 2000);
+      await loadPass();
+      passPollInterval = setInterval(loadPass, 2000);
     } else {
-      alert(r.detail || 'Failed to start codes');
+      alert(r.detail || 'Failed to start pass');
     }
     btn.disabled = false;
     btn.textContent = 'Start';
   });
 
-  nameEl('codesStopBtn')?.addEventListener('click', async () => {
+  nameEl('passStopBtn')?.addEventListener('click', async () => {
     await fetch('/api/admin/codes/stop?telegram_id=' + encodeURIComponent(tid), {method:'POST'});
-    if (codesPollInterval) { clearInterval(codesPollInterval); codesPollInterval = null; }
-    await loadAttendanceCodes();
+    if (passPollInterval) { clearInterval(passPollInterval); passPollInterval = null; }
+    await loadPass();
   });
 
   // --- Cleaning Event Listeners ---

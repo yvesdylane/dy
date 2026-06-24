@@ -20,7 +20,7 @@ def _get_app_html():
         fragment = (SECTIONS_DIR / f"{name}.html").read_text()
         shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
     # Second pass — resolve nested section placeholders inside wrapper fragments
-    for name in ("users","codes","info","registers","leaves","cleaning"):
+    for name in ("users","creation_codes","info","registers","leaves","cleaning","pass"):
         fragment = (SECTIONS_DIR / f"{name}.html").read_text()
         shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
     return shell
@@ -1432,6 +1432,7 @@ def _generate_code(exclude: set) -> str:
 @router.post("/api/admin/codes/start")
 async def admin_codes_start(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select, delete as sa_delete
+    from datetime import datetime, timedelta
 
     from db.database import async_session
     from models.models import AttendanceCode
@@ -1459,6 +1460,7 @@ async def admin_codes_start(telegram_id: str = Depends(verified_tid)):
 @router.get("/api/admin/codes/active")
 async def admin_codes_active(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select, delete as sa_delete
+    from datetime import datetime, timedelta
 
     from db.database import async_session
     from models.models import AttendanceCode
@@ -1487,6 +1489,7 @@ async def admin_codes_active(telegram_id: str = Depends(verified_tid)):
 @router.post("/api/admin/codes/stop")
 async def admin_codes_stop(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import delete as sa_delete
+    from datetime import datetime, timedelta
 
     from db.database import async_session
     from models.models import AttendanceCode

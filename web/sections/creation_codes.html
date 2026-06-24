@@ -1,0 +1,15 @@
+<div id="sectionCodes" class="hidden">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="font-bold">Registration Codes</h3>
+    <button id="addCodeBtn" class="px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">+ Generate</button>
+  </div>
+  <div class="flex items-center gap-2 mb-3">
+    <label class="flex items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+      <input type="checkbox" id="selectAllCodes" class="accent-brand-500"> Select all
+    </label>
+    <span id="selectedCount" class="text-xs text-zinc-500 hidden"></span>
+    <button id="deleteSelectedCodesBtn" class="px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-xs font-medium hidden">Delete Selected</button>
+    <button id="deleteAllCodesBtn" class="px-2 py-1 rounded border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 text-xs font-medium">Delete All</button>
+  </div>
+  <div id="codesList" class="space-y-2"></div>
+</div>
