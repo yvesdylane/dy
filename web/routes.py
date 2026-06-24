@@ -1293,10 +1293,10 @@ async def admin_review_leave(leave_id: int, telegram_id: str = Depends(verified_
 
     async with async_session() as session:
         async with session.begin():
-            admin = await session.execute(
-                select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
-            )
-            if not admin.scalar_one_or_none():
+            staff_user = (await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role.in_([Role.admin, Role.instructor]))
+            )).scalar_one_or_none()
+            if not staff_user:
                 return {"ok": False, "detail": "Unauthorized"}
 
             lr = await session.get(LeaveRequest, leave_id)
@@ -1308,7 +1308,7 @@ async def admin_review_leave(leave_id: int, telegram_id: str = Depends(verified_
                 return {"ok": False, "detail": "Invalid status"}
 
             lr.status = LeaveStatus(new_status)
-            lr.reviewed_by = admin.scalar_one().id
+            lr.reviewed_by = staff_user.id
 
             if new_status == "approved":
                 from datetime import datetime

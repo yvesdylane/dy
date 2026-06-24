@@ -304,17 +304,34 @@
         '<span class="text-xs px-2 py-0.5 rounded-full ' + statusColor + '">' + l.status + '</span></div>' +
         '<p class="text-xs text-zinc-500 mt-1">' + l.department + (l.group ? ' · Group ' + l.group : '') + ' · ' + l.date + '</p>' +
         '<p class="text-xs text-zinc-400 mt-1 italic">"' + esc(l.reason) + '"</p>' +
-        '<p class="text-xs text-zinc-400 mt-0.5">' + l.created_at + '</p></div>';
+        '<p class="text-xs text-zinc-400 mt-0.5">' + l.created_at + '</p>' +
+        (l.status === 'pending' ? '<div class="flex gap-2 mt-2"><button class="leave-review-btn px-3 py-1 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs font-medium" data-id="' + l.id + '" data-action="approved">Approve</button>' +
+        '<button class="leave-review-btn px-3 py-1 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium" data-id="' + l.id + '" data-action="rejected">Reject</button></div>' : '') +
+        '</div>';
     }).join('');
   }
+
+  nameEl('leaveStatusFilter')?.addEventListener('change', loadLeaves);
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.leave-review-btn');
+    if (!btn) return;
+    const id = parseInt(btn.dataset.id);
+    const action = btn.dataset.action;
+    const r = await (await fetch('/api/admin/leaves/' + id + '/review?telegram_id=' + encodeURIComponent(tid),
+      {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: action})})).json();
+    if (r.ok) await loadLeaves();
+    else alert(r.detail || 'Failed to review leave');
+  });
 
   async function loadTasks() {
     const r = await (await fetch('/api/admin/tasks?telegram_id=' + encodeURIComponent(tid))).json();
     if (!r.ok) return;
     const list = nameEl('tasksList');
+    list.dataset.tasks = JSON.stringify(r.tasks);
     list.innerHTML = r.tasks.map(t =>
       '<div class="task-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer hover:border-brand-300 dark:hover:border-brand-700 transition-colors" data-id="' + t.id + '">' +
-      '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(t.title) + '</p>' +
+      '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(t.name) + '</p>' +
       '<span class="text-xs px-2 py-0.5 rounded-full ' + (t.department === 'All' ? 'bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400') + '">' + t.department + '</span></div>' +
       '<p class="text-xs text-zinc-500 mt-1">' + esc(t.description || '') + '</p></div>'
     ).join('');
@@ -363,97 +380,128 @@
 
   // ── CRUD Modals ──
 
-  function showTaskForm(task) {
+  function showTaskForm(data) {
     const m = nameEl('modalOverlay');
     const c = nameEl('modalContent');
-    const isEdit = !!task;
-    const title = isEdit ? task.title : '';
-    const dept = isEdit ? task.department : '';
-    const desc = isEdit ? (task.description || '') : '';
-    const depts = ['ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS','All'];
-    const opts = depts.map(d => '<option value="' + d + '"' + (d === dept ? ' selected' : '') + '>' + d + '</option>').join('');
-    c.innerHTML =
-      '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'New') + ' Task</h3>' +
-      '<input id="taskFormTitle" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Title" value="' + esc(title) + '">' +
-      '<select id="taskFormDept" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + opts + '</select>' +
-      '<textarea id="taskFormDesc" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Description (optional)" rows="3">' + esc(desc) + '</textarea>' +
+    const isEdit = !!data;
+    c.innerHTML = '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'New') + ' Task</h3>' +
+      '<form id="taskForm" class="space-y-3" onsubmit="return false">' +
+      '<input name="name" placeholder="Task name" value="' + (isEdit ? esc(data.name) : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<textarea name="description" placeholder="Description" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + (isEdit ? esc(data.description) : '') + '</textarea>' +
+      '<select name="department" required class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<option value="">Department</option>' + ['ISM','SWE','CGWD','EDM','CSNW','DBM','NS'].map(d => '<option value="' + d + '" ' + (isEdit && data.department === d ? 'selected' : '') + '>' + d + '</option>').join('') + '</select>' +
+      '<input name="submission_deadline" type="datetime-local" value="' + (isEdit && data.submission_deadline ? data.submission_deadline.slice(0,16) : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<input name="total_mark_on" type="number" placeholder="Total mark" value="' + (isEdit ? data.total_mark_on : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<label class="block text-sm font-medium text-zinc-500">File (optional)' +
+      '<input name="file" type="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 file:text-xs"></label>' +
       '<p id="taskFormErr" class="text-xs text-red-500 hidden"></p>' +
       '<div class="flex gap-2 justify-end">' +
-      '<button id="modalCancel" class="px-4 py-2 rounded-lg text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button>' +
-      '<button id="taskSubmitBtn" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div>';
+      '<button type="button" id="modalCancel" class="px-4 py-2 rounded-lg text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button>' +
+      '<button type="submit" id="taskSubmitBtn" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
     m.classList.remove('hidden');
     nameEl('modalCancel').onclick = () => m.classList.add('hidden');
-    nameEl('taskSubmitBtn').onclick = async () => {
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('taskForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
       const btn = nameEl('taskSubmitBtn');
+      if (btn.disabled) return;
       btn.disabled = true; btn.textContent = 'Saving...';
-      const body = { title: nameEl('taskFormTitle').value, department: nameEl('taskFormDept').value, description: nameEl('taskFormDesc').value };
-      const r = await (await fetch('/api/admin/tasks' + (isEdit ? '/' + task.id : '') + '?telegram_id=' + encodeURIComponent(tid),
-        {method: isEdit ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      const f = e.target;
+      const g = (n) => f.elements[n];
+      const fd = new FormData();
+      fd.append('name', g('name').value);
+      fd.append('description', g('description').value);
+      fd.append('department', g('department').value);
+      fd.append('submission_deadline', new Date(g('submission_deadline').value).toISOString());
+      fd.append('total_mark_on', g('total_mark_on').value);
+      if (g('file').files[0]) fd.append('file', g('file').files[0]);
+      const url = isEdit ? '/api/admin/tasks/' + data.id + '?telegram_id=' + encodeURIComponent(tid) : '/api/admin/tasks?telegram_id=' + encodeURIComponent(tid);
+      const method = isEdit ? 'PUT' : 'POST';
+      const r = await (await fetch(url, {method, body: fd})).json();
       if (r.ok) { m.classList.add('hidden'); await loadTasks(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
       else { nameEl('taskFormErr').textContent = r.detail || 'Error'; nameEl('taskFormErr').classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
-    };
+    });
   }
 
   function showNoteForm(note) {
     const m = nameEl('modalOverlay');
     const c = nameEl('modalContent');
     const isEdit = !!note;
-    const title = isEdit ? note.title : '';
-    const dept = isEdit ? note.department : '';
-    const content = isEdit ? (note.content || '') : '';
-    const depts = ['ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS'];
-    const opts = depts.map(d => '<option value="' + d + '"' + (d === dept ? ' selected' : '') + '>' + d + '</option>').join('');
-    c.innerHTML =
-      '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'New') + ' Note</h3>' +
-      '<input id="noteFormTitle" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Title" value="' + esc(title) + '">' +
-      '<select id="noteFormDept" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + opts + '</select>' +
-      '<textarea id="noteFormContent" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Content" rows="4">' + esc(content) + '</textarea>' +
+    c.innerHTML = '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'New') + ' Note</h3>' +
+      '<form id="noteForm" class="space-y-3" onsubmit="return false">' +
+      '<input name="title" placeholder="Title" value="' + (isEdit ? esc(note.title) : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<textarea name="content" placeholder="Content" rows="5" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + (isEdit ? esc(note.content || '') : '') + '</textarea>' +
+      '<select name="department" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<option value="">No department</option>' + ['ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS'].map(d => '<option value="' + d + '" ' + (isEdit && note.department === d ? 'selected' : '') + '>' + d + '</option>').join('') + '</select>' +
+      '<label class="block text-sm font-medium text-zinc-600 dark:text-zinc-400">File (optional)' +
+      '<input type="file" name="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 hover:file:bg-brand-100 dark:hover:file:bg-brand-900 cursor-pointer"></label>' +
       '<p id="noteFormErr" class="text-xs text-red-500 hidden"></p>' +
       '<div class="flex gap-2 justify-end">' +
-      '<button id="modalCancel" class="px-4 py-2 rounded-lg text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button>' +
-      '<button id="noteSubmitBtn" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div>';
+      '<button type="button" id="modalCancel" class="px-4 py-2 rounded-lg text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button>' +
+      '<button type="submit" id="noteSubmitBtn" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
     m.classList.remove('hidden');
     nameEl('modalCancel').onclick = () => m.classList.add('hidden');
-    nameEl('noteSubmitBtn').onclick = async () => {
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('noteForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
       const btn = nameEl('noteSubmitBtn');
+      if (btn.disabled) return;
       btn.disabled = true; btn.textContent = 'Saving...';
-      const body = { title: nameEl('noteFormTitle').value, department: nameEl('noteFormDept').value, content: nameEl('noteFormContent').value };
-      const r = await (await fetch('/api/admin/notes' + (isEdit ? '/' + note.id : '') + '?telegram_id=' + encodeURIComponent(tid),
-        {method: isEdit ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      const f = e.target;
+      const fd = new FormData();
+      fd.append('title', f.elements['title'].value);
+      fd.append('content', f.elements['content'].value);
+      if (f.elements['department'].value) fd.append('department', f.elements['department'].value);
+      if (f.elements['file'].files[0]) fd.append('file', f.elements['file'].files[0]);
+      const url = isEdit ? '/api/admin/notes/' + note.id + '?telegram_id=' + encodeURIComponent(tid) : '/api/admin/notes?telegram_id=' + encodeURIComponent(tid);
+      const method = isEdit ? 'PUT' : 'POST';
+      const r = await (await fetch(url, {method, body: fd})).json();
       if (r.ok) { m.classList.add('hidden'); await loadNotes(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
       else { nameEl('noteFormErr').textContent = r.detail || 'Error'; nameEl('noteFormErr').classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
-    };
+    });
   }
 
   function showInfoForm(data) {
     const m = nameEl('modalOverlay');
     const c = nameEl('modalContent');
     const isEdit = !!data;
-    const title = isEdit ? data.title : '';
-    const dept = isEdit ? data.department : '';
-    const content = isEdit ? (data.content || '') : '';
-    const depts = ['All','ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS'];
-    const opts = depts.map(d => '<option value="' + d + '"' + (d === dept ? ' selected' : '') + '>' + d + '</option>').join('');
-    c.innerHTML =
-      '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'New') + ' Announcement</h3>' +
-      '<input id="infoFormTitle" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Title" value="' + esc(title) + '">' +
-      '<select id="infoFormDept" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + opts + '</select>' +
-      '<textarea id="infoFormContent" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Content" rows="4">' + esc(content) + '</textarea>' +
+    c.innerHTML = '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'New') + ' Announcement</h3>' +
+      '<form id="infoForm" class="space-y-3" onsubmit="return false">' +
+      '<input name="title" placeholder="Title" value="' + (isEdit ? esc(data.title) : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<textarea name="content" placeholder="Content" rows="5" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + (isEdit ? esc(data.content || '') : '') + '</textarea>' +
+      '<label class="block text-sm font-medium text-zinc-600 dark:text-zinc-400">File (optional)' +
+      '<input type="file" name="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 hover:file:bg-brand-100 dark:hover:file:bg-brand-900 cursor-pointer"></label>' +
       '<p id="infoFormErr" class="text-xs text-red-500 hidden"></p>' +
       '<div class="flex gap-2 justify-end">' +
-      '<button id="modalCancel" class="px-4 py-2 rounded-lg text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button>' +
-      '<button id="infoSubmitBtn" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div>';
+      '<button type="button" id="modalCancel" class="px-4 py-2 rounded-lg text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button>' +
+      '<button type="submit" id="infoSubmitBtn" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
     m.classList.remove('hidden');
     nameEl('modalCancel').onclick = () => m.classList.add('hidden');
-    nameEl('infoSubmitBtn').onclick = async () => {
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('infoForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
       const btn = nameEl('infoSubmitBtn');
+      if (btn.disabled) return;
       btn.disabled = true; btn.textContent = 'Saving...';
-      const body = { title: nameEl('infoFormTitle').value, department: nameEl('infoFormDept').value, content: nameEl('infoFormContent').value };
-      const r = await (await fetch('/api/admin/info' + (isEdit ? '/' + data.id : '') + '?telegram_id=' + encodeURIComponent(tid),
-        {method: isEdit ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      const f = e.target;
+      const fd = new FormData();
+      fd.append('title', f.elements['title'].value);
+      fd.append('content', f.elements['content'].value);
+      if (f.elements['file'].files[0]) fd.append('file', f.elements['file'].files[0]);
+      const url = isEdit ? '/api/admin/info/' + data.id + '?telegram_id=' + encodeURIComponent(tid) : '/api/admin/info?telegram_id=' + encodeURIComponent(tid);
+      const method = isEdit ? 'PUT' : 'POST';
+      const r = await (await fetch(url, {method, body: fd})).json();
       if (r.ok) { m.classList.add('hidden'); await loadInfo(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
       else { nameEl('infoFormErr').textContent = r.detail || 'Error'; nameEl('infoFormErr').classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
-    };
+    });
   }
 
   // ── Entry Point ──
@@ -519,10 +567,8 @@
       document.addEventListener('click', (e) => {
         const row = e.target.closest('.task-row');
         if (row) {
-          const id = parseInt(row.dataset.id);
-          const allTasks = [];
-          document.querySelectorAll('#tasksList .task-row').forEach(r => allTasks.push({id: parseInt(r.dataset.id)}));
-          const t = allTasks.find(x => x.id === id);
+          const all = JSON.parse(nameEl('tasksList').dataset.tasks || '[]');
+          const t = all.find(x => x.id == row.dataset.id);
           if (t) showTaskForm(t);
         }
       });
