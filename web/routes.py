@@ -1452,7 +1452,7 @@ async def admin_codes_start(telegram_id: str = Depends(verified_tid)):
                 ))
             session.add_all(new_codes)
             await session.flush()
-            codes = [{"code": nc.code, "expires_at": nc.expires_at.isoformat()} for nc in new_codes]
+            codes = [{"code": nc.code, "expires_at": nc.expires_at.isoformat() + "Z"} for nc in new_codes]
 
     return {"ok": True, "codes": codes}
 
@@ -1460,7 +1460,7 @@ async def admin_codes_start(telegram_id: str = Depends(verified_tid)):
 @router.get("/api/admin/codes/active")
 async def admin_codes_active(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select, delete as sa_delete
-    from datetime import datetime, timedelta
+    from datetime import datetime
 
     from db.database import async_session
     from models.models import AttendanceCode
@@ -1470,26 +1470,13 @@ async def admin_codes_active(telegram_id: str = Depends(verified_tid)):
             now = datetime.utcnow()
             await session.execute(sa_delete(AttendanceCode).where(AttendanceCode.expires_at < now))
             remaining = (await session.execute(select(AttendanceCode))).scalars().all()
-            existing = {c.code for c in remaining}
-            new_codes = []
-            for _ in range(16 - len(remaining)):
-                c = _generate_code(existing)
-                existing.add(c)
-                new_codes.append(AttendanceCode(
-                    code=c,
-                    expires_at=now + timedelta(seconds=60),
-                ))
-            session.add_all(new_codes)
-            await session.flush()
-            all_codes = remaining + new_codes
 
-    return {"ok": True, "codes": [{"code": c.code, "expires_at": c.expires_at.isoformat()} for c in all_codes]}
+    return {"ok": True, "codes": [{"code": c.code, "expires_at": c.expires_at.isoformat() + "Z"} for c in remaining]}
 
 
 @router.post("/api/admin/codes/stop")
 async def admin_codes_stop(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import delete as sa_delete
-    from datetime import datetime, timedelta
 
     from db.database import async_session
     from models.models import AttendanceCode
@@ -1504,6 +1491,7 @@ async def admin_codes_stop(telegram_id: str = Depends(verified_tid)):
 @router.post("/api/bot/use-code")
 async def bot_use_code(data: dict):
     from sqlalchemy import select, delete as sa_delete
+    from datetime import datetime
 
     from db.database import async_session
     from models.models import AttendanceCode
