@@ -261,9 +261,9 @@
     nameEl('sectionLeaves').classList.toggle('hidden', tab !== 'leaves');
     nameEl('passView').classList.toggle('hidden', tab !== 'pass');
     if (tab === 'leaves') loadLeaves();
-    if (tab === 'pass') loadPass();
-    else {
+    if (tab !== 'pass') {
       if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; }
+      if (passPollInterval) { clearInterval(passPollInterval); passPollInterval = null; }
     }
     updateHeader('attendance');
   }
@@ -922,6 +922,7 @@
 
   // --- Attendance Pass ---
   let passAnimFrame = null;
+  let passPollInterval = null;
   const PASS_TOTAL = 60;
   const PASS_CIRC = 94.25;
 
@@ -929,23 +930,12 @@
     const cells = document.querySelectorAll('#passGrid .pass-cell');
     if (!cells.length) { passAnimFrame = null; return; }
     const now = Date.now();
-    let anyAlive = false;
     cells.forEach(cell => {
       const expires = new Date(cell.dataset.expires).getTime();
       const remaining = Math.max(0, Math.floor((expires - now) / 1000));
-      const circle = cell.querySelector('.timer-ring');
-      circle.setAttribute('stroke-dashoffset', PASS_CIRC * (1 - remaining / PASS_TOTAL));
+      cell.querySelector('.timer-ring').setAttribute('stroke-dashoffset', PASS_CIRC * (1 - remaining / PASS_TOTAL));
       cell.querySelector('.timer-label').textContent = remaining;
-      if (remaining > 0) anyAlive = true;
     });
-    if (!anyAlive) {
-      nameEl('passGrid').classList.add('hidden');
-      nameEl('passStatus').textContent = '0/16 active';
-      nameEl('passStartBtn').classList.remove('hidden');
-      nameEl('passStopBtn').classList.add('hidden');
-      passAnimFrame = null;
-      return;
-    }
     passAnimFrame = requestAnimationFrame(animatePass);
   }
 
@@ -991,6 +981,7 @@
     const r = await (await fetch('/api/admin/codes/start?telegram_id=' + encodeURIComponent(tid), {method:'POST'})).json();
     if (r.ok) {
       await loadPass();
+      if (!passPollInterval) passPollInterval = setInterval(loadPass, 2000);
     } else {
       alert(r.detail || 'Failed to start pass');
     }
@@ -1001,6 +992,7 @@
   nameEl('passStopBtn')?.addEventListener('click', async () => {
     await fetch('/api/admin/codes/stop?telegram_id=' + encodeURIComponent(tid), {method:'POST'});
     if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; }
+    if (passPollInterval) { clearInterval(passPollInterval); passPollInterval = null; }
     nameEl('passGrid').classList.add('hidden');
     nameEl('passGrid').innerHTML = '';
     nameEl('passStatus').textContent = '0/16 active';

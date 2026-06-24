@@ -196,6 +196,7 @@
 
   let currentAttTab = 'registers';
   let passAnimFrame = null;
+  let passPollInterval = null;
   const PASS_TOTAL = 60;
   const PASS_CIRC = 94.25;
 
@@ -250,8 +251,10 @@
     nameEl('sectionLeaves').classList.toggle('hidden', tab !== 'leaves');
     nameEl('passView').classList.toggle('hidden', tab !== 'pass');
     if (tab === 'leaves') loadLeaves();
-    if (tab === 'pass') loadPass();
-    else { if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; } }
+    if (tab !== 'pass') {
+      if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; }
+      if (passPollInterval) { clearInterval(passPollInterval); passPollInterval = null; }
+    }
     updateHeader('attendance');
   }
 
@@ -498,13 +501,14 @@
         const btn = nameEl('passStartBtn');
         btn.disabled = true; btn.textContent = 'Starting...';
         const r = await (await fetch('/api/admin/codes/start?telegram_id=' + encodeURIComponent(tid), {method:'POST'})).json();
-        if (r.ok) await loadPass();
+        if (r.ok) { await loadPass(); if (!passPollInterval) passPollInterval = setInterval(loadPass, 2000); }
         else alert(r.detail || 'Failed to start pass');
         btn.disabled = false; btn.textContent = 'Start';
       });
       nameEl('passStopBtn')?.addEventListener('click', async () => {
         await fetch('/api/admin/codes/stop?telegram_id=' + encodeURIComponent(tid), {method:'POST'});
         if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; }
+        if (passPollInterval) { clearInterval(passPollInterval); passPollInterval = null; }
         nameEl('passGrid').classList.add('hidden');
         nameEl('passGrid').innerHTML = '';
         nameEl('passStatus').textContent = '0/16 active';
