@@ -263,8 +263,7 @@
     if (tab === 'leaves') loadLeaves();
     if (tab === 'pass') loadPass();
     else {
-      if (passPollInterval) { clearInterval(passPollInterval); passPollInterval = null; }
-      if (passTimerInterval) { clearInterval(passTimerInterval); passTimerInterval = null; }
+      if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; }
     }
     updateHeader('attendance');
   }
@@ -922,23 +921,32 @@
   }
 
   // --- Attendance Pass ---
-  let passPollInterval = null;
-  let passTimerInterval = null;
+  let passAnimFrame = null;
   const PASS_TOTAL = 60;
-  const PASS_CIRCUMFERENCE = 94.25;
+  const PASS_CIRC = 94.25;
 
-  function updatePassCountdowns() {
-    const circles = document.querySelectorAll('#passGrid [data-expires]');
-    if (!circles.length) return;
+  function animatePass() {
+    const cells = document.querySelectorAll('#passGrid .pass-cell');
+    if (!cells.length) { passAnimFrame = null; return; }
     const now = Date.now();
-    circles.forEach(circle => {
-      const expires = new Date(circle.dataset.expires).getTime();
+    let anyAlive = false;
+    cells.forEach(cell => {
+      const expires = new Date(cell.dataset.expires).getTime();
       const remaining = Math.max(0, Math.floor((expires - now) / 1000));
-      const offset = PASS_CIRCUMFERENCE * (1 - remaining / PASS_TOTAL);
-      circle.setAttribute('stroke-dashoffset', offset);
-      const label = circle.closest('.pass-cell')?.querySelector('.timer-label');
-      if (label) label.textContent = remaining;
+      const circle = cell.querySelector('.timer-ring');
+      circle.setAttribute('stroke-dashoffset', PASS_CIRC * (1 - remaining / PASS_TOTAL));
+      cell.querySelector('.timer-label').textContent = remaining;
+      if (remaining > 0) anyAlive = true;
     });
+    if (!anyAlive) {
+      nameEl('passGrid').classList.add('hidden');
+      nameEl('passStatus').textContent = '0/16 active';
+      nameEl('passStartBtn').classList.remove('hidden');
+      nameEl('passStopBtn').classList.add('hidden');
+      passAnimFrame = null;
+      return;
+    }
+    passAnimFrame = requestAnimationFrame(animatePass);
   }
 
   async function loadPass() {
@@ -949,16 +957,20 @@
     grid.innerHTML = '';
     const codes = r.codes || [];
     codes.forEach(c => {
+      const expires = new Date(c.expires_at).getTime();
+      const remaining = Math.max(0, Math.floor((expires - Date.now()) / 1000));
+      const offset = PASS_CIRC * (1 - remaining / PASS_TOTAL);
       const cell = document.createElement('div');
-      cell.className = 'pass-cell flex items-center justify-between p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900';
+      cell.className = 'pass-cell flex items-center justify-between p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900';
+      cell.dataset.expires = c.expires_at;
       cell.innerHTML =
-        '<code class="text-lg font-mono font-bold tracking-widest text-brand-600 dark:text-brand-400">' + c.code + '</code>' +
-        '<div class="relative w-11 h-11 flex-shrink-0">' +
+        '<code class="text-sm font-mono font-bold tracking-wider text-brand-600 dark:text-brand-400">' + c.code + '</code>' +
+        '<div class="relative w-9 h-9 flex-shrink-0">' +
           '<svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">' +
             '<circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" class="text-zinc-200 dark:text-zinc-700"/>' +
-            '<circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" class="text-brand-500" stroke-dasharray="' + PASS_CIRCUMFERENCE + '" stroke-dashoffset="0" data-expires="' + c.expires_at + '"/>' +
+            '<circle class="timer-ring text-brand-500" cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="' + PASS_CIRC + '" stroke-dashoffset="' + offset + '"/>' +
           '</svg>' +
-          '<span class="timer-label absolute inset-0 flex items-center justify-center text-xs font-mono text-zinc-500 dark:text-zinc-400">' + PASS_TOTAL + '</span>' +
+          '<span class="timer-label absolute inset-0 flex items-center justify-center text-xs font-mono text-zinc-500 dark:text-zinc-400">' + remaining + '</span>' +
         '</div>';
       grid.appendChild(cell);
     });
@@ -967,13 +979,8 @@
     nameEl('passStartBtn').classList.toggle('hidden', codes.length > 0);
     nameEl('passStopBtn').classList.toggle('hidden', codes.length === 0);
 
-    if (codes.length === 0) {
-      if (passPollInterval) { clearInterval(passPollInterval); passPollInterval = null; }
-      if (passTimerInterval) { clearInterval(passTimerInterval); passTimerInterval = null; }
-    } else if (!passPollInterval) {
-      passPollInterval = setInterval(loadPass, 2000);
-      passTimerInterval = setInterval(updatePassCountdowns, 1000);
-      updatePassCountdowns();
+    if (codes.length && !passAnimFrame) {
+      passAnimFrame = requestAnimationFrame(animatePass);
     }
   }
 
@@ -993,9 +1000,12 @@
 
   nameEl('passStopBtn')?.addEventListener('click', async () => {
     await fetch('/api/admin/codes/stop?telegram_id=' + encodeURIComponent(tid), {method:'POST'});
-    if (passPollInterval) { clearInterval(passPollInterval); passPollInterval = null; }
-    if (passTimerInterval) { clearInterval(passTimerInterval); passTimerInterval = null; }
-    await loadPass();
+    if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; }
+    nameEl('passGrid').classList.add('hidden');
+    nameEl('passGrid').innerHTML = '';
+    nameEl('passStatus').textContent = '0/16 active';
+    nameEl('passStartBtn').classList.remove('hidden');
+    nameEl('passStopBtn').classList.add('hidden');
   });
 
   // --- Cleaning Event Listeners ---
