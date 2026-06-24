@@ -18,17 +18,18 @@ def _get_group(d: date):
 
 
 @router.get("/api/admin/attendance")
-async def admin_get_attendance(telegram_id: str = Depends(verified_tid), date_str: str = Query(...)):
+async def admin_get_attendance(telegram_id: str = Depends(verified_tid), date_str: str = Query(...), department: str | None = Query(None)):
     from sqlalchemy import select
 
     from db.database import async_session
-    from models.models import Attendance, InternAttendance, LeaveRequest, LeaveStatus, Role, User
+    from models.models import Attendance, Department, InternAttendance, LeaveRequest, LeaveStatus, Role, User
 
     async with async_session() as session:
-        admin = await session.execute(
-            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        staff = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role.in_([Role.admin, Role.instructor]))
         )
-        if not admin.scalar_one_or_none():
+        staff_user = staff.scalar_one_or_none()
+        if not staff_user:
             return {"ok": False, "detail": "Unauthorized"}
 
         d = date.fromisoformat(date_str)
@@ -51,9 +52,15 @@ async def admin_get_attendance(telegram_id: str = Depends(verified_tid), date_st
             exempted_user_ids = {lr.user_id for lr in leaves}
 
         if att:
-            students_raw = await session.execute(
-                select(User).where(User.role == Role.intern, User.group == att.group)
-            )
+            stmt = select(User).where(User.role == Role.intern, User.group == att.group)
+            # If instructor, auto-filter by their department unless overridden
+            if staff_user.role == Role.instructor:
+                dept_filter = department or staff_user.department.value
+                stmt = stmt.where(User.department == Department(dept_filter))
+            elif department:
+                stmt = stmt.where(User.department == Department(department))
+
+            students_raw = await session.execute(stmt)
             students = students_raw.scalars().all()
 
             ia_rows = await session.execute(
@@ -96,6 +103,7 @@ async def admin_get_attendance(telegram_id: str = Depends(verified_tid), date_st
                 "ok": True, "exists": True, "date": date_str,
                 "group": att.group.value, "attendance_id": att.id,
                 "students": student_list,
+                "readonly": staff_user.role == Role.instructor,
             }
 
     return {

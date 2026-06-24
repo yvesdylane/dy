@@ -26,6 +26,18 @@ def _get_app_html():
     return shell
 
 
+def _get_instructor_html():
+    shell = (Path(__file__).parent / "instructor.html").read_text()
+    for name in ("inst_tasks","notes","inst_bulletin","attendance"):
+        fragment = (SECTIONS_DIR / f"{name}.html").read_text()
+        shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
+    # Second pass — resolve nested placeholders inside wrappers
+    for name in ("info","registers","leaves","pass"):
+        fragment = (SECTIONS_DIR / f"{name}.html").read_text()
+        shell = shell.replace(f"<!--SECTION:{name}-->", fragment)
+    return shell
+
+
 HUB_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -100,7 +112,8 @@ HUB_HTML = """<!DOCTYPE html>
       console.log('hub: /api/me body',JSON.stringify(me));
       if(!me.exists){console.log('hub: user not found → register');window.location.href='/app/register?telegram_id='+encodeURIComponent(tid);}
       else if(me.role==='intern'){console.log('hub: intern → scanner');window.location.href='/scanner';}
-      else{console.log('hub: admin/instructor → dashboard');window.location.href='/app/admin?telegram_id='+encodeURIComponent(tid);}
+      else if(me.role==='instructor'){console.log('hub: instructor → instructor dashboard');window.location.href='/app/instructor?telegram_id='+encodeURIComponent(tid);}
+      else{console.log('hub: admin → dashboard');window.location.href='/app/admin?telegram_id='+encodeURIComponent(tid);}
     }catch(e){console.error('hub: error',e);window.location.href='/app/register';}
   })();
   </script>
@@ -112,6 +125,12 @@ HUB_HTML = """<!DOCTYPE html>
 async def app_hub():
     from fastapi.responses import HTMLResponse
     return HTMLResponse(HUB_HTML)
+
+
+@router.get("/app/instructor")
+async def instructor_dashboard():
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(_get_instructor_html())
 
 
 @router.get("/app/admin")
@@ -213,6 +232,8 @@ async def get_me(telegram_id: str = Depends(verified_tid)):
         "name": user.name,
         "surname": user.surname,
         "role": user.role.value,
+        "department": user.department.value if user.department else None,
+        "group": user.group.value if user.group else None,
         "today_status": today_status,
     }
 
@@ -652,10 +673,10 @@ async def admin_list_complaints(telegram_id: str = Depends(verified_tid), format
     from models.models import Role, User, UserComplain
 
     async with async_session() as session:
-        admin = await session.execute(
-            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        staff = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role.in_([Role.admin, Role.instructor]))
         )
-        if not admin.scalar_one_or_none():
+        if not staff.scalar_one_or_none():
             return {"ok": False, "detail": "Unauthorized"}
 
         items = (await session.execute(
@@ -663,6 +684,9 @@ async def admin_list_complaints(telegram_id: str = Depends(verified_tid), format
         )).scalars().all()
 
     if format == "csv":
+        user = staff.scalar_one()
+        if user.role != Role.admin:
+            return {"ok": False, "detail": "Only admins can export CSV"}
         import csv
         import io
         buf = io.StringIO()
@@ -1214,24 +1238,32 @@ async def submit_leave(telegram_id: str = Depends(verified_tid), data: dict = No
 
 
 @router.get("/api/admin/leaves")
-async def admin_list_leaves(telegram_id: str = Depends(verified_tid)):
+async def admin_list_leaves(telegram_id: str = Depends(verified_tid), department: str | None = Query(None)):
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
 
     from db.database import async_session
-    from models.models import LeaveRequest, Role, User
+    from models.models import Department, LeaveRequest, Role, User
 
     async with async_session() as session:
-        admin = await session.execute(
-            select(User).where(User.telegram_id == telegram_id, User.role == Role.admin)
+        staff = await session.execute(
+            select(User).where(User.telegram_id == telegram_id, User.role.in_([Role.admin, Role.instructor]))
         )
-        if not admin.scalar_one_or_none():
+        staff_user = staff.scalar_one_or_none()
+        if not staff_user:
             return {"ok": False, "detail": "Unauthorized"}
 
+        stmt = select(LeaveRequest).options(selectinload(LeaveRequest.user))
+
+        # If instructor, auto-filter by their department unless overridden
+        if staff_user.role == Role.instructor:
+            dept_filter = department or staff_user.department.value
+            stmt = stmt.where(LeaveRequest.user.has(User.department == Department(dept_filter)))
+        elif department:
+            stmt = stmt.where(LeaveRequest.user.has(User.department == Department(department)))
+
         items = (await session.execute(
-            select(LeaveRequest)
-            .options(selectinload(LeaveRequest.user))
-            .order_by(LeaveRequest.created_at.desc()).limit(200)
+            stmt.order_by(LeaveRequest.created_at.desc()).limit(200)
         )).scalars().all()
 
         result = []
@@ -1435,10 +1467,15 @@ async def admin_codes_start(telegram_id: str = Depends(verified_tid)):
     from datetime import datetime, timedelta
 
     from db.database import async_session
-    from models.models import AttendanceCode
+    from models.models import AttendanceCode, Role, User
 
     async with async_session() as session:
         async with session.begin():
+            user = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role.in_([Role.admin, Role.instructor]))
+            )
+            if not user.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
             await session.execute(sa_delete(AttendanceCode))
             now = datetime.utcnow()
             existing = set()
@@ -1460,29 +1497,51 @@ async def admin_codes_start(telegram_id: str = Depends(verified_tid)):
 @router.get("/api/admin/codes/active")
 async def admin_codes_active(telegram_id: str = Depends(verified_tid)):
     from sqlalchemy import select, delete as sa_delete
-    from datetime import datetime
+    from datetime import datetime, timedelta
 
     from db.database import async_session
-    from models.models import AttendanceCode
+    from models.models import AttendanceCode, Role, User
 
     async with async_session() as session:
         async with session.begin():
+            user = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role.in_([Role.admin, Role.instructor]))
+            )
+            if not user.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
             now = datetime.utcnow()
             await session.execute(sa_delete(AttendanceCode).where(AttendanceCode.expires_at < now))
             remaining = (await session.execute(select(AttendanceCode))).scalars().all()
+            existing = {c.code for c in remaining}
+            new_codes = []
+            for _ in range(16 - len(remaining)):
+                c = _generate_code(existing)
+                existing.add(c)
+                new_codes.append(AttendanceCode(
+                    code=c,
+                    expires_at=now + timedelta(seconds=60),
+                ))
+            session.add_all(new_codes)
+            await session.flush()
+            all_codes = remaining + new_codes
 
-    return {"ok": True, "codes": [{"code": c.code, "expires_at": c.expires_at.isoformat() + "Z"} for c in remaining]}
+    return {"ok": True, "codes": [{"code": c.code, "expires_at": c.expires_at.isoformat() + "Z"} for c in all_codes]}
 
 
 @router.post("/api/admin/codes/stop")
 async def admin_codes_stop(telegram_id: str = Depends(verified_tid)):
-    from sqlalchemy import delete as sa_delete
+    from sqlalchemy import select, delete as sa_delete
 
     from db.database import async_session
-    from models.models import AttendanceCode
+    from models.models import AttendanceCode, Role, User
 
     async with async_session() as session:
         async with session.begin():
+            user = await session.execute(
+                select(User).where(User.telegram_id == telegram_id, User.role.in_([Role.admin, Role.instructor]))
+            )
+            if not user.scalar_one_or_none():
+                return {"ok": False, "detail": "Unauthorized"}
             await session.execute(sa_delete(AttendanceCode))
 
     return {"ok": True}

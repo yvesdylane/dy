@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                      400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309',
+                      800: '#92400e', 900: '#78350f' }
+          }
+        }
+      }
+    }
+  </script>
+  <title>dy · Instructor</title>
+</head>
+<body class="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-[100dvh] transition-colors duration-200">
+
+<div id="loadingView" class="flex items-center justify-center min-h-[90dvh]">
+  <div class="animate-spin h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+</div>
+
+<div id="adminView" class="hidden flex min-h-screen">
+  <div class="hidden md:flex md:flex-col md:w-56 md:bg-zinc-50 md:dark:bg-zinc-900 md:border-r md:border-zinc-200 md:dark:border-zinc-800 md:fixed md:h-full">
+    <div class="p-4 border-b border-zinc-200 dark:border-zinc-800">
+      <h2 class="font-bold text-brand-600 dark:text-brand-400">dy</h2>
+      <p id="adminNameSide" class="text-xs text-zinc-500 mt-1"></p>
+    </div>
+    <nav class="flex-1 p-2 space-y-1">
+      <button data-section="tasks" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Tasks</span>
+      </button>
+      <button data-section="notes" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Notes</span>
+      </button>
+      <button data-section="bulletin" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Bulletin</span>
+      </button>
+      <button data-section="attendance" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+        <span>Attendance</span>
+      </button>
+    </nav>
+  </div>
+  <div class="flex-1 md:ml-56 min-w-0">
+    <div class="md:hidden flex flex-wrap items-center gap-2 p-4 border-b border-zinc-200 dark:border-zinc-800">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm shrink-0">D</div>
+        <div class="min-w-0">
+          <h1 id="headerTitle" class="font-bold text-sm truncate">Dashboard</h1>
+          <p id="adminNameMobile" class="text-xs text-zinc-500 truncate"></p>
+        </div>
+      </div>
+      <div id="headerPills" class="hidden shrink-0"></div>
+    </div>
+    <div class="p-4 pb-24 md:pb-4">
+      <!--SECTION:inst_tasks-->
+      <!--SECTION:notes-->
+      <!--SECTION:inst_bulletin-->
+      <!--SECTION:attendance-->
+    </div>
+  </div>
+  <div id="modalOverlay" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <div id="modalContent" class="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5 space-y-4"></div>
+  </div>
+  <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex safe-area-bottom">
+    <button data-section="tasks" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Tasks</span>
+    </button>
+    <button data-section="notes" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Notes</span>
+    </button>
+    <button data-section="bulletin" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span>Bulletin</span>
+    </button>
+    <button data-section="attendance" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      <span>Attd</span>
+    </button>
+  </div>
+</div>
+
+<div id="welcomeView" class="hidden max-w-md mx-auto p-4 text-center space-y-4">
+  <div class="text-5xl mt-16 mb-4">👋</div>
+  <h2 class="text-xl font-bold" id="welcomeName"></h2>
+  <p class="text-sm text-zinc-500 dark:text-zinc-400">You're registered. Use bot commands like /info to view your data.</p>
+</div>
+
+<script>
+(function() {
+  console.log('dy: instructor init started');
+  let tid = null;
+  let tg = null;
+  let currentDept = null;
+
+  try {
+    tg = window.Telegram?.WebApp || null;
+    if (tg) tg.ready();
+    const params = new URLSearchParams(window.location.search);
+    const urlTid = params.get('telegram_id');
+    if (urlTid) { tid = urlTid; }
+    if (!tid && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      tid = String(tg.initDataUnsafe.user.id);
+    }
+  } catch(e) { console.error('dy: setup error', e); }
+
+  const cs = tg ? tg.colorScheme : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.classList.toggle('dark', cs === 'dark');
+
+  const show = (id) => {
+    ['loadingView','registerView','adminView','welcomeView'].forEach(v => {
+      const el = document.getElementById(v);
+      if (!el) return;
+      if (v === id) { el.style.display = ''; el.classList.remove('hidden'); }
+      else { el.style.display = 'none'; }
+    });
+  };
+
+  const nameEl = (id) => document.getElementById(id);
+  const esc = (s) => { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
+
+  function showSection(name) {
+    const allSections = ['sectionTasks','sectionNotes','sectionBulletin','sectionAttendance'];
+    allSections.forEach(s =>
+      nameEl(s).classList.toggle('hidden', s !== 'section' + name[0].toUpperCase() + name.slice(1)));
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      const isActive = b.dataset.section === name;
+      b.classList.toggle('bg-brand-100', isActive);
+      b.classList.toggle('dark:bg-brand-950/50', isActive);
+      b.classList.toggle('text-brand-700', isActive);
+      b.classList.toggle('dark:text-brand-300', isActive);
+      b.classList.toggle('font-semibold', isActive);
+    });
+    updateHeader(name);
+  }
+
+  function updateHeader(section) {
+    const title = nameEl('headerTitle');
+    const pills = nameEl('headerPills');
+    if (section === 'bulletin') {
+      const tab = currentBulletinTab || 'info';
+      title.textContent = 'Bulletin';
+      pills.innerHTML = '<div class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 w-fit">' +
+        '<button class="bulletin-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'info' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-bulletin-tab="info">Announcements</button>' +
+        '<button class="bulletin-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'complaints' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-bulletin-tab="complaints">Complaints</button>' +
+        '</div>';
+      pills.classList.remove('hidden');
+    } else if (section === 'attendance') {
+      const tab = currentAttTab || 'registers';
+      title.textContent = 'Attendance';
+      pills.innerHTML = '<div class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 w-fit">' +
+        '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'registers' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-att-tab="registers">Registers</button>' +
+        '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'leaves' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-att-tab="leaves">Leaves</button>' +
+        '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'pass' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-att-tab="pass">Pass</button>' +
+        '</div>';
+      pills.classList.remove('hidden');
+    } else {
+      const names = {tasks:'Tasks',notes:'Notes'};
+      title.textContent = names[section] || section.charAt(0).toUpperCase() + section.slice(1);
+      pills.classList.add('hidden');
+    }
+  }
+
+  let currentBulletinTab = 'info';
+  function switchBulletinTab(tab) {
+    currentBulletinTab = tab;
+    nameEl('sectionInfo').classList.toggle('hidden', tab !== 'info');
+    nameEl('sectionComplaints').classList.toggle('hidden', tab !== 'complaints');
+    if (tab === 'info') loadInfo();
+    if (tab === 'complaints') loadComplaints();
+    updateHeader('bulletin');
+  }
+
+  let currentAttTab = 'registers';
+  let passAnimFrame = null;
+  const PASS_TOTAL = 60;
+  const PASS_CIRC = 94.25;
+
+  function animatePass() {
+    const cells = document.querySelectorAll('#passGrid .pass-cell');
+    if (!cells.length) { passAnimFrame = null; return; }
+    const now = Date.now();
+    cells.forEach(cell => {
+      const expires = new Date(cell.dataset.expires).getTime();
+      const remaining = Math.max(0, Math.floor((expires - now) / 1000));
+      cell.querySelector('.timer-ring').setAttribute('stroke-dashoffset', PASS_CIRC * (1 - remaining / PASS_TOTAL));
+      cell.querySelector('.timer-label').textContent = remaining;
+    });
+    passAnimFrame = requestAnimationFrame(animatePass);
+  }
+
+  async function loadPass() {
+    const r = await (await fetch('/api/admin/codes/active?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const grid = nameEl('passGrid');
+    const status = nameEl('passStatus');
+    grid.innerHTML = '';
+    const codes = r.codes || [];
+    codes.forEach(c => {
+      const expires = new Date(c.expires_at).getTime();
+      const remaining = Math.max(0, Math.floor((expires - Date.now()) / 1000));
+      const offset = PASS_CIRC * (1 - remaining / PASS_TOTAL);
+      const cell = document.createElement('div');
+      cell.className = 'pass-cell flex items-center justify-between p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900';
+      cell.dataset.expires = c.expires_at;
+      cell.innerHTML =
+        '<code class="text-sm font-mono font-bold tracking-wider text-brand-600 dark:text-brand-400">' + c.code + '</code>' +
+        '<div class="relative w-9 h-9 flex-shrink-0">' +
+          '<svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">' +
+            '<circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" class="text-zinc-200 dark:text-zinc-700"/>' +
+            '<circle class="timer-ring text-brand-500" cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="' + PASS_CIRC + '" stroke-dashoffset="' + offset + '"/>' +
+          '</svg>' +
+          '<span class="timer-label absolute inset-0 flex items-center justify-center text-xs font-mono text-zinc-500 dark:text-zinc-400">' + remaining + '</span>' +
+        '</div>';
+      grid.appendChild(cell);
+    });
+    status.textContent = codes.length + '/16 active';
+    grid.classList.toggle('hidden', codes.length === 0);
+    nameEl('passStartBtn').classList.toggle('hidden', codes.length > 0);
+    nameEl('passStopBtn').classList.toggle('hidden', codes.length === 0);
+    if (codes.length && !passAnimFrame) passAnimFrame = requestAnimationFrame(animatePass);
+  }
+
+  function switchAttTab(tab) {
+    currentAttTab = tab;
+    nameEl('sectionRegisters').classList.toggle('hidden', tab !== 'registers');
+    nameEl('sectionLeaves').classList.toggle('hidden', tab !== 'leaves');
+    nameEl('passView').classList.toggle('hidden', tab !== 'pass');
+    if (tab === 'leaves') loadLeaves();
+    if (tab === 'pass') loadPass();
+    else { if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; } }
+    updateHeader('attendance');
+  }
+
+  async function loadAttendance(dateStr) {
+    let url = '/api/admin/attendance?telegram_id=' + encodeURIComponent(tid) + '&date_str=' + encodeURIComponent(dateStr);
+    if (currentDept) url += '&department=' + encodeURIComponent(currentDept);
+    const r = await (await fetch(url)).json();
+    if (!r.ok) return;
+    const badge = nameEl('attGroupBadge');
+    const students = nameEl('attStudents');
+    const actions = nameEl('attActions');
+    badge.classList.remove('hidden');
+    badge.textContent = 'Group ' + r.group;
+    if (r.exists) {
+      window._attId = r.attendance_id;
+      students.classList.remove('hidden');
+      students.innerHTML = r.students.map(s =>
+        '<div class="flex items-center gap-2 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900" data-user-id="' + s.user_id + '">' +
+        '<span class="flex-1 text-sm font-medium truncate">' + esc(s.name) + ' ' + esc(s.surname) + '</span>' +
+        '<input type="time" class="enter-time px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-xs outline-none focus:ring-1 focus:ring-brand-500" value="' + (s.enter_at || '') + '" disabled>' +
+        '<input type="time" class="exit-time px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-xs outline-none focus:ring-1 focus:ring-brand-500" value="' + (s.left_at || '') + '" disabled>' +
+        '</div>'
+      ).join('');
+      actions.classList.add('hidden');
+    } else {
+      students.classList.add('hidden');
+      students.innerHTML = '';
+      actions.classList.add('hidden');
+    }
+  }
+
+  async function loadLeaves() {
+    let url = '/api/admin/leaves?telegram_id=' + encodeURIComponent(tid);
+    if (currentDept) url += '&department=' + encodeURIComponent(currentDept);
+    const r = await (await fetch(url)).json();
+    if (!r.ok) return;
+    const list = nameEl('leavesList');
+    const filter = nameEl('leaveStatusFilter');
+    const filterVal = filter ? filter.value : '';
+    const items = filterVal ? r.leaves.filter(l => l.status === filterVal) : r.leaves;
+    list.innerHTML = items.map(l => {
+      const statusColor = l.status === 'approved' ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950' :
+        l.status === 'rejected' ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950' :
+        'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950';
+      return '<div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">' +
+        '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(l.user_name) + '</p>' +
+        '<span class="text-xs px-2 py-0.5 rounded-full ' + statusColor + '">' + l.status + '</span></div>' +
+        '<p class="text-xs text-zinc-500 mt-1">' + l.department + (l.group ? ' · Group ' + l.group : '') + ' · ' + l.date + '</p>' +
+        '<p class="text-xs text-zinc-400 mt-1 italic">"' + esc(l.reason) + '"</p>' +
+        '<p class="text-xs text-zinc-400 mt-0.5">' + l.created_at + '</p></div>';
+    }).join('');
+  }
+
+  async function loadTasks() {
+    const r = await (await fetch('/api/admin/tasks?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('tasksList');
+    list.innerHTML = r.tasks.map(t =>
+      '<div class="task-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer hover:border-brand-300 dark:hover:border-brand-700 transition-colors" data-id="' + t.id + '">' +
+      '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(t.title) + '</p>' +
+      '<span class="text-xs px-2 py-0.5 rounded-full ' + (t.department === 'All' ? 'bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400') + '">' + t.department + '</span></div>' +
+      '<p class="text-xs text-zinc-500 mt-1">' + esc(t.description || '') + '</p></div>'
+    ).join('');
+  }
+
+  async function loadNotes() {
+    const r = await (await fetch('/api/admin/notes?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('notesList');
+    list.innerHTML = r.notes.map(n =>
+      '<div class="note-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer hover:border-brand-300 dark:hover:border-brand-700 transition-colors" data-id="' + n.id + '">' +
+      '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(n.title) + '</p>' +
+      '<span class="text-xs text-zinc-400">' + n.department + '</span></div>' +
+      '<p class="text-xs text-zinc-500 mt-1">' + esc(n.content || '') + '</p></div>'
+    ).join('');
+  }
+
+  async function loadInfo() {
+    const r = await (await fetch('/api/admin/info?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('infoList');
+    list.innerHTML = r.items.map(i =>
+      '<div class="info-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer hover:border-brand-300 dark:hover:border-brand-700 transition-colors" data-id="' + i.id + '">' +
+      '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(i.title) + '</p>' +
+      '<span class="text-xs text-zinc-400">' + i.department + '</span></div>' +
+      '<p class="text-xs text-zinc-500 mt-1">' + esc(i.content || '') + '</p></div>'
+    ).join('');
+  }
+
+  async function loadComplaints() {
+    const r = await (await fetch('/api/admin/complaints?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('complaintsList');
+    list.innerHTML = r.complaints.map(c => {
+      const icon = c.type === 'complaint' ? '💢' : '💡';
+      return '<div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">' +
+        '<div class="flex items-center gap-2 mb-1">' +
+        '<span>' + icon + '</span>' +
+        '<span class="text-xs font-medium px-2 py-0.5 rounded-full ' + (c.type === 'complaint' ? 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400') + '">' + c.type + '</span>' +
+        '<span class="text-xs text-zinc-400">' + c.department + (c.group ? ' · Group ' + c.group : '') + '</span>' +
+        '</div>' +
+        '<p class="text-sm whitespace-pre-wrap">' + esc(c.content) + '</p>' +
+        '<p class="text-xs text-zinc-400 mt-1">' + c.created_at + '</p></div>';
+    }).join('');
+  }
+
+  // ── CRUD Modals ──
+
+  function showTaskForm(task) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const isEdit = !!task;
+    const title = isEdit ? task.title : '';
+    const dept = isEdit ? task.department : '';
+    const desc = isEdit ? (task.description || '') : '';
+    const depts = ['ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS','All'];
+    const opts = depts.map(d => '<option value="' + d + '"' + (d === dept ? ' selected' : '') + '>' + d + '</option>').join('');
+    c.innerHTML =
+      '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'New') + ' Task</h3>' +
+      '<input id="taskFormTitle" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Title" value="' + esc(title) + '">' +
+      '<select id="taskFormDept" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + opts + '</select>' +
+      '<textarea id="taskFormDesc" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Description (optional)" rows="3">' + esc(desc) + '</textarea>' +
+      '<p id="taskFormErr" class="text-xs text-red-500 hidden"></p>' +
+      '<div class="flex gap-2 justify-end">' +
+      '<button id="modalCancel" class="px-4 py-2 rounded-lg text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button>' +
+      '<button id="taskSubmitBtn" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div>';
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    nameEl('taskSubmitBtn').onclick = async () => {
+      const btn = nameEl('taskSubmitBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      const body = { title: nameEl('taskFormTitle').value, department: nameEl('taskFormDept').value, description: nameEl('taskFormDesc').value };
+      const r = await (await fetch('/api/admin/tasks' + (isEdit ? '/' + task.id : '') + '?telegram_id=' + encodeURIComponent(tid),
+        {method: isEdit ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      if (r.ok) { m.classList.add('hidden'); await loadTasks(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { nameEl('taskFormErr').textContent = r.detail || 'Error'; nameEl('taskFormErr').classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+    };
+  }
+
+  function showNoteForm(note) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const isEdit = !!note;
+    const title = isEdit ? note.title : '';
+    const dept = isEdit ? note.department : '';
+    const content = isEdit ? (note.content || '') : '';
+    const depts = ['ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS'];
+    const opts = depts.map(d => '<option value="' + d + '"' + (d === dept ? ' selected' : '') + '>' + d + '</option>').join('');
+    c.innerHTML =
+      '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'New') + ' Note</h3>' +
+      '<input id="noteFormTitle" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Title" value="' + esc(title) + '">' +
+      '<select id="noteFormDept" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + opts + '</select>' +
+      '<textarea id="noteFormContent" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Content" rows="4">' + esc(content) + '</textarea>' +
+      '<p id="noteFormErr" class="text-xs text-red-500 hidden"></p>' +
+      '<div class="flex gap-2 justify-end">' +
+      '<button id="modalCancel" class="px-4 py-2 rounded-lg text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button>' +
+      '<button id="noteSubmitBtn" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div>';
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    nameEl('noteSubmitBtn').onclick = async () => {
+      const btn = nameEl('noteSubmitBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      const body = { title: nameEl('noteFormTitle').value, department: nameEl('noteFormDept').value, content: nameEl('noteFormContent').value };
+      const r = await (await fetch('/api/admin/notes' + (isEdit ? '/' + note.id : '') + '?telegram_id=' + encodeURIComponent(tid),
+        {method: isEdit ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      if (r.ok) { m.classList.add('hidden'); await loadNotes(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { nameEl('noteFormErr').textContent = r.detail || 'Error'; nameEl('noteFormErr').classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+    };
+  }
+
+  function showInfoForm(data) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const isEdit = !!data;
+    const title = isEdit ? data.title : '';
+    const dept = isEdit ? data.department : '';
+    const content = isEdit ? (data.content || '') : '';
+    const depts = ['All','ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS'];
+    const opts = depts.map(d => '<option value="' + d + '"' + (d === dept ? ' selected' : '') + '>' + d + '</option>').join('');
+    c.innerHTML =
+      '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'New') + ' Announcement</h3>' +
+      '<input id="infoFormTitle" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Title" value="' + esc(title) + '">' +
+      '<select id="infoFormDept" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + opts + '</select>' +
+      '<textarea id="infoFormContent" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500" placeholder="Content" rows="4">' + esc(content) + '</textarea>' +
+      '<p id="infoFormErr" class="text-xs text-red-500 hidden"></p>' +
+      '<div class="flex gap-2 justify-end">' +
+      '<button id="modalCancel" class="px-4 py-2 rounded-lg text-sm border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-50 dark:hover:bg-zinc-800">Cancel</button>' +
+      '<button id="infoSubmitBtn" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div>';
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    nameEl('infoSubmitBtn').onclick = async () => {
+      const btn = nameEl('infoSubmitBtn');
+      btn.disabled = true; btn.textContent = 'Saving...';
+      const body = { title: nameEl('infoFormTitle').value, department: nameEl('infoFormDept').value, content: nameEl('infoFormContent').value };
+      const r = await (await fetch('/api/admin/info' + (isEdit ? '/' + data.id : '') + '?telegram_id=' + encodeURIComponent(tid),
+        {method: isEdit ? 'PUT' : 'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      if (r.ok) { m.classList.add('hidden'); await loadInfo(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { nameEl('infoFormErr').textContent = r.detail || 'Error'; nameEl('infoFormErr').classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+    };
+  }
+
+  // ── Entry Point ──
+
+  async function checkAndShow(idToCheck) {
+    try {
+      const resp = await fetch('/api/me?telegram_id=' + encodeURIComponent(idToCheck));
+      const me = await resp.json();
+      if (!me.exists) { show('registerView'); return; }
+      if (me.role !== 'instructor') { show('welcomeView'); return; }
+      currentDept = me.department;
+      const fullName = me.name + ' ' + me.surname;
+      nameEl('adminNameSide').textContent = fullName;
+      nameEl('adminNameMobile').textContent = fullName;
+      show('adminView');
+
+      document.querySelectorAll('.nav-btn').forEach(b =>
+        b.addEventListener('click', async () => {
+          const section = b.dataset.section;
+          showSection(section);
+          if (section === 'tasks') await loadTasks();
+          if (section === 'notes') await loadNotes();
+          if (section === 'attendance') { switchAttTab(currentAttTab); if (currentAttTab === 'registers' && nameEl('attDate').value) await loadAttendance(nameEl('attDate').value); }
+          if (section === 'bulletin') { await switchBulletinTab('info'); }
+        })
+      );
+
+      document.addEventListener('click', (e) => {
+        const tab = e.target.closest('.bulletin-tab');
+        if (tab) switchBulletinTab(tab.dataset.bulletinTab);
+      });
+      document.addEventListener('click', (e) => {
+        const tab = e.target.closest('.att-tab');
+        if (tab) switchAttTab(tab.dataset.attTab);
+      });
+
+      nameEl('addTaskBtn')?.addEventListener('click', () => showTaskForm());
+      nameEl('addNoteBtn')?.addEventListener('click', () => showNoteForm());
+      nameEl('addInfoBtn')?.addEventListener('click', () => showInfoForm());
+
+      nameEl('attLoadBtn')?.addEventListener('click', () => { loadAttendance(nameEl('attDate').value); });
+      nameEl('attDate')?.addEventListener('change', () => { if (nameEl('attDate').value) loadAttendance(nameEl('attDate').value); });
+
+      nameEl('passStartBtn')?.addEventListener('click', async () => {
+        const btn = nameEl('passStartBtn');
+        btn.disabled = true; btn.textContent = 'Starting...';
+        const r = await (await fetch('/api/admin/codes/start?telegram_id=' + encodeURIComponent(tid), {method:'POST'})).json();
+        if (r.ok) await loadPass();
+        else alert(r.detail || 'Failed to start pass');
+        btn.disabled = false; btn.textContent = 'Start';
+      });
+      nameEl('passStopBtn')?.addEventListener('click', async () => {
+        await fetch('/api/admin/codes/stop?telegram_id=' + encodeURIComponent(tid), {method:'POST'});
+        if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; }
+        nameEl('passGrid').classList.add('hidden');
+        nameEl('passGrid').innerHTML = '';
+        nameEl('passStatus').textContent = '0/16 active';
+        nameEl('passStartBtn').classList.remove('hidden');
+        nameEl('passStopBtn').classList.add('hidden');
+      });
+
+      document.addEventListener('click', (e) => {
+        const row = e.target.closest('.task-row');
+        if (row) {
+          const id = parseInt(row.dataset.id);
+          const allTasks = [];
+          document.querySelectorAll('#tasksList .task-row').forEach(r => allTasks.push({id: parseInt(r.dataset.id)}));
+          const t = allTasks.find(x => x.id === id);
+          if (t) showTaskForm(t);
+        }
+      });
+      document.addEventListener('click', (e) => {
+        const row = e.target.closest('.note-row');
+        if (row) {
+          const id = parseInt(row.dataset.id);
+          // Re-fetch to get full note data
+          (async () => {
+            const r = await (await fetch('/api/admin/notes?telegram_id=' + encodeURIComponent(tid))).json();
+            if (r.ok) { const note = r.notes.find(n => n.id === id); if (note) showNoteForm(note); }
+          })();
+        }
+      });
+      document.addEventListener('click', (e) => {
+        const row = e.target.closest('.info-row');
+        if (row) {
+          const id = parseInt(row.dataset.id);
+          (async () => {
+            const r = await (await fetch('/api/admin/info?telegram_id=' + encodeURIComponent(tid))).json();
+            if (r.ok) { const item = r.items.find(i => i.id === id); if (item) showInfoForm(item); }
+          })();
+        }
+      });
+
+      loadTasks();
+      showSection('tasks');
+    } catch(e) {
+      console.error('dy: instructor init error', e);
+      show('welcomeView');
+    }
+  }
+
+  // ── Boot ──
+  if (tid) {
+    console.log('dy: instructor boot tid', tid);
+    checkAndShow(tid);
+  } else {
+    show('welcomeView');
+  }
+
+})();
+</script>
+</body>
+</html>

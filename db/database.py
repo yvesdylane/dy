@@ -46,7 +46,7 @@ async def seed_admin(session: AsyncSession):
             phone="+2375150173",
             telegram_id="1235750724",
             gender=Gender.male,
-            role=Role.admin,
+            role=Role.instructor,
             department=Department.SWE,
             school="Default",
             dob=date(2003, 5, 24),
