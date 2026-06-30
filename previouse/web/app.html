@@ -1,0 +1,1661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                      400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309',
+                      800: '#92400e', 900: '#78350f' }
+          }
+        }
+      }
+    }
+  </script>
+  <title>dy</title>
+</head>
+<body class="bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-[100dvh] transition-colors duration-200">
+
+<div id="loadingView" class="flex items-center justify-center min-h-[90dvh]">
+  <div class="animate-spin h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+</div>
+
+<!--SECTION:register-->
+<div id="adminView" class="hidden flex min-h-screen">
+  <div class="hidden md:flex md:flex-col md:w-56 md:bg-zinc-50 md:dark:bg-zinc-900 md:border-r md:border-zinc-200 md:dark:border-zinc-800 md:fixed md:h-full">
+    <div class="p-4 border-b border-zinc-200 dark:border-zinc-800">
+      <h2 class="font-bold text-brand-600 dark:text-brand-400">dy</h2>
+      <p id="adminNameSide" class="text-xs text-zinc-500 mt-1"></p>
+    </div>
+    <nav class="flex-1 p-2 space-y-1">
+      <button data-section="stats" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="2" width="4" height="19" rx="1"/></svg>
+        <span>Stats</span>
+      </button>
+      <button data-section="people" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>People</span>
+      </button>
+      <button data-section="attendance" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+        <span>Attendance</span>
+      </button>
+      <button data-section="tasks" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Tasks</span>
+      </button>
+      <button data-section="notes" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Notes</span>
+      </button>
+      <button data-section="bulletin" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Bulletin</span>
+      </button>
+    </nav>
+  </div>
+  <div class="flex-1 md:ml-56 min-w-0">
+    <div class="md:hidden flex flex-wrap items-center gap-2 p-4 border-b border-zinc-200 dark:border-zinc-800">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm shrink-0">D</div>
+        <div class="min-w-0">
+          <h1 id="headerTitle" class="font-bold text-sm truncate">Dashboard</h1>
+          <p id="adminNameMobile" class="text-xs text-zinc-500 truncate"></p>
+        </div>
+      </div>
+      <div id="headerPills" class="hidden shrink-0"></div>
+    </div>
+    <div class="p-4 pb-24 md:pb-4">
+      <!--SECTION:stats-->
+      <!--SECTION:people-->
+      <!--SECTION:attendance-->
+      <!--SECTION:tasks-->
+      <!--SECTION:notes-->
+      <!--SECTION:bulletin-->
+    </div>
+  </div>
+  <div id="modalOverlay" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <div id="modalContent" class="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5 space-y-4"></div>
+  </div>
+  <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex safe-area-bottom">
+    <button data-section="stats" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="2" width="4" height="19" rx="1"/></svg>
+      <span>Stats</span>
+    </button>
+    <button data-section="people" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>People</span>
+    </button>
+    <button data-section="attendance" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+      <span>Attd</span>
+    </button>
+    <button data-section="tasks" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>Tasks</span>
+    </button>
+    <button data-section="notes" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>Notes</span>
+    </button>
+    <button data-section="bulletin" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5">
+      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <span>Bulletin</span>
+    </button>
+  </div>
+</div>
+
+<div id="welcomeView" class="hidden max-w-md mx-auto p-4 text-center space-y-4">
+  <div class="text-5xl mt-16 mb-4">👋</div>
+  <h2 class="text-xl font-bold" id="welcomeName"></h2>
+  <p class="text-sm text-zinc-500 dark:text-zinc-400">You're registered. Use bot commands like /info to view your data.</p>
+</div>
+
+<script>
+(function() {
+  console.log('dy: init started');
+  let tid = null;
+  let tg = null;
+
+  try {
+    tg = window.Telegram?.WebApp || null;
+    if (tg) tg.ready();
+
+    const params = new URLSearchParams(window.location.search);
+    const urlTid = params.get('telegram_id');
+    if (urlTid) { tid = urlTid; console.log('dy: tid from URL', tid); }
+
+    if (!tid && tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+      tid = String(tg.initDataUnsafe.user.id);
+      console.log('dy: tid from tg', tid);
+    }
+    console.log('dy: tid final', tid);
+  } catch(e) { console.error('dy: setup error', e); }
+
+  const cs = tg ? tg.colorScheme : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.classList.toggle('dark', cs === 'dark');
+
+  const show = (id) => {
+    ['loadingView','registerView','adminView','welcomeView'].forEach(v => {
+      const el = document.getElementById(v);
+      if (!el) return;
+      if (v === id) {
+        el.style.display = '';
+        el.classList.remove('hidden');
+      } else {
+        el.style.display = 'none';
+      }
+    });
+  };
+
+  const nameEl = (id) => document.getElementById(id);
+  const esc = (s) => { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; };
+  const sanitizeUrl = (url) => {
+    if (!url) return '';
+    const allowed = ['http://', 'https://', 'mailto:', 'tel:', '/', '#', 'ftp://'];
+    const lower = url.toLowerCase().trim();
+    if (allowed.some(p => lower.startsWith(p))) return url;
+    return '';
+  };
+  var tgInitData = (tg && tg.initData) || '';
+  if (!tgInitData) {
+    try { tgInitData = sessionStorage.getItem('tg_init_data') || ''; sessionStorage.removeItem('tg_init_data'); } catch(e) {}
+  }
+  if (tgInitData) {
+    const baseFetch = window.fetch.bind(window);
+    window.fetch = (input, init = {}) => {
+      const next = { ...init };
+      const headers = new Headers(init.headers || {});
+      headers.set('X-Init-Data', tgInitData);
+      next.headers = headers;
+      return baseFetch(input, next);
+    };
+  }
+  if (!tgInitData) {
+    console.warn('dy: no Telegram initData available; authenticated requests will be rejected unless dev auth is enabled');
+  }
+
+  function showSection(name) {
+    const allSections = ['sectionStats','sectionPeople','sectionAttendance','sectionTasks','sectionNotes','sectionBulletin'];
+    allSections.forEach(s =>
+      nameEl(s).classList.toggle('hidden', s !== 'section' + name[0].toUpperCase() + name.slice(1)));
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      const isActive = b.dataset.section === name;
+      b.classList.toggle('bg-brand-100', isActive);
+      b.classList.toggle('dark:bg-brand-950/50', isActive);
+      b.classList.toggle('text-brand-700', isActive);
+      b.classList.toggle('dark:text-brand-300', isActive);
+      b.classList.toggle('font-semibold', isActive);
+    });
+    updateHeader(name);
+  }
+
+  function updateHeader(section) {
+    const title = nameEl('headerTitle');
+    const pills = nameEl('headerPills');
+    if (section === 'people') {
+      const tab = currentPeopleTab || 'users';
+      title.textContent = 'People';
+      pills.innerHTML = '<div class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 w-fit">' +
+        '<button class="people-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'users' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-people-tab="users">Users</button>' +
+        '<button class="people-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'codes' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-people-tab="codes">Codes</button>' +
+        '</div>';
+      pills.classList.remove('hidden');
+    } else if (section === 'bulletin') {
+      const tab = currentBulletinTab || 'info';
+      title.textContent = 'Bulletin';
+      pills.innerHTML = '<div class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 w-fit">' +
+        '<button class="bulletin-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'info' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-bulletin-tab="info">Announcements</button>' +
+        '<button class="bulletin-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'complaints' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-bulletin-tab="complaints">Complaints</button>' +
+        '</div>';
+      pills.classList.remove('hidden');
+    } else if (section === 'attendance') {
+      const tab = currentAttTab || 'registers';
+      title.textContent = 'Attendance';
+      pills.innerHTML = '<div class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 w-fit">' +
+        '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'registers' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-att-tab="registers">Registers</button>' +
+        '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'leaves' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-att-tab="leaves">Leaves</button>' +
+        '<button class="att-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'pass' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-att-tab="pass">Pass</button>' +
+        '</div>';
+      pills.classList.remove('hidden');
+    } else if (section === 'tasks') {
+      const tab = currentTasksTab || 'tasks';
+      title.textContent = 'Tasks';
+      pills.innerHTML = '<div class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 w-fit">' +
+        '<button class="tasks-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'tasks' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-tasks-tab="tasks">Tasks</button>' +
+        '<button class="tasks-tab px-3 py-1 text-xs font-medium rounded-md transition-colors ' +
+          (tab === 'cleaning' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm' : 'text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100') +
+        '" data-tasks-tab="cleaning">Cleaning</button>' +
+        '</div>';
+      pills.classList.remove('hidden');
+    } else {
+      const names = {stats:'Dashboard',notes:'Notes'};
+      title.textContent = names[section] || section.charAt(0).toUpperCase() + section.slice(1);
+      pills.classList.add('hidden');
+    }
+  }
+
+  let currentPeopleTab = 'users';
+  function switchPeopleTab(tab) {
+    currentPeopleTab = tab;
+    nameEl('sectionUsers').classList.toggle('hidden', tab !== 'users');
+    nameEl('sectionCodes').classList.toggle('hidden', tab !== 'codes');
+    if (tab === 'users') loadUsers();
+    if (tab === 'codes') loadCodes();
+    updateHeader('people');
+  }
+
+  let currentBulletinTab = 'info';
+  function switchBulletinTab(tab) {
+    currentBulletinTab = tab;
+    nameEl('sectionInfo').classList.toggle('hidden', tab !== 'info');
+    nameEl('sectionComplaints').classList.toggle('hidden', tab !== 'complaints');
+    if (tab === 'info') loadInfo();
+    if (tab === 'complaints') loadComplaints();
+    updateHeader('bulletin');
+  }
+
+  let currentAttTab = 'registers';
+  function switchAttTab(tab) {
+    currentAttTab = tab;
+    nameEl('sectionRegisters').classList.toggle('hidden', tab !== 'registers');
+    nameEl('sectionLeaves').classList.toggle('hidden', tab !== 'leaves');
+    nameEl('passView').classList.toggle('hidden', tab !== 'pass');
+    if (tab === 'leaves') loadLeaves();
+    if (tab !== 'pass') {
+      if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; }
+      if (passPollInterval) { clearInterval(passPollInterval); passPollInterval = null; }
+    }
+    updateHeader('attendance');
+  }
+
+  let currentTasksTab = 'tasks';
+  function switchTasksTab(tab) {
+    currentTasksTab = tab;
+    nameEl('sectionTasksInner').classList.toggle('hidden', tab !== 'tasks');
+    nameEl('sectionCleaning').classList.toggle('hidden', tab !== 'cleaning');
+    if (tab === 'tasks') loadTasks();
+    if (tab === 'cleaning') loadCleaning();
+    updateHeader('tasks');
+  }
+
+  async function loadComplaints() {
+    const r = await (await fetch('/api/admin/complaints?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('complaintsList');
+    list.innerHTML = r.complaints.map(c => {
+      const icon = c.type === 'complaint' ? '💢' : '💡';
+      return '<div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">' +
+        '<div class="flex items-center gap-2 mb-1">' +
+        '<span>' + icon + '</span>' +
+        '<span class="text-xs font-medium px-2 py-0.5 rounded-full ' + (c.type === 'complaint' ? 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400' : 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400') + '">' + c.type + '</span>' +
+        '<span class="text-xs text-zinc-400">' + c.department + (c.group ? ' · Group ' + c.group : '') + '</span>' +
+        '</div>' +
+        '<p class="text-sm whitespace-pre-wrap">' + esc(c.content) + '</p>' +
+        '<p class="text-xs text-zinc-400 mt-1">' + c.created_at + '</p>' +
+        '</div>';
+    }).join('');
+  }
+
+  async function loadStats() {
+    const s = await (await fetch('/api/admin/stats?telegram_id=' + encodeURIComponent(tid))).json();
+    if (s.ok) {
+      nameEl('statUsers').textContent = s.total_users;
+      nameEl('statInterns').textContent = s.interns;
+      nameEl('statInstructors').textContent = s.instructors;
+      nameEl('statTasks').textContent = s.tasks;
+      nameEl('statTotalFees').textContent = Number(s.total_fees).toLocaleString();
+      nameEl('statPaid').textContent = Number(s.total_paid).toLocaleString() + ' / ' + Number(s.total_fees).toLocaleString();
+    }
+  }
+
+  let allUsers = [];
+  let userPage = 1;
+  const userPerPage = 20;
+
+  function filterUsers() {
+    const q = nameEl('userSearch').value.toLowerCase();
+    const dept = nameEl('userDeptFilter').value;
+    const role = nameEl('userRoleFilter').value;
+    return allUsers.filter(u =>
+      (u.name.toLowerCase().includes(q) || u.surname.toLowerCase().includes(q) || u.phone.includes(q)) &&
+      (!dept || u.department === dept) &&
+      (!role || u.role === role)
+    );
+  }
+
+  function renderUsers() {
+    const list = nameEl('usersList');
+    const filtered = filterUsers();
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / userPerPage) || 1;
+    if (userPage > totalPages) userPage = totalPages;
+    const start = (userPage - 1) * userPerPage;
+    const pageUsers = filtered.slice(start, start + userPerPage);
+    const countEl = nameEl('userCount');
+    if (countEl) countEl.textContent = total + ' user' + (total !== 1 ? 's' : '');
+    const pagEl = nameEl('userPagination');
+    if (pagEl) {
+      let html = '';
+      if (totalPages > 1) {
+        html += '<button class="px-2 py-1 rounded ' + (userPage <= 1 ? 'text-zinc-400' : 'text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950 cursor-pointer') + '" data-page="' + (userPage - 1) + '"' + (userPage <= 1 ? ' disabled' : '') + '>\u2039</button>';
+        html += '<span class="px-2 py-1 text-zinc-500">' + userPage + '/' + totalPages + '</span>';
+        html += '<button class="px-2 py-1 rounded ' + (userPage >= totalPages ? 'text-zinc-400' : 'text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950 cursor-pointer') + '" data-page="' + (userPage + 1) + '"' + (userPage >= totalPages ? ' disabled' : '') + '>\u203a</button>';
+      }
+      pagEl.innerHTML = html;
+    }
+    list.innerHTML = pageUsers.map(u => {
+      return '<div class="user-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="' + u.id + '">' +
+        '<div class="min-w-0 flex-1">' +
+        '<p class="font-medium text-sm truncate">' + u.name + ' ' + u.surname + '</p>' +
+        '<p class="text-xs text-zinc-500">' + u.department + ' \u00b7 ' + u.role + ' \u00b7 ' + u.phone + ' \u00b7 ' + (u.linked ? 'linked' : 'pending') + ' \u00b7 <span class="font-mono">' + u.telegram_id + '</span></p>' +
+        '</div>' +
+        '<span class="text-xs px-2 py-0.5 rounded-full ' + (u.role === 'admin' ? 'bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300' : u.role === 'instructor' ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300') + '">' + u.role + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  async function loadUsers() {
+    const group = nameEl('userGroupFilter').value;
+    let url = '/api/admin/users?per_page=200&telegram_id=' + encodeURIComponent(tid);
+    if (group) url += '&group=' + encodeURIComponent(group);
+    const r = await (await fetch(url)).json();
+    if (!r.ok) return;
+    allUsers = r.users;
+    userPage = 1;
+    renderUsers();
+  }
+
+  async function loadCodes() {
+    const r = await (await fetch('/api/admin/codes?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('codesList');
+    list.innerHTML = r.codes.map(c => `
+      <div class="code-row flex items-center gap-2 p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+        <input type="checkbox" class="code-checkbox shrink-0 accent-brand-500" data-id="${c.id}">
+        <div class="flex-1 min-w-0">
+          <p class="font-mono text-sm">${c.code}</p>
+          <p class="text-xs text-zinc-500">${c.is_used ? 'Used' : 'Available'} · ${c.role}</p>
+        </div>
+        <button class="del-code-btn p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg text-xs" data-id="${c.id}">✕</button>
+      </div>
+    `).join('');
+    updateDeleteSelectedBtn();
+  }
+
+  function updateDeleteSelectedBtn() {
+    const checked = document.querySelectorAll('.code-checkbox:checked');
+    const btn = nameEl('deleteSelectedCodesBtn');
+    const count = nameEl('selectedCount');
+    if (checked.length) {
+      btn.classList.remove('hidden');
+      count.classList.remove('hidden');
+      count.textContent = checked.length + ' selected';
+    } else {
+      btn.classList.add('hidden');
+      count.classList.add('hidden');
+    }
+  }
+
+  async function checkAndShow(idToCheck) {
+    try {
+      console.log('dy: fetching /api/me for', idToCheck);
+      const resp = await fetch('/api/me');
+      console.log('dy: /api/me status', resp.status);
+      const me = await resp.json();
+      console.log('dy: /api/me response', JSON.stringify(me));
+      if (!me.exists) { console.log('dy: → registerView (user_not_exists)'); show('registerView'); return; }
+      if (me.role === 'admin' || me.role === 'super_admin') {
+        const fullName = me.name + ' ' + me.surname;
+        nameEl('adminNameSide').textContent = fullName;
+        nameEl('adminNameMobile').textContent = fullName;
+        show('adminView');
+        try { await loadStats(); } catch(e) { console.error('Stats load failed', e); }
+        const reloadBtn = nameEl('reloadBtn');
+        if (reloadBtn) reloadBtn.addEventListener('click', async () => {
+          reloadBtn.textContent = 'Reloading...';
+          try { await loadStats(); } catch(e) {}
+          reloadBtn.textContent = 'Reload';
+        });
+        const saveDbBtn = nameEl('saveDbBtn');
+        if (saveDbBtn) saveDbBtn.addEventListener('click', async () => {
+          saveDbBtn.textContent = 'Saving...';
+          try {
+            const r = await (await fetch('/api/admin/save-db?telegram_id=' + encodeURIComponent(tid), { method: 'POST' })).json();
+            saveDbBtn.textContent = r.ok ? 'Sent!' : r.detail;
+            setTimeout(() => { saveDbBtn.textContent = 'Save DB'; }, 3000);
+          } catch(e) {
+            saveDbBtn.textContent = 'Error';
+            setTimeout(() => { saveDbBtn.textContent = 'Save DB'; }, 3000);
+          }
+        });
+        showSection('stats');
+
+        document.querySelectorAll('.nav-btn').forEach(b =>
+          b.addEventListener('click', async () => {
+            const section = b.dataset.section;
+            showSection(section);
+            if (section === 'users') await loadUsers();
+            if (section === 'codes') await loadCodes();
+            if (section === 'people') { await switchPeopleTab('users'); }
+            if (section === 'attendance') { switchAttTab(currentAttTab); if (currentAttTab === 'registers' && nameEl('attDate').value) await loadAttendance(nameEl('attDate').value); }
+            if (section === 'tasks') { switchTasksTab(currentTasksTab); }
+            if (section === 'notes') await loadNotes();
+            if (section === 'info') await loadInfo();
+            if (section === 'complaints') await loadComplaints();
+            if (section === 'bulletin') { await switchBulletinTab('info'); }
+          })
+        );
+
+        nameEl('addUserBtn')?.addEventListener('click', () => showUserForm());
+        nameEl('addCodeBtn')?.addEventListener('click', () => showCodeForm());
+
+        document.addEventListener('click', (e) => {
+          const tab = e.target.closest('.people-tab');
+          if (tab) switchPeopleTab(tab.dataset.peopleTab);
+        });
+
+        document.addEventListener('click', (e) => {
+          const tab = e.target.closest('.bulletin-tab');
+          if (tab) switchBulletinTab(tab.dataset.bulletinTab);
+        });
+
+        document.addEventListener('click', (e) => {
+          const tab = e.target.closest('.att-tab');
+          if (tab) switchAttTab(tab.dataset.attTab);
+        });
+
+        document.addEventListener('click', (e) => {
+          const tab = e.target.closest('.tasks-tab');
+          if (tab) switchTasksTab(tab.dataset.tasksTab);
+        });
+
+        nameEl('exportComplaintsBtn')?.addEventListener('click', () => {
+          window.open('/api/admin/complaints?telegram_id=' + encodeURIComponent(tid) + '&format=csv', '_blank');
+        });
+
+        nameEl('userSearch')?.addEventListener('input', renderUsers);
+        nameEl('userDeptFilter')?.addEventListener('change', renderUsers);
+        nameEl('userRoleFilter')?.addEventListener('change', renderUsers);
+        nameEl('userGroupFilter')?.addEventListener('change', () => { userPage = 1; loadUsers(); });
+
+        nameEl('usersList')?.addEventListener('click', (e) => {
+          const row = e.target.closest('.user-row');
+          if (row) {
+            const u = allUsers.find(x => x.id == row.dataset.id);
+            if (u) showUserDetail(u);
+          }
+        });
+        nameEl('userPagination')?.addEventListener('click', (e) => {
+          const btn = e.target.closest('[data-page]');
+          if (btn && !btn.disabled) {
+            userPage = parseInt(btn.dataset.page);
+            renderUsers();
+          }
+        });
+
+        document.addEventListener('click', async (e) => {
+          const d = e.target.closest('.del-code-btn');
+          if (d && confirm('Delete this code?')) {
+            await fetch('/api/admin/codes/' + d.dataset.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+            await loadCodes();
+          }
+        });
+
+        nameEl('selectAllCodes')?.addEventListener('change', (e) => {
+          document.querySelectorAll('.code-checkbox').forEach(cb => cb.checked = e.target.checked);
+          updateDeleteSelectedBtn();
+        });
+
+        document.addEventListener('change', (e) => {
+          if (e.target.classList.contains('code-checkbox')) updateDeleteSelectedBtn();
+        });
+
+        nameEl('deleteSelectedCodesBtn')?.addEventListener('click', async () => {
+          const checked = document.querySelectorAll('.code-checkbox:checked');
+          const ids = Array.from(checked).map(cb => parseInt(cb.dataset.id));
+          if (!ids.length || !confirm('Delete ' + ids.length + ' selected code' + (ids.length > 1 ? 's' : '') + '?')) return;
+          nameEl('deleteSelectedCodesBtn').textContent = 'Deleting...';
+          await fetch('/api/admin/codes/delete-batch?telegram_id=' + encodeURIComponent(tid),
+            {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ids})});
+          nameEl('deleteSelectedCodesBtn').textContent = 'Delete Selected';
+          await loadCodes();
+        });
+
+        nameEl('deleteAllCodesBtn')?.addEventListener('click', async () => {
+          if (!confirm('Delete ALL codes? This cannot be undone.')) return;
+          nameEl('deleteAllCodesBtn').textContent = 'Deleting...';
+          await fetch('/api/admin/codes/delete-batch?telegram_id=' + encodeURIComponent(tid),
+            {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({all: true})});
+          nameEl('deleteAllCodesBtn').textContent = 'Delete All';
+          await loadCodes();
+        });
+      } else {
+        nameEl('welcomeName').textContent = 'Welcome back, ' + me.name + '!';
+        show('welcomeView');
+      }
+    } catch(e) {
+      console.log('dy: → registerView (checkAndShow_error)', e);
+      show('registerView');
+    }
+  }
+
+  function showUserForm(data) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const isEdit = !!data;
+    c.innerHTML = `
+      <h3 class="font-bold text-lg">${isEdit ? 'Edit' : 'Add'} User</h3>
+      <form id="userForm" class="space-y-3" onsubmit="return false">
+        <input name="name" placeholder="Name" value="${isEdit ? esc(data.name) : ''}" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        <input name="surname" placeholder="Surname" value="${isEdit ? esc(data.surname) : ''}" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        <input name="phone" placeholder="Phone (+237XXXXXXXXX)" value="${isEdit ? esc(data.phone) : ''}" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        ${isEdit ? '<input name="telegram_id" placeholder="Telegram ID" value="' + esc(data.telegram_id) + '" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' : ''}
+        <select name="gender" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+          <option value="">Gender</option>
+          <option value="male" ${isEdit && data.gender === 'male' ? 'selected' : ''}>Male</option>
+          <option value="female" ${isEdit && data.gender === 'female' ? 'selected' : ''}>Female</option>
+        </select>
+        <select name="department" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+          <option value="">Department</option>
+          ${['ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS'].map(d =>
+            `<option value="${d}" ${isEdit && data.department === d ? 'selected' : ''}>${d}</option>`).join('')}
+        </select>
+        <select name="group"
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+          <option value="">Group</option>
+          <option value="A" ${isEdit && data.group === 'A' ? 'selected' : ''}>A</option>
+          <option value="B" ${isEdit && data.group === 'B' ? 'selected' : ''}>B</option>
+        </select>
+        <input name="school" placeholder="School" value="${isEdit ? esc(data.school) : ''}" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        <input name="dob" type="date" value="${isEdit ? data.dob : ''}" required
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">
+        ${isEdit ? '<select name="role" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500"><option value="">Role</option><option value="intern" ' + (data.role === 'intern' ? 'selected' : '') + '>Intern</option><option value="instructor" ' + (data.role === 'instructor' ? 'selected' : '') + '>Instructor</option><option value="admin" ' + (data.role === 'admin' ? 'selected' : '') + '>Admin</option></select>' : ''}
+        ${isEdit ? '<input name="total_fees" type="number" step="0.01" placeholder="Total fees" value="' + (data.total_fees || 0) + '" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' : ''}
+        ${isEdit ? '<input name="fees_paid" type="number" step="0.01" placeholder="Fees paid" value="' + (data.fees_paid || 0) + '" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' : ''}
+        <p id="userFormErr" class="text-red-500 text-xs hidden"></p>
+        <div class="flex gap-2">
+          <button type="button" id="modalCancel"
+            class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>
+          <button type="submit" id="userSubmitBtn"
+            class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">${isEdit ? 'Save' : 'Create'}</button>
+        </div>
+      </form>`;
+    m.classList.remove('hidden');
+
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+
+    nameEl('userForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = nameEl('userSubmitBtn');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Saving...';
+      const f = e.target;
+      const g = (n) => f.elements[n];
+      const body = { name: g('name').value, surname: g('surname').value, phone: g('phone').value,
+        gender: g('gender').value, department: g('department').value, group: g('group').value || null,
+        school: g('school').value, dob: g('dob').value };
+      if (isEdit) {
+        if (g('role')) body.role = g('role').value;
+        if (g('total_fees')) body.total_fees = parseFloat(g('total_fees').value) || 0;
+        if (g('fees_paid')) body.fees_paid = parseFloat(g('fees_paid').value) || 0;
+        if (g('telegram_id')) body.telegram_id = g('telegram_id').value;
+      }
+
+      // If role changed, require type-to-confirm first
+      if (isEdit && body.role && body.role !== data.role) {
+        btn.disabled = false; btn.textContent = 'Save';
+        const fullName = (data.name + ' ' + data.surname).trim();
+        c.innerHTML = `
+          <h3 class="font-bold text-lg text-brand-600 dark:text-brand-400">Change Role</h3>
+          <p class="text-sm text-zinc-600 dark:text-zinc-400">Changing role from <strong>${esc(data.role)}</strong> to <strong>${esc(body.role)}</strong>. Type <strong>${esc(fullName)}</strong> to confirm.</p>
+          <input id="confirmRoleInput" type="text" placeholder="Type their name..."
+            class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500 mt-2">
+          <p id="confirmRoleErr" class="text-red-500 text-xs hidden mt-1"></p>
+          <div class="flex gap-2 pt-2">
+            <button type="button" id="confirmRoleBack" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Back</button>
+            <button type="button" id="confirmRoleBtn" disabled
+              class="flex-1 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium opacity-50 cursor-not-allowed">Change Role</button>
+          </div>`;
+        const roleInput = nameEl('confirmRoleInput');
+        const roleBtn = nameEl('confirmRoleBtn');
+        const roleErr = nameEl('confirmRoleErr');
+        const doSave = async () => {
+          roleBtn.disabled = true; roleBtn.textContent = 'Saving...';
+          const r = await (await fetch('/api/admin/users/' + data.id + '?telegram_id=' + encodeURIComponent(tid), {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+          if (r.ok) { m.classList.add('hidden'); await loadUsers(); }
+          else { roleErr.textContent = r.detail; roleErr.classList.remove('hidden'); roleBtn.disabled = false; roleBtn.textContent = 'Change Role'; }
+        };
+        roleInput.addEventListener('input', () => {
+          const match = roleInput.value.trim() === fullName;
+          roleBtn.disabled = !match;
+          roleBtn.className = match
+            ? 'flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium'
+            : 'flex-1 py-2.5 rounded-lg bg-brand-500 text-white text-sm font-medium opacity-50 cursor-not-allowed';
+          roleErr.classList.add('hidden');
+        });
+        roleInput.addEventListener('keydown', (ev) => {
+          if (ev.key === 'Enter' && !roleBtn.disabled) roleBtn.click();
+        });
+        nameEl('confirmRoleBack').onclick = () => { showUserForm(data); };
+        roleBtn.onclick = doSave;
+        return;
+      }
+
+      const url = isEdit
+        ? '/api/admin/users/' + data.id + '?telegram_id=' + encodeURIComponent(tid)
+        : '/api/admin/users?telegram_id=' + encodeURIComponent(tid);
+      const method = isEdit ? 'PUT' : 'POST';
+      const r = await (await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      if (r.ok) { m.classList.add('hidden'); await loadUsers(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { const err = nameEl('userFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+    });
+  }
+
+  function showUserDetail(u) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    c.innerHTML = `
+      <h3 class="font-bold text-lg">${esc(u.name)} ${esc(u.surname)}</h3>
+      <div class="space-y-2 text-sm">
+        <div class="grid grid-cols-2 gap-2">
+          <div><span class="text-zinc-500">Role</span><p class="font-medium">${u.role}</p></div>
+          <div><span class="text-zinc-500">Department</span><p class="font-medium">${u.department}</p></div>
+          <div><span class="text-zinc-500">Gender</span><p class="font-medium">${u.gender}</p></div>
+          <div><span class="text-zinc-500">Group</span><p class="font-medium">${u.group || '—'}</p></div>
+          <div><span class="text-zinc-500">Phone</span><p class="font-medium">${esc(u.phone)}</p></div>
+          <div><span class="text-zinc-500">Telegram ID</span><p class="font-mono text-xs">${esc(u.telegram_id)}</p></div>
+          <div><span class="text-zinc-500">School</span><p class="font-medium">${esc(u.school)}</p></div>
+          <div><span class="text-zinc-500">DOB</span><p class="font-medium">${u.dob}</p></div>
+          <div><span class="text-zinc-500">Status</span><p class="font-medium">${u.linked ? 'Linked' : 'Pending'}</p></div>
+          <div><span class="text-zinc-500">Total Fees</span><p class="font-medium">${Number(u.total_fees || 0).toLocaleString()}</p></div>
+          <div><span class="text-zinc-500">Paid</span><p class="font-medium" class="${u.fees_paid >= u.total_fees ? 'text-green-600 dark:text-green-400' : 'text-brand-600 dark:text-brand-400'}">${Number(u.fees_paid || 0).toLocaleString()}</p></div>
+        </div>
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="button" id="modalEditUser" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Edit</button>
+        <button type="button" id="modalDeleteUser" class="flex-1 py-2.5 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">Delete</button>
+        <button type="button" id="modalClose" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Close</button>
+      </div>`;
+    m.classList.remove('hidden');
+    nameEl('modalClose').onclick = () => m.classList.add('hidden');
+    nameEl('modalEditUser').onclick = () => { m.classList.add('hidden'); showUserForm(u); };
+    nameEl('modalDeleteUser').onclick = async () => {
+      const fullName = (u.name + ' ' + u.surname).trim();
+      c.innerHTML = `
+        <h3 class="font-bold text-lg text-red-600 dark:text-red-400">Delete User</h3>
+        <p class="text-sm text-zinc-600 dark:text-zinc-400">This cannot be undone. Type <strong>${esc(fullName)}</strong> to confirm.</p>
+        <input id="confirmDeleteInput" type="text" placeholder="Type their name..."
+          class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-red-500 mt-2">
+        <p id="confirmDeleteErr" class="text-red-500 text-xs hidden mt-1"></p>
+        <div class="flex gap-2 pt-2">
+          <button type="button" id="confirmDeleteBack" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Back</button>
+          <button type="button" id="confirmDeleteBtn" disabled
+            class="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium opacity-50 cursor-not-allowed">Delete</button>
+        </div>`;
+      const input = nameEl('confirmDeleteInput');
+      const confirmBtn = nameEl('confirmDeleteBtn');
+      const err = nameEl('confirmDeleteErr');
+      input.addEventListener('input', () => {
+        const match = input.value.trim() === fullName;
+        confirmBtn.disabled = !match;
+        confirmBtn.className = match
+          ? 'flex-1 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium'
+          : 'flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium opacity-50 cursor-not-allowed';
+        err.classList.add('hidden');
+      });
+      input.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' && !confirmBtn.disabled) confirmBtn.click();
+      });
+      nameEl('confirmDeleteBack').onclick = () => { showUserDetail(u); };
+      confirmBtn.onclick = async () => {
+        if (input.value.trim() !== fullName) return;
+        confirmBtn.disabled = true; confirmBtn.textContent = 'Deleting...';
+        const r = await (await fetch('/api/admin/users/' + u.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'})).json();
+        if (r.ok) { m.classList.add('hidden'); await loadUsers(); }
+        else { err.textContent = r.detail; err.classList.remove('hidden'); confirmBtn.disabled = false; confirmBtn.textContent = 'Delete'; }
+      };
+    };
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+  }
+
+  // --- Attendance ---
+  async function loadAttendance(dateStr) {
+    const r = await (await fetch('/api/admin/attendance?telegram_id=' + encodeURIComponent(tid) + '&date_str=' + encodeURIComponent(dateStr))).json();
+    if (!r.ok) return;
+    const badge = nameEl('attGroupBadge');
+    const students = nameEl('attStudents');
+    const actions = nameEl('attActions');
+    const saveBtn = nameEl('attSaveBtn');
+    const createBtn = nameEl('attCreateBtn');
+    const deleteBtn = nameEl('attDeleteBtn');
+    badge.classList.remove('hidden');
+    badge.textContent = 'Group ' + r.group;
+    if (r.exists) {
+      window._attId = r.attendance_id;
+      students.classList.remove('hidden');
+      students.innerHTML = r.students.map(s => '<div class="flex items-center gap-2 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900" data-user-id="' + s.user_id + '">' +
+        '<span class="flex-1 text-sm font-medium truncate">' + esc(s.name) + ' ' + esc(s.surname) + '</span>' +
+        '<input type="time" class="enter-time px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-xs outline-none focus:ring-1 focus:ring-brand-500" value="' + (s.enter_at || '') + '">' +
+        '<input type="time" class="exit-time px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-xs outline-none focus:ring-1 focus:ring-brand-500" value="' + (s.left_at || '') + '">' +
+        '</div>').join('');
+      actions.classList.remove('hidden');
+      saveBtn.classList.remove('hidden');
+      createBtn.classList.add('hidden');
+      deleteBtn.classList.remove('hidden');
+    } else {
+      students.classList.add('hidden');
+      students.innerHTML = '';
+      actions.classList.remove('hidden');
+      saveBtn.classList.add('hidden');
+      createBtn.classList.remove('hidden');
+      deleteBtn.classList.add('hidden');
+    }
+  }
+  nameEl('attLoadBtn').addEventListener('click', () => { loadAttendance(nameEl('attDate').value); });
+  nameEl('attDate').addEventListener('change', () => { if (nameEl('attDate').value) loadAttendance(nameEl('attDate').value); });
+  nameEl('attCreateBtn').addEventListener('click', async () => {
+    const ds = nameEl('attDate').value;
+    const r = await (await fetch('/api/admin/attendance/create?telegram_id=' + encodeURIComponent(tid), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({date:ds})})).json();
+    if (r.ok) await loadAttendance(ds); else alert(r.detail);
+  });
+  nameEl('attSaveBtn').addEventListener('click', async () => {
+    const ds = nameEl('attDate').value;
+    const entries = [];
+    nameEl('attStudents').querySelectorAll('div[data-user-id]').forEach(row => {
+      const uid = parseInt(row.dataset.userId);
+      const et = row.querySelector('.enter-time').value || null;
+      const lt = row.querySelector('.exit-time').value || null;
+      if (et || lt) entries.push({user_id: uid, enter_at: et, left_at: lt});
+    });
+    const r = await (await fetch('/api/admin/attendance/save?telegram_id=' + encodeURIComponent(tid), {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({attendance_id: window._attId, entries})})).json();
+    if (r.ok) await loadAttendance(ds); else alert(r.detail);
+  });
+  nameEl('attDeleteBtn').addEventListener('click', async () => {
+    if (!confirm('Delete attendance for this date?')) return;
+    const ds = nameEl('attDate').value;
+    await fetch('/api/admin/attendance?telegram_id=' + encodeURIComponent(tid) + '&date_str=' + encodeURIComponent(ds), {method:'DELETE'});
+    await loadAttendance(ds);
+  });
+
+  // --- Leaves ---
+  async function loadLeaves() {
+    const r = await (await fetch('/api/admin/leaves?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('leavesList');
+    const filter = nameEl('leaveStatusFilter').value;
+    const items = filter ? r.leaves.filter(l => l.status === filter) : r.leaves;
+    list.innerHTML = items.map(l => {
+      const statusColor = l.status === 'approved' ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950' :
+        l.status === 'rejected' ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950' :
+        'text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950';
+      return '<div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">' +
+        '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(l.user_name) + '</p>' +
+        '<span class="text-xs px-2 py-0.5 rounded-full ' + statusColor + '">' + l.status + '</span></div>' +
+        '<p class="text-xs text-zinc-500 mt-1">' + l.department + (l.group ? ' · Group ' + l.group : '') + ' · ' + l.date + '</p>' +
+        '<p class="text-xs text-zinc-400 mt-1 italic">"' + esc(l.reason) + '"</p>' +
+        '<p class="text-xs text-zinc-400 mt-0.5">' + l.created_at + '</p>' +
+        (l.status === 'pending' ? '<div class="flex gap-2 mt-2"><button class="leave-review-btn px-3 py-1 rounded-lg bg-green-500 hover:bg-green-600 text-white text-xs font-medium" data-id="' + l.id + '" data-action="approved">Approve</button>' +
+        '<button class="leave-review-btn px-3 py-1 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium" data-id="' + l.id + '" data-action="rejected">Reject</button></div>' : '') +
+        '</div>';
+    }).join('');
+  }
+  nameEl('leaveStatusFilter')?.addEventListener('change', loadLeaves);
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.leave-review-btn');
+    if (!btn) return;
+    const id = parseInt(btn.dataset.id);
+    const action = btn.dataset.action;
+    const r = await (await fetch('/api/admin/leaves/' + id + '/review?telegram_id=' + encodeURIComponent(tid),
+      {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({status: action})})).json();
+    if (r.ok) await loadLeaves();
+    else alert(r.detail || 'Failed to review leave');
+  });
+
+  // --- Cleaning ---
+  async function loadCleaning() {
+    const r = await (await fetch('/api/admin/cleaning/status?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const unstarted = nameEl('cleaningUnstarted');
+    const active = nameEl('cleaningActive');
+    if (!r.has_groups) {
+      unstarted.classList.remove('hidden');
+      active.classList.add('hidden');
+      return;
+    }
+    unstarted.classList.add('hidden');
+    active.classList.remove('hidden');
+
+    // Today's duty
+    const todayDiv = nameEl('cleaningToday');
+    if (r.today_duty) {
+      todayDiv.classList.remove('hidden');
+      nameEl('cleaningTodayGroup').textContent = r.today_duty.group_name;
+      nameEl('cleaningTodayDate').textContent = r.today_duty.date;
+      const membersDiv = nameEl('cleaningTodayMembers');
+      membersDiv.innerHTML = r.today_duty.members.map(m =>
+        '<div class="flex items-center gap-2 text-sm">' +
+        '<span class="flex-1">' + esc(m.name) + ' ' + esc(m.surname) + '</span>' +
+        (m.completed
+          ? '<span class="text-green-600 text-xs font-medium">✅ Done</span>'
+          : '<button class="mark-cleaned-btn px-2 py-0.5 rounded bg-green-500 hover:bg-green-600 text-white text-xs" data-duty-id="' + r.today_duty.id + '" data-user-id="' + m.user_id + '">Mark Cleaned</button>')
+        + '</div>'
+      ).join('');
+    } else {
+      todayDiv.classList.add('hidden');
+    }
+
+    // Cycle progress
+    const progress = r.cycle_progress;
+    let cycleEl = nameEl('cleaningCycleProgress');
+    if (!cycleEl) {
+      cycleEl = document.createElement('div');
+      cycleEl.id = 'cleaningCycleProgress';
+      cycleEl.className = 'text-xs';
+      nameEl('cleaningToday').after(cycleEl);
+    }
+    cycleEl.innerHTML = progress.done
+      ? '<span class="text-green-600 text-xs font-medium">Cycle complete — resetting</span>'
+      : '<span class="text-xs text-zinc-500">' + progress.cleaned + '/' + progress.total + ' members cleaned this cycle</span>';
+
+    // Groups
+    await loadCleaningGroups();
+  }
+
+  async function loadCleaningGroups() {
+    const r = await (await fetch('/api/admin/cleaning/groups?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('cleaningGroupsList');
+    list.innerHTML = r.groups.map(g =>
+      '<div class="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">' +
+      '<div class="flex items-center justify-between mb-1">' +
+      '<p class="font-medium text-sm">' + esc(g.name) + ' <span class="text-xs text-zinc-500 font-normal">(Order ' + (g.turn_order + 1) + ')</span></p>' +
+      '<button class="edit-group-btn px-2 py-1 rounded text-xs bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-600" data-group-id="' + g.id + '" data-group-name="' + esc(g.name) + '">Edit</button>' +
+      '</div>' +
+      '<div class="mt-1 space-y-0.5">' +
+      (g.members.length
+        ? g.members.map(m =>
+          '<div class="flex items-center gap-2 text-xs">' +
+          '<span>' + esc(m.name) + ' ' + esc(m.surname) + '</span>' +
+          '<button class="remove-member-btn ml-auto px-1.5 py-0.5 rounded text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950" data-member-id="' + m.id + '" title="Remove from group">✕</button>' +
+          '</div>'
+        ).join('')
+        : '<p class="text-xs text-zinc-400 italic">All members have cleaned this cycle</p>'
+      ) +
+      '</div></div>'
+    ).join('');
+
+    // Cleaned members section
+    const cleanedSection = nameEl('cleaningCleanedSection');
+    if (r.cleaned_members && r.cleaned_members.length) {
+      cleanedSection.classList.remove('hidden');
+      nameEl('cleaningCleanedCount').textContent = r.cleaned_members.length;
+      nameEl('cleaningCleanedList').innerHTML = r.cleaned_members.map(m =>
+        '<div class="flex items-center gap-2 text-xs text-zinc-500">' +
+        '<span class="text-green-600">✓</span> ' +
+        esc(m.name) + ' ' + esc(m.surname) +
+        '<button class="unmark-cleaned-btn ml-auto px-1.5 py-0.5 rounded text-xs text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950" data-member-id="' + m.id + '" title="Remove from cleaned list">↩</button>' +
+        '</div>'
+      ).join('');
+    } else {
+      cleanedSection.classList.add('hidden');
+    }
+  }
+
+  async function loadCleaningDuties() {
+    const r = await (await fetch('/api/admin/cleaning/duties?telegram_id=' + encodeURIComponent(tid) + '&limit=14')).json();
+    if (!r.ok) return;
+    const list = nameEl('cleaningHistoryList');
+    list.innerHTML = r.duties.map(d =>
+      '<div class="flex items-center gap-2 text-xs p-1.5 rounded bg-zinc-50 dark:bg-zinc-900">' +
+      '<span class="font-medium w-24">' + d.date + '</span>' +
+      '<span class="flex-1">' + esc(d.group_name) + '</span>' +
+      '<span class="text-zinc-500">' + d.completed_count + '/' + (d.status === 'completed' ? '✅' : '⬜') + '</span>' +
+      '</div>'
+    ).join('');
+  }
+
+  // --- Attendance Pass ---
+  let passAnimFrame = null;
+  let passPollInterval = null;
+  const PASS_TOTAL = 60;
+  const PASS_CIRC = 94.25;
+
+  function animatePass() {
+    const cells = document.querySelectorAll('#passGrid .pass-cell');
+    if (!cells.length) { passAnimFrame = null; return; }
+    const now = Date.now();
+    cells.forEach(cell => {
+      const expires = new Date(cell.dataset.expires).getTime();
+      const remaining = Math.max(0, Math.floor((expires - now) / 1000));
+      cell.querySelector('.timer-ring').setAttribute('stroke-dashoffset', PASS_CIRC * (1 - remaining / PASS_TOTAL));
+      cell.querySelector('.timer-label').textContent = remaining;
+    });
+    passAnimFrame = requestAnimationFrame(animatePass);
+  }
+
+  async function loadPass() {
+    const r = await (await fetch('/api/admin/codes/active?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const grid = nameEl('passGrid');
+    const status = nameEl('passStatus');
+    grid.innerHTML = '';
+    const codes = r.codes || [];
+    codes.forEach(c => {
+      const expires = new Date(c.expires_at).getTime();
+      const remaining = Math.max(0, Math.floor((expires - Date.now()) / 1000));
+      const offset = PASS_CIRC * (1 - remaining / PASS_TOTAL);
+      const cell = document.createElement('div');
+      cell.className = 'pass-cell flex items-center justify-between p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900';
+      cell.dataset.expires = c.expires_at;
+      cell.innerHTML =
+        '<code class="text-sm font-mono font-bold tracking-wider text-brand-600 dark:text-brand-400">' + c.code + '</code>' +
+        '<div class="relative w-9 h-9 flex-shrink-0">' +
+          '<svg class="w-full h-full -rotate-90" viewBox="0 0 36 36">' +
+            '<circle cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" class="text-zinc-200 dark:text-zinc-700"/>' +
+            '<circle class="timer-ring text-brand-500" cx="18" cy="18" r="15" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="' + PASS_CIRC + '" stroke-dashoffset="' + offset + '"/>' +
+          '</svg>' +
+          '<span class="timer-label absolute inset-0 flex items-center justify-center text-xs font-mono text-zinc-500 dark:text-zinc-400">' + remaining + '</span>' +
+        '</div>';
+      grid.appendChild(cell);
+    });
+    status.textContent = codes.length + '/16 active';
+    grid.classList.toggle('hidden', codes.length === 0);
+    nameEl('passStartBtn').classList.toggle('hidden', codes.length > 0);
+    nameEl('passStopBtn').classList.toggle('hidden', codes.length === 0);
+
+    if (codes.length && !passAnimFrame) {
+      passAnimFrame = requestAnimationFrame(animatePass);
+    }
+  }
+
+  nameEl('passStartBtn')?.addEventListener('click', async () => {
+    const btn = nameEl('passStartBtn');
+    btn.disabled = true;
+    btn.textContent = 'Starting...';
+    const r = await (await fetch('/api/admin/codes/start?telegram_id=' + encodeURIComponent(tid), {method:'POST'})).json();
+    if (r.ok) {
+      await loadPass();
+      if (!passPollInterval) passPollInterval = setInterval(loadPass, 2000);
+    } else {
+      alert(r.detail || 'Failed to start pass');
+    }
+    btn.disabled = false;
+    btn.textContent = 'Start';
+  });
+
+  nameEl('passStopBtn')?.addEventListener('click', async () => {
+    await fetch('/api/admin/codes/stop?telegram_id=' + encodeURIComponent(tid), {method:'POST'});
+    if (passAnimFrame) { cancelAnimationFrame(passAnimFrame); passAnimFrame = null; }
+    if (passPollInterval) { clearInterval(passPollInterval); passPollInterval = null; }
+    nameEl('passGrid').classList.add('hidden');
+    nameEl('passGrid').innerHTML = '';
+    nameEl('passStatus').textContent = '0/16 active';
+    nameEl('passStartBtn').classList.remove('hidden');
+    nameEl('passStopBtn').classList.add('hidden');
+  });
+
+  // --- Cleaning Event Listeners ---
+  nameEl('startCleaningBtn')?.addEventListener('click', async () => {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const r = await (await fetch('/api/admin/cleaning/interns?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    let html = '<h3 class="font-bold text-lg">Start Cleaning Plan</h3>' +
+      '<p class="text-xs text-zinc-500 mb-3">Select interns who have already cleaned (they skip the first rotation):</p>' +
+      '<div class="space-y-1 max-h-60 overflow-y-auto">';
+    r.interns.forEach(u => {
+      html += '<label class="flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer">' +
+        '<input type="checkbox" class="cleaning-intern-cb accent-brand-500" data-id="' + u.id + '">' +
+        esc(u.name) + ' ' + esc(u.surname) + ' <span class="text-xs text-zinc-400">(' + u.gender + ')</span>' +
+        '</label>';
+    });
+    html += '</div><div class="flex gap-2 pt-3">' +
+      '<button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
+      '<button type="button" id="startCleaningConfirmBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Generate Groups</button></div>';
+    c.innerHTML = html;
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('startCleaningConfirmBtn').onclick = async () => {
+      const checked = document.querySelectorAll('.cleaning-intern-cb:checked');
+      const ids = Array.from(checked).map(cb => parseInt(cb.dataset.id));
+      const btn = nameEl('startCleaningConfirmBtn');
+      btn.disabled = true; btn.textContent = 'Generating...';
+      const res = await (await fetch('/api/admin/cleaning/start?telegram_id=' + encodeURIComponent(tid),
+        {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({already_cleaned_ids: ids})})).json();
+      if (res.ok) { m.classList.add('hidden'); await loadCleaning(); }
+      else { alert(res.detail); btn.disabled = false; btn.textContent = 'Generate Groups'; }
+    };
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.mark-cleaned-btn');
+    if (!btn) return;
+    const dutyId = parseInt(btn.dataset.dutyId);
+    const userId = parseInt(btn.dataset.userId);
+    const res = await (await fetch('/api/admin/cleaning/duties/' + dutyId + '/complete?telegram_id=' + encodeURIComponent(tid),
+      {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id: userId})})).json();
+    if (res.ok) await loadCleaning();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.unmark-cleaned-btn');
+    if (!btn) return;
+    const memberId = parseInt(btn.dataset.memberId);
+    await fetch('/api/admin/cleaning/members/' + memberId + '/toggle-cycle?telegram_id=' + encodeURIComponent(tid),
+      {method:'POST'});
+    await loadCleaning();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.remove-member-btn');
+    if (!btn) return;
+    if (!confirm('Remove this member from the group?')) return;
+    const memberId = parseInt(btn.dataset.memberId);
+    await fetch('/api/admin/cleaning/members/' + memberId + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+    await loadCleaningGroups();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.edit-group-btn');
+    if (!btn) return;
+    const groupId = parseInt(btn.dataset.groupId);
+    const groupName = btn.dataset.groupName;
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+
+    // Fetch all interns not already in a group, plus current members
+    const internsR = await (await fetch('/api/admin/cleaning/interns?telegram_id=' + encodeURIComponent(tid))).json();
+    const groupsR = await (await fetch('/api/admin/cleaning/groups?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!internsR.ok || !groupsR.ok) return;
+
+    const group = groupsR.groups.find(g => g.id === groupId);
+    const currentMemberIds = group ? group.members.map(m => m.user_id) : [];
+
+    // All interns not already in ANY group as pending members
+    const allPendingIds = new Set();
+    groupsR.groups.forEach(g => g.members.forEach(m => allPendingIds.add(m.user_id)));
+
+    // Track cleaned member IDs for labeling
+    const cleanedIds = new Set((groupsR.cleaned_members || []).map(m => m.user_id));
+
+    const available = internsR.interns.filter(u => !allPendingIds.has(u.id) || currentMemberIds.includes(u.id));
+
+    let html = '<h3 class="font-bold text-lg mb-2">Edit ' + esc(groupName) + '</h3>';
+
+    // Current members
+    if (group && group.members.length) {
+      html += '<p class="text-xs text-zinc-500 mb-1">Current members:</p>';
+      html += '<div class="space-y-1 mb-3">';
+      group.members.forEach(m => {
+        html += '<div class="flex items-center gap-2 text-sm px-2 py-1 rounded bg-zinc-50 dark:bg-zinc-900">' +
+          '<span class="flex-1">' + esc(m.name) + ' ' + esc(m.surname) + '</span>' +
+          '<select class="move-member-select text-xs px-1 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900" data-member-id="' + m.id + '">';
+        groupsR.groups.forEach(tg => {
+          html += '<option value="' + tg.id + '"' + (tg.id === groupId ? ' selected' : '') + '>' + esc(tg.name) + '</option>';
+        });
+        html += '</select>' +
+          '<button class="remove-member-inline px-1.5 py-0.5 rounded text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-950" data-member-id="' + m.id + '">✕</button>' +
+          '</div>';
+      });
+      html += '</div>';
+    }
+
+    // Add new members
+    html += '<p class="text-xs text-zinc-500 mb-1">Add members:</p>';
+    html += '<div class="space-y-1 max-h-40 overflow-y-auto mb-3">';
+    available.forEach(u => {
+      const cleanedLabel = cleanedIds.has(u.id) ? ' <span class="text-green-600 text-xs">(cleaned)</span>' : '';
+      html += '<label class="flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer">' +
+        '<input type="checkbox" class="add-member-cb accent-brand-500" data-id="' + u.id + '">' +
+        esc(u.name) + ' ' + esc(u.surname) + cleanedLabel +
+        '</label>';
+    });
+    html += '</div>';
+    html += '<div class="flex gap-2 pt-2">' +
+      '<button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Done</button>' +
+      '<button type="button" id="addMembersConfirmBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Add Selected</button></div>';
+
+    c.innerHTML = html;
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e2) => { if (e2.target === m) m.classList.add('hidden'); };
+
+    nameEl('addMembersConfirmBtn').onclick = async () => {
+      const checked = document.querySelectorAll('.add-member-cb:checked');
+      const ids = Array.from(checked).map(cb => parseInt(cb.dataset.id));
+      if (!ids.length) return;
+      const btn2 = nameEl('addMembersConfirmBtn');
+      btn2.disabled = true; btn2.textContent = 'Adding...';
+      const res = await (await fetch('/api/admin/cleaning/groups/' + groupId + '/members?telegram_id=' + encodeURIComponent(tid),
+        {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_ids: ids})})).json();
+      if (res.ok) { m.classList.add('hidden'); await loadCleaningGroups(); }
+      else { alert(res.detail); btn2.disabled = false; btn2.textContent = 'Add Selected'; }
+    };
+
+    // Inline remove
+    document.querySelectorAll('.remove-member-inline').forEach(el => {
+      el.onclick = async () => {
+        const mid = parseInt(el.dataset.memberId);
+        await fetch('/api/admin/cleaning/members/' + mid + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+        m.classList.add('hidden');
+        await loadCleaningGroups();
+      };
+    });
+
+    // Inline move
+    document.querySelectorAll('.move-member-select').forEach(el => {
+      el.onchange = async () => {
+        const mid = parseInt(el.dataset.memberId);
+        const newGroupId = parseInt(el.value);
+        await fetch('/api/admin/cleaning/members/' + mid + '/move?telegram_id=' + encodeURIComponent(tid),
+          {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({group_id: newGroupId})});
+        m.classList.add('hidden');
+        await loadCleaningGroups();
+      };
+    });
+  });
+
+  nameEl('resetCleaningBtn')?.addEventListener('click', async () => {
+    if (!confirm('Reset all cleaning cycle flags? This starts a new cycle.')) return;
+    await fetch('/api/admin/cleaning/reset-cycles?telegram_id=' + encodeURIComponent(tid), {method:'POST'});
+    await loadCleaning();
+  });
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('#addCleanedBtn');
+    if (!btn) return;
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+
+    const internsR = await (await fetch('/api/admin/cleaning/interns?telegram_id=' + encodeURIComponent(tid))).json();
+    const groupsR = await (await fetch('/api/admin/cleaning/groups?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!internsR.ok || !groupsR.ok) return;
+
+    const cleanedIds = new Set((groupsR.cleaned_members || []).map(mem => mem.user_id));
+    const available = internsR.interns.filter(u => !cleanedIds.has(u.id));
+
+    let html = '<h3 class="font-bold text-lg mb-2">Mark interns as already cleaned</h3>' +
+      '<p class="text-xs text-zinc-500 mb-3">These interns will skip the current cleaning rotation.</p>' +
+      '<div class="space-y-1 max-h-60 overflow-y-auto mb-3">';
+    available.forEach(u => {
+      html += '<label class="flex items-center gap-2 text-sm py-1 px-2 rounded hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer">' +
+        '<input type="checkbox" class="add-cleaned-cb accent-brand-500" data-id="' + u.id + '">' +
+        esc(u.name) + ' ' + esc(u.surname) +
+        '</label>';
+    });
+    html += '</div><div class="flex gap-2 pt-2">' +
+      '<button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
+      '<button type="button" id="addCleanedConfirmBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Mark Cleaned</button></div>';
+    c.innerHTML = html;
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e2) => { if (e2.target === m) m.classList.add('hidden'); };
+
+    nameEl('addCleanedConfirmBtn').onclick = async () => {
+      const checked = document.querySelectorAll('.add-cleaned-cb:checked');
+      const ids = Array.from(checked).map(cb => parseInt(cb.dataset.id));
+      if (!ids.length) return;
+      const btn2 = nameEl('addCleanedConfirmBtn');
+      btn2.disabled = true; btn2.textContent = 'Marking...';
+      const res = await (await fetch('/api/admin/cleaning/cleaned-members?telegram_id=' + encodeURIComponent(tid),
+        {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_ids: ids})})).json();
+      if (res.ok) { m.classList.add('hidden'); await loadCleaning(); }
+      else { alert(res.detail); btn2.disabled = false; btn2.textContent = 'Mark Cleaned'; }
+    };
+  });
+
+  // --- Tasks ---
+  async function loadTasks() {
+    const r = await (await fetch('/api/admin/tasks?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    const list = nameEl('tasksList');
+    list.dataset.tasks = JSON.stringify(r.tasks);
+    list.innerHTML = r.tasks.map(t => '<div class="task-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="' + t.id + '">' +
+      '<div class="min-w-0 flex-1"><p class="font-medium text-sm truncate">' + esc(t.name) + '</p>' +
+      '<p class="text-xs text-zinc-500">' + t.department + ' · ' + (t.submission_deadline ? new Date(t.submission_deadline).toLocaleDateString() : 'No deadline') + '</p></div>' +
+      '<div class="flex items-center gap-2">' + (t.file_id || t.supporting_doc ? '<span class="text-xs">📎</span>' : '') +
+      '<span class="text-xs px-2 py-0.5 rounded-full bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300">' + t.department + '</span></div></div>').join('');
+  }
+  function showTaskDetail(task) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    c.innerHTML = '<h3 class="font-bold text-lg">' + esc(task.name) + '</h3>' +
+      '<div class="space-y-2 text-sm">' +
+      '<div><span class="text-zinc-500">Description</span><p class="font-medium mt-1">' + esc(task.description) + '</p></div>' +
+      '<div class="grid grid-cols-2 gap-2">' +
+      '<div><span class="text-zinc-500">Department</span><p class="font-medium">' + task.department + '</p></div>' +
+      '<div><span class="text-zinc-500">Total Mark</span><p class="font-medium">' + task.total_mark_on + '</p></div>' +
+      '<div class="col-span-2"><span class="text-zinc-500">Deadline</span><p class="font-medium">' + (task.submission_deadline ? new Date(task.submission_deadline).toLocaleString() : '—') + '</p></div></div>' +
+      (task.file_id ? '<div><span class="text-zinc-500">File</span><p class="font-medium"><a href="/api/files/' + task.file_id + '" target="_blank" class="text-brand-600 hover:underline">📎 Download</a></p></div>' : task.supporting_doc ? '<div><span class="text-zinc-500">File</span><p class="font-medium"><a href="' + sanitizeUrl(esc(task.supporting_doc)) + '" target="_blank" class="text-brand-600 hover:underline">📎 Download</a></p></div>' : '') + '</div>' +
+      '<div class="flex gap-2 pt-2">' +
+      '<button type="button" id="modalEditTask" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Edit</button>' +
+      '<button type="button" id="modalViewSubmissions" class="flex-1 py-2.5 rounded-lg bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 text-sm font-medium">Submissions</button>' +
+      '<button type="button" id="modalDeleteTask" class="flex-1 py-2.5 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">Delete</button>' +
+      '<button type="button" id="modalClose" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Close</button></div>';
+    m.classList.remove('hidden');
+    nameEl('modalClose').onclick = () => m.classList.add('hidden');
+    nameEl('modalEditTask').onclick = () => { m.classList.add('hidden'); showTaskForm(task); };
+    nameEl('modalViewSubmissions').onclick = () => { m.classList.add('hidden'); showSubmissions(task); };
+    nameEl('modalDeleteTask').onclick = async () => {
+      if (!confirm("Delete task \"" + esc(task.name) + "\"?")) return;
+      await fetch('/api/admin/tasks/' + task.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+      m.classList.add('hidden');
+      await loadTasks();
+    };
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+  }
+  function showTaskForm(data) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const isEdit = !!data;
+    c.innerHTML = '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'Add') + ' Task</h3>' +
+      '<form id="taskForm" class="space-y-3" onsubmit="return false">' +
+      '<input name="name" placeholder="Task name" value="' + (isEdit ? esc(data.name) : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<textarea name="description" placeholder="Description" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + (isEdit ? esc(data.description) : '') + '</textarea>' +
+      '<select name="department" required class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<option value="">Department</option>' + ['ISM','SWE','CGWD','EDM','CSNW','DBM','NS'].map(d => '<option value="' + d + '" ' + (isEdit && data.department === d ? 'selected' : '') + '>' + d + '</option>').join('') + '</select>' +
+      '<input name="submission_deadline" type="datetime-local" value="' + (isEdit && data.submission_deadline ? data.submission_deadline.slice(0,16) : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<input name="total_mark_on" type="number" placeholder="Total mark" value="' + (isEdit ? data.total_mark_on : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<label class="block text-sm font-medium text-zinc-500">File (optional)' +
+      '<input name="file" type="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 file:text-xs"></label>' +
+      '<p id="taskFormErr" class="text-red-500 text-xs hidden"></p>' +
+      '<div class="flex gap-2"><button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
+      '<button type="submit" id="taskSubmitBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('taskForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = nameEl('taskSubmitBtn');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Saving...';
+      const f = e.target;
+      const g = (n) => f.elements[n];
+      const fd = new FormData();
+      fd.append('name', g('name').value);
+      fd.append('description', g('description').value);
+      fd.append('department', g('department').value);
+      fd.append('submission_deadline', new Date(g('submission_deadline').value).toISOString());
+      fd.append('total_mark_on', g('total_mark_on').value);
+      if (g('file').files[0]) fd.append('file', g('file').files[0]);
+      const url = isEdit ? '/api/admin/tasks/' + data.id + '?telegram_id=' + encodeURIComponent(tid) : '/api/admin/tasks?telegram_id=' + encodeURIComponent(tid);
+      const method = isEdit ? 'PUT' : 'POST';
+      const r = await (await fetch(url, {method, body: fd})).json();
+      if (r.ok) { m.classList.add('hidden'); await loadTasks(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { const err = nameEl('taskFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+    });
+  }
+  nameEl('addTaskBtn').addEventListener('click', () => showTaskForm());
+  nameEl('tasksList').addEventListener('click', (e) => {
+    const row = e.target.closest('.task-row');
+    if (row) {
+      const all = JSON.parse(nameEl('tasksList').dataset.tasks || '[]');
+      const t = all.find(x => x.id == row.dataset.id);
+      if (t) showTaskDetail(t);
+    }
+  });
+
+  // --- Submissions ---
+  async function showSubmissions(task) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    c.innerHTML = '<h3 class="font-bold text-lg">Submissions: ' + esc(task.name) + '</h3><div id="submissionsList" class="space-y-2 text-sm">Loading...</div>' +
+      '<div class="flex gap-2 pt-2"><button type="button" id="modalBack" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Back</button></div>';
+    m.classList.remove('hidden');
+    nameEl('modalBack').onclick = () => { m.classList.add('hidden'); showTaskDetail(task); };
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+
+    const r = await (await fetch('/api/admin/tasks/' + task.id + '/submissions?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok || !r.submissions.length) {
+      nameEl('submissionsList').innerHTML = '<p class="text-zinc-500 text-sm">No submissions yet.</p>';
+      return;
+    }
+    nameEl('submissionsList').innerHTML = r.submissions.map(s => {
+      const marked = s.mark_obtained != null;
+      return '<div class="submission-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900" data-id="' + s.id + '">' +
+        '<div class="flex items-center justify-between"><p class="font-medium text-sm">' + esc(s.user_name) + ' ' + esc(s.user_surname) + '</p>' +
+        '<span class="text-xs text-zinc-500">' + new Date(s.submitted_at).toLocaleDateString() + '</span></div>' +
+        '<div class="flex items-center gap-2 mt-1 flex-wrap">' +
+        (s.submitted_file ? '<a href="' + sanitizeUrl(esc(s.submitted_file)) + '" target="_blank" class="text-xs text-brand-600 hover:underline">📎 File</a>' : '') +
+        (s.submitted_url ? '<a href="' + sanitizeUrl(esc(s.submitted_url)) + '" target="_blank" class="text-xs text-brand-600 hover:underline" title="' + esc(s.submitted_url) + '">🔗 Link</a>' +
+          '<button onclick="navigator.clipboard.writeText(\'' + esc(s.submitted_url) + '\').then(()=>{this.textContent=\'Copied!\';setTimeout(()=>{this.textContent=\'Copy\'},1500)}).catch(()=>{})" class="text-xs px-1.5 py-0.5 rounded border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800">Copy</button>' : '') +
+        '<span class="text-xs text-zinc-400">·</span>' +
+        '<span class="text-xs ' + (marked ? 'text-green-600' : 'text-zinc-400') + '">' + (marked ? s.mark_obtained + '/' + task.total_mark_on : 'Not graded') + '</span>' +
+        '</div>' +
+        (s.feedback ? '<p class="text-xs text-zinc-500 mt-1 italic">"' + esc(s.feedback) + '"</p>' : '') +
+        '<button class="grade-btn mt-2 text-xs px-2 py-1 rounded bg-brand-500 text-white hover:bg-brand-600" data-id="' + s.id + '" data-mark="' + (s.mark_obtained || '') + '" data-feedback="' + esc(s.feedback || '') + '" data-total="' + task.total_mark_on + '">' + (marked ? 'Edit Grade' : 'Grade') + '</button></div>';
+    }).join('');
+
+    nameEl('submissionsList').addEventListener('click', (e) => {
+      const btn = e.target.closest('.grade-btn');
+      if (!btn) return;
+      const sid = btn.dataset.id;
+      const currentMark = btn.dataset.mark;
+      const currentFeedback = btn.dataset.feedback;
+      const total = btn.dataset.total;
+      const row = btn.closest('.submission-row');
+      row.innerHTML = '<div class="space-y-2"><h4 class="font-medium text-sm">Grade Submission</h4>' +
+        '<input id="gradeMark" type="number" step="0.5" min="0" max="' + total + '" placeholder="Mark / ' + total + '" value="' + currentMark + '" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+        '<textarea id="gradeFeedback" placeholder="Feedback" rows="2" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + esc(currentFeedback) + '</textarea>' +
+        '<div class="flex gap-2"><button id="gradeSaveBtn" class="flex-1 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Save</button>' +
+        '<button id="gradeCancelBtn" class="flex-1 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button></div></div>';
+      row.querySelector('#gradeSaveBtn').onclick = async () => {
+        const mark = row.querySelector('#gradeMark').value;
+        const feedback = row.querySelector('#gradeFeedback').value;
+        const fd = new FormData();
+        if (mark) fd.append('mark_obtained', mark);
+        if (feedback) fd.append('feedback', feedback);
+        const resp = await (await fetch('/api/admin/submissions/' + sid + '?telegram_id=' + encodeURIComponent(tid), {method:'PUT', body: fd})).json();
+        if (resp.ok) {
+          btn.dataset.mark = mark;
+          await showSubmissions(task);
+        } else {
+          alert(resp.detail);
+        }
+      };
+      row.querySelector('#gradeCancelBtn').onclick = () => showSubmissions(task);
+    });
+  }
+
+  // --- Notes ---
+  let allNotes = [];
+  async function loadNotes() {
+    const dept = nameEl('noteDeptFilter').value;
+    const url = '/api/admin/notes?telegram_id=' + encodeURIComponent(tid) + (dept ? '&department=' + encodeURIComponent(dept) : '');
+    const r = await (await fetch(url)).json();
+    if (!r.ok) return;
+    allNotes = r.notes;
+    renderNotes();
+  }
+  function renderNotes() {
+    const list = nameEl('notesList');
+    list.innerHTML = allNotes.map(n => {
+      const preview = n.content ? n.content.substring(0, 80) + (n.content.length > 80 ? '…' : '') : '';
+      const deptBadge = n.department ? '<span class="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">' + n.department + '</span>' : '';
+      const clip = n.file_id ? '<span class="ml-1">📎</span>' : '';
+      return '<div class="note-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="' + n.id + '">' +
+        '<div class="flex items-center justify-between"><p class="font-medium text-sm truncate">' + esc(n.title) + clip + '</p>' + deptBadge + '</div>' +
+        '<p class="text-xs text-zinc-500 mt-1 truncate">' + esc(preview) + '</p></div>';
+    }).join('');
+  }
+  function showNoteDetail(note) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const deptBadge = note.department ? '<span class="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800">' + note.department + '</span>' : '';
+    const dl = note.file_id ? '<a href="/api/files/' + note.file_id + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : note.file_url ? '<a href="' + sanitizeUrl(esc(note.file_url)) + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : '';
+    c.innerHTML = '<div class="flex items-center justify-between gap-2"><h3 class="font-bold text-lg break-words">' + esc(note.title) + '</h3>' + deptBadge + '</div>' +
+      '<p class="text-sm whitespace-pre-wrap">' + esc(note.content || '') + '</p>' +
+      (dl ? '<div>' + dl + '</div>' : '') +
+      '<div class="flex gap-2 pt-2">' +
+      '<button type="button" id="modalEditNote" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Edit</button>' +
+      '<button type="button" id="modalDeleteNote" class="flex-1 py-2.5 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">Delete</button>' +
+      '<button type="button" id="modalClose" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Close</button></div>';
+    m.classList.remove('hidden');
+    nameEl('modalClose').onclick = () => m.classList.add('hidden');
+    nameEl('modalEditNote').onclick = () => { m.classList.add('hidden'); showNoteForm(note); };
+    nameEl('modalDeleteNote').onclick = async () => {
+      if (!confirm("Delete note \"" + esc(note.title) + "\"?")) return;
+      await fetch('/api/admin/notes/' + note.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+      m.classList.add('hidden');
+      await loadNotes();
+    };
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+  }
+  function showNoteForm(note) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const isEdit = !!note;
+    c.innerHTML = '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'Add') + ' Note</h3>' +
+      '<form id="noteForm" class="space-y-3" onsubmit="return false">' +
+      '<input name="title" placeholder="Title" value="' + (isEdit ? esc(note.title) : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<textarea name="content" placeholder="Content" rows="5" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + (isEdit ? esc(note.content || '') : '') + '</textarea>' +
+      '<select name="department" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<option value="">No department</option>' + ['ISM','SWE','CGWD','EDM','CSNW','DBM','CNWS','NS'].map(d => '<option value="' + d + '" ' + (isEdit && note.department === d ? 'selected' : '') + '>' + d + '</option>').join('') + '</select>' +
+      '<label class="block text-sm font-medium text-zinc-600 dark:text-zinc-400">File (optional)' +
+      '<input type="file" name="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 hover:file:bg-brand-100 dark:hover:file:bg-brand-900 cursor-pointer"></label>' +
+      '<p id="noteFormErr" class="text-red-500 text-xs hidden"></p>' +
+      '<div class="flex gap-2"><button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
+      '<button type="submit" id="noteSubmitBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('noteForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = nameEl('noteSubmitBtn');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Saving...';
+      const f = e.target;
+      const fd = new FormData();
+      fd.append('title', f.elements['title'].value);
+      fd.append('content', f.elements['content'].value);
+      if (f.elements['department'].value) fd.append('department', f.elements['department'].value);
+      if (f.elements['file'].files[0]) fd.append('file', f.elements['file'].files[0]);
+      const url = isEdit ? '/api/admin/notes/' + note.id + '?telegram_id=' + encodeURIComponent(tid) : '/api/admin/notes?telegram_id=' + encodeURIComponent(tid);
+      const method = isEdit ? 'PUT' : 'POST';
+      const r = await (await fetch(url, {method, body: fd})).json();
+      if (r.ok) { m.classList.add('hidden'); await loadNotes(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { const err = nameEl('noteFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+    });
+  }
+  nameEl('addNoteBtn').addEventListener('click', () => showNoteForm());
+  nameEl('noteDeptFilter').addEventListener('change', loadNotes);
+  nameEl('notesList').addEventListener('click', (e) => {
+    const row = e.target.closest('.note-row');
+    if (row) { const n = allNotes.find(x => x.id == row.dataset.id); if (n) showNoteDetail(n); }
+  });
+
+  function showCodeForm() {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    c.innerHTML = '<h3 class="font-bold text-lg">Generate Code' +
+      '<p class="text-xs text-zinc-500 font-normal mt-0.5">Enter 1 to create a single code, or more to create multiple at once</p></h3>' +
+      '<form id="codeForm" class="space-y-3" onsubmit="return false">' +
+      '<label class="block text-sm font-medium">Role' +
+      '<select name="role" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<option value="intern">Intern</option><option value="instructor">Instructor</option><option value="admin">Admin</option></select></label>' +
+      '<label class="block text-sm font-medium">Expires in (minutes)' +
+      '<input name="expiry" type="number" value="60" min="1" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500"></label>' +
+      '<label class="block text-sm font-medium">How many' +
+      '<input name="count" type="number" value="1" min="1" max="100" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500"></label>' +
+      '<p id="codeFormErr" class="text-red-500 text-xs hidden"></p>' +
+      '<div class="flex gap-2">' +
+      '<button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
+      '<button type="submit" id="codeSubmitBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Generate</button></div></form>';
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('codeForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = nameEl('codeSubmitBtn');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Generating...';
+      const f = e.target;
+      const g = (n) => f.elements[n];
+      const body = { role: g('role').value, expiry_minutes: parseInt(g('expiry').value) || 60, count: parseInt(g('count').value) || 1 };
+      const r = await (await fetch('/api/admin/codes?telegram_id=' + encodeURIComponent(tid),
+        {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)})).json();
+      btn.disabled = false; btn.textContent = 'Generate';
+      if (r.ok) { m.classList.add('hidden'); await loadCodes(); }
+      else { const err = nameEl('codeFormErr'); err.textContent = r.detail || 'Error'; err.classList.remove('hidden'); }
+    });
+  }
+
+  // --- Info / Announcements ---
+  let allInfo = [];
+  async function loadInfo() {
+    const r = await (await fetch('/api/admin/info?telegram_id=' + encodeURIComponent(tid))).json();
+    if (!r.ok) return;
+    allInfo = r.info;
+    renderInfo();
+  }
+  function renderInfo() {
+    const list = nameEl('infoList');
+    list.innerHTML = allInfo.map(item => {
+      const preview = item.content ? item.content.substring(0, 100) + (item.content.length > 100 ? '…' : '') : '';
+      const date = item.created_at ? new Date(item.created_at).toLocaleDateString() : '';
+      return '<div class="info-row p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors" data-id="' + item.id + '">' +
+        '<div class="flex items-center justify-between"><p class="font-medium text-sm truncate">' + esc(item.title) + '</p>' +
+        '<span class="text-xs text-zinc-400 shrink-0 ml-2">' + date + '</span></div>' +
+        '<p class="text-xs text-zinc-500 mt-1 truncate">' + esc(preview) + '</p></div>';
+    }).join('');
+  }
+  function showInfoDetail(item) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const dl = item.file_id ? '<a href="/api/files/' + item.file_id + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : item.file_url ? '<a href="' + sanitizeUrl(esc(item.file_url)) + '" target="_blank" class="inline-flex items-center gap-1 text-brand-600 dark:text-brand-400 text-sm font-medium">📎 Download File</a>' : '';
+    c.innerHTML = '<h3 class="font-bold text-lg break-words">' + esc(item.title) + '</h3>' +
+      '<p class="text-sm whitespace-pre-wrap">' + esc(item.content || '') + '</p>' +
+      '<p class="text-xs text-zinc-400">' + new Date(item.created_at).toLocaleString() + '</p>' +
+      (dl ? '<div>' + dl + '</div>' : '') +
+      '<div class="flex gap-2 pt-2">' +
+      '<button type="button" id="modalEditInfo" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">Edit</button>' +
+      '<button type="button" id="modalDeleteInfo" class="flex-1 py-2.5 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">Delete</button>' +
+      '<button type="button" id="modalClose" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Close</button></div>';
+    m.classList.remove('hidden');
+    nameEl('modalClose').onclick = () => m.classList.add('hidden');
+    nameEl('modalEditInfo').onclick = () => { m.classList.add('hidden'); showInfoForm(item); };
+    nameEl('modalDeleteInfo').onclick = async () => {
+      if (!confirm("Delete announcement \"" + esc(item.title) + "\"?")) return;
+      await fetch('/api/admin/info/' + item.id + '?telegram_id=' + encodeURIComponent(tid), {method:'DELETE'});
+      m.classList.add('hidden');
+      await loadInfo();
+    };
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+  }
+  function showInfoForm(data) {
+    const m = nameEl('modalOverlay');
+    const c = nameEl('modalContent');
+    const isEdit = !!data;
+    c.innerHTML = '<h3 class="font-bold text-lg">' + (isEdit ? 'Edit' : 'Add') + ' Announcement</h3>' +
+      '<form id="infoForm" class="space-y-3" onsubmit="return false">' +
+      '<input name="title" placeholder="Title" value="' + (isEdit ? esc(data.title) : '') + '" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' +
+      '<textarea name="content" placeholder="Content" rows="5" required' +
+      ' class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-sm outline-none focus:ring-2 focus:ring-brand-500">' + (isEdit ? esc(data.content || '') : '') + '</textarea>' +
+      '<label class="block text-sm font-medium text-zinc-600 dark:text-zinc-400">File (optional)' +
+      '<input type="file" name="file" class="mt-1 w-full text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 dark:file:bg-brand-950 file:text-brand-700 dark:file:text-brand-300 hover:file:bg-brand-100 dark:hover:file:bg-brand-900 cursor-pointer"></label>' +
+      '<p id="infoFormErr" class="text-red-500 text-xs hidden"></p>' +
+      '<div class="flex gap-2"><button type="button" id="modalCancel" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium">Cancel</button>' +
+      '<button type="submit" id="infoSubmitBtn" class="flex-1 py-2.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium">' + (isEdit ? 'Save' : 'Create') + '</button></div></form>';
+    m.classList.remove('hidden');
+    nameEl('modalCancel').onclick = () => m.classList.add('hidden');
+    m.onclick = (e) => { if (e.target === m) m.classList.add('hidden'); };
+    nameEl('infoForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = nameEl('infoSubmitBtn');
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = 'Saving...';
+      const f = e.target;
+      const fd = new FormData();
+      fd.append('title', f.elements['title'].value);
+      fd.append('content', f.elements['content'].value);
+      if (f.elements['file'].files[0]) fd.append('file', f.elements['file'].files[0]);
+      const url = isEdit ? '/api/admin/info/' + data.id + '?telegram_id=' + encodeURIComponent(tid) : '/api/admin/info?telegram_id=' + encodeURIComponent(tid);
+      const method = isEdit ? 'PUT' : 'POST';
+      const r = await (await fetch(url, {method, body: fd})).json();
+      if (r.ok) { m.classList.add('hidden'); await loadInfo(); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+      else { const err = nameEl('infoFormErr'); err.textContent = r.detail; err.classList.remove('hidden'); btn.disabled = false; btn.textContent = isEdit ? 'Save' : 'Create'; }
+    });
+  }
+  nameEl('addInfoBtn').addEventListener('click', () => showInfoForm());
+  nameEl('infoList').addEventListener('click', (e) => {
+    const row = e.target.closest('.info-row');
+    if (row) { const item = allInfo.find(x => x.id == row.dataset.id); if (item) showInfoDetail(item); }
+  });
+
+  try {
+    const attDate = nameEl('attDate');
+    if (attDate) attDate.valueAsDate = new Date();
+  } catch(e) { console.error('dy: attDate error', e); }
+
+  (async () => {
+    try {
+      if (tid) { await checkAndShow(tid); return; }
+      console.log('dy: → registerView (no_tid)');
+      show('registerView');
+    } catch(e) { console.error('dy: init error', e); console.log('dy: → registerView (init_error)'); show('registerView'); }
+  })();
+
+  const form = document.getElementById('registerForm');
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('errorMsg');
+      err.style.display = 'none';
+      if (!form.name) {
+        err.textContent = 'Full registration form coming soon. Use /link in the bot for now.';
+        err.style.display = 'block';
+        return;
+      }
+      if (!tid) { err.textContent = 'Telegram ID not available — open this page from Telegram'; err.style.display = 'block'; return; }
+      const data = {
+        name: form.name.value, surname: form.surname.value, phone: form.phone.value,
+        telegram_id: tid, gender: form.gender.value, department: form.department.value,
+        group: form.group.value || null, school: form.school.value, dob: form.dob.value,
+        code: form.code ? form.code.value : '',
+      };
+      try {
+        const res = await (await fetch('/api/register', { method:'POST',
+          headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) })).json();
+        if (res.ok) {
+          var qd = sessionStorage.getItem('qrD');
+          var qs = sessionStorage.getItem('qrS');
+          sessionStorage.removeItem('qrD');
+          sessionStorage.removeItem('qrS');
+          if (qd && qs) {
+            window.location.href = '/mark?d=' + encodeURIComponent(qd) + '&s=' + encodeURIComponent(qs);
+          } else {
+            if (tg) { tg.HapticFeedback?.notificationOccurred?.('success'); tg.close(); }
+            else location.reload();
+          }
+        } else {
+          err.textContent = res.detail; err.style.display = 'block';
+        }
+      } catch(e) {
+        err.textContent = 'Network error'; err.style.display = 'block';
+      }
+      return false;
+    });
+  }
+})();
+</script>
+</body>
+</html>

@@ -2,18 +2,39 @@
 name = "dy"
 version = "0.1.0"
 description = "Add your description here"
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "aiosqlite>=0.22.1",
     "alembic",
     "apscheduler>=3.11.2",
-    "asyncmy",
+    "asyncpg>=0.31.0",
+    "cloudinary>=1.44.2",
     "fastapi",
+    "insightface>=1.0.1",
+    "lap>=0.5.13",
+    "libsql-client>=0.3.1",
+    "numpy>=2.5.0",
+    "onnxruntime>=1.27.0",
+    "opencv-python-headless>=4.13.0.92",
+    "openpyxl>=3.1.5",
+    "pandas>=3.0.4",
+    "passlib>=1.7.4",
+    "pgvector>=0.4.2",
+    "psycopg2-binary>=2.9.12",
     "pydantic-settings",
     "python-dotenv",
+    "python-jose>=3.5.0",
     "python-multipart>=0.0.32",
     "python-telegram-bot",
     "qrcode[pil]",
     "sqlalchemy",
+    "sqlalchemy-libsql>=0.2.0",
     "uvicorn[standard]",
+    "websockets>=16.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
 ]

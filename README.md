@@ -5,7 +5,7 @@
 Meet **[dy](https://t.me/dyDMCBOT)** — a side project that started as "let me play with the Telegram Bot API" and grew into a full assistant for my institute. It doesn't reply to random chit-chat (only commands — clean, focused, minimal).
 
 <p align="center">
-  <img src="assets/logo.png" alt="dy bot logo" width="200">
+  <img src="previouse/assets/logo.png" alt="dy bot logo" width="200">
 </p>
 
 ---
