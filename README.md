@@ -124,7 +124,7 @@ The app will be at `http://localhost:8000`, bot webhook at `/telegram`, dashboar
 - **Commands only.** No noise. The bot doesn't reply to every message — it waits for instructions.
 - **Minimal.** Every feature has a reason. I'd rather ship fewer things well.
 - **Play-driven.** This whole project is me messing around with the Telegram Bot API, async Python, and webhooks. It's messy, it's fun, and it's getting better every commit.
-
+- We intentionally use the libsql_experimental synchronous dialect wrapped with asyncio.to_thread() because the current aiolibsql async dialect causes cursor read failures with Turso. Revisit this only after confirming the async driver is stable.
 ---
 
 ## 👨‍💻 About the Dev
