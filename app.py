@@ -1,10 +1,29 @@
+import asyncio
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, Body
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from auth.telegram import verify_init_data
 
-app = FastAPI()
+from auth.telegram import verify_init_data
+from db.database import init_db, close_db
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    loop = asyncio.get_running_loop()
+    await loop.run_in_executor(None, init_db)
+    logger.info("Application started")
+    yield
+    await loop.run_in_executor(None, close_db)
+    logger.info("Application shut down")
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
