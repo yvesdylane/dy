@@ -23,41 +23,117 @@
 </head>
 <body class="bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 min-h-[100dvh] transition-colors duration-200">
 
-  <div class="max-w-4xl mx-auto px-4 py-6">
-    <div class="flex items-center justify-between mb-8">
-      <h1 class="text-2xl font-bold text-brand-600 dark:text-brand-400">Admin Dashboard</h1>
-      <button id="themeToggle" class="p-2 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-500 dark:text-zinc-400">
-        <svg id="sunIcon" class="w-5 h-5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg id="moonIcon" class="w-5 h-5 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-    </div>
+  <div id="loadingView" class="flex items-center justify-center min-h-[90dvh]">
+    <div class="animate-spin h-8 w-8 border-4 border-brand-500 border-t-transparent rounded-full"></div>
+  </div>
 
-    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 mb-6">
-      <h2 class="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-4">User Info</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-        <div><span class="text-zinc-500 dark:text-zinc-400">Name</span><p class="font-medium">{{ user.name }} {{ user.surname }}</p></div>
-        <div><span class="text-zinc-500 dark:text-zinc-400">Role</span><p class="font-medium"><span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300">{{ user.role.value }}</span></p></div>
-        <div><span class="text-zinc-500 dark:text-zinc-400">Department</span><p class="font-medium">{{ user.department.value }}</p></div>
-        <div><span class="text-zinc-500 dark:text-zinc-400">Telegram ID</span><p class="font-medium font-mono text-xs">{{ user.telegram_id }}</p></div>
-        <div><span class="text-zinc-500 dark:text-zinc-400">Email</span><p class="font-medium">{{ user.email or '—' }}</p></div>
-        <div><span class="text-zinc-500 dark:text-zinc-400">Quarter</span><p class="font-medium">{{ user.quarter or '—' }}</p></div>
+  <div id="appView" class="hidden flex min-h-screen">
+    <!-- Desktop sidebar -->
+    <aside class="hidden md:flex md:flex-col md:w-56 md:bg-white md:dark:bg-zinc-900 md:border-r md:border-zinc-200 md:dark:border-zinc-800 md:fixed md:h-full">
+      <div class="p-4 border-b border-zinc-200 dark:border-zinc-800">
+        <h2 class="font-bold text-brand-600 dark:text-brand-400">dy</h2>
+        <p class="text-xs text-zinc-500 mt-1 truncate">{{ user.name }} {{ user.surname }}</p>
+      </div>
+      <nav class="flex-1 p-2 space-y-1 overflow-y-auto">
+        <button data-section="dashboard" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="2" width="4" height="19" rx="1"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button data-section="users" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>People</span>
+        </button>
+        <button data-section="registers" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+          <span>Attendance</span>
+        </button>
+        <button data-section="tasks" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span>Tasks</span>
+        </button>
+        <button data-section="notes" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          <span>Notes</span>
+        </button>
+        <button data-section="info" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <span>Bulletin</span>
+        </button>
+      </nav>
+      <div class="p-3 border-t border-zinc-200 dark:border-zinc-800">
+        <button id="themeToggle" class="w-full px-3 py-2 rounded-lg text-sm text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2 transition-colors">
+          <svg id="moonIcon" class="w-4 h-4 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg id="sunIcon" class="w-4 h-4 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <span>Theme</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="flex-1 md:ml-56 min-w-0 flex flex-col">
+      <!-- Mobile header -->
+      <div class="md:hidden flex items-center gap-3 px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+        <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm shrink-0">A</div>
+        <div class="min-w-0 flex-1">
+          <h1 id="headerTitle" class="font-bold text-sm truncate">Dashboard</h1>
+          <p class="text-xs text-zinc-500 truncate">{{ user.name }} {{ user.surname }}</p>
+        </div>
+        <button id="mobileThemeToggle" class="p-2 rounded-lg text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+          <svg id="mobileMoonIcon" class="w-5 h-5 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg id="mobileSunIcon" class="w-5 h-5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+      </div>
+
+      <!-- Section content -->
+      <div class="flex-1 p-4 pb-24 md:pb-4">
+        {% include "admin/section/dashboard.html" %}
+        {% include "admin/section/users.html" %}
+        {% include "admin/section/codes.html" %}
+        {% include "admin/section/registers.html" %}
+        {% include "admin/section/leaves.html" %}
+        {% include "admin/section/pass.html" %}
+        {% include "admin/section/tasks.html" %}
+        {% include "admin/section/cleaning.html" %}
+        {% include "admin/section/notes.html" %}
+        {% include "admin/section/info.html" %}
+        {% include "admin/section/complaints.html" %}
       </div>
     </div>
 
-    <div class="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6">
-      <h2 class="text-sm font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wide mb-4">Dashboard</h2>
-      <p class="text-zinc-400 dark:text-zinc-600 text-sm">Dashboard content coming soon.</p>
-    </div>
+    <!-- Mobile bottom nav -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-950 border-t border-zinc-200 dark:border-zinc-800 flex safe-area-bottom z-40">
+      <button data-section="dashboard" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5 text-zinc-500 dark:text-zinc-400">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="4" height="11" rx="1"/><rect x="10" y="6" width="4" height="15" rx="1"/><rect x="17" y="2" width="4" height="19" rx="1"/></svg>
+        <span>Home</span>
+      </button>
+      <button data-section="users" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5 text-zinc-500 dark:text-zinc-400">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>People</span>
+      </button>
+      <button data-section="registers" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5 text-zinc-500 dark:text-zinc-400">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+        <span>Attd</span>
+      </button>
+      <button data-section="tasks" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5 text-zinc-500 dark:text-zinc-400">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Tasks</span>
+      </button>
+      <button data-section="notes" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5 text-zinc-500 dark:text-zinc-400">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Notes</span>
+      </button>
+      <button data-section="info" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5 text-zinc-500 dark:text-zinc-400">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        <span>Bulletin</span>
+      </button>
+    </nav>
   </div>
 
-  <script>
-    (function() {
-      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (prefersDark) document.documentElement.classList.add('dark');
-      document.getElementById('themeToggle').addEventListener('click', function() {
-        document.documentElement.classList.toggle('dark');
-      });
-    })();
-  </script>
+  <!-- Modal overlay -->
+  <div id="modalOverlay" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+    <div id="modalContent" class="bg-white dark:bg-zinc-900 rounded-xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5 space-y-4"></div>
+  </div>
+
+  <script src="/static/admin.js"></script>
 </body>
 </html>

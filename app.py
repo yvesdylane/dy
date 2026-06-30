@@ -11,6 +11,8 @@ from config import settings
 from db.database import init_db, close_db
 from routes import auth as auth_routes
 from routes import web as web_routes
+from routes.api.stats import router as stats_api_router
+from routes.api.users import router as users_api_router
 
 logger = logging.getLogger(__name__)
 
@@ -42,3 +44,5 @@ app.state.templates = templates
 
 app.include_router(web_routes.router)
 app.include_router(auth_routes.router)
+app.include_router(stats_api_router)
+app.include_router(users_api_router)

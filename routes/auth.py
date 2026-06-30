@@ -31,16 +31,17 @@ async def telegram_auth(
             "first_name": tg_user.first_name,
         }
 
-    create_session(request, user.id, str(tg_user.id))
+    role = user.role.value
+    create_session(request, user.id, str(tg_user.id), role)
 
     role_path = {
         "admin": "/admin",
         "super_admin": "/admin",
         "instructor": "/instructor",
         "intern": "/",
-    }.get(user.role.value, "/")
+    }.get(role, "/")
 
-    return {"ok": True, "role": user.role.value, "redirect": role_path}
+    return {"ok": True, "role": role, "redirect": role_path}
 
 
 @router.post("/api/register")
@@ -55,13 +56,14 @@ async def register(
     except ValueError as e:
         return {"ok": False, "detail": str(e)}
 
-    create_session(request, user.id, user.telegram_id)
+    role = user.role.value
+    create_session(request, user.id, user.telegram_id, role)
 
     role_path = {
         "admin": "/admin",
         "super_admin": "/admin",
         "instructor": "/instructor",
         "intern": "/",
-    }.get(user.role.value, "/")
+    }.get(role, "/")
 
-    return {"ok": True, "role": user.role.value, "redirect": role_path}
+    return {"ok": True, "role": role, "redirect": role_path}

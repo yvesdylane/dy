@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from auth.dependencies import get_current_user
@@ -8,9 +8,20 @@ from models.user import User
 
 router = APIRouter()
 
+ROLE_PATHS = {
+    "admin": "/admin",
+    "super_admin": "/admin",
+    "instructor": "/instructor",
+}
+
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
+    role = request.session.get("role")
+    if role:
+        path = ROLE_PATHS.get(role)
+        if path:
+            return RedirectResponse(url=path)
     templates = request.app.state.templates
     return templates.TemplateResponse(request=request, name="index.html")
 

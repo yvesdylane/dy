@@ -48,6 +48,57 @@ def run_migrations():
     logger.info("Migrations up to date")
 
 
+def seed_default_user() -> None:
+    from datetime import datetime
+
+    from sqlalchemy import select
+
+    from models.enums import Department, Gender, Role
+    from models.user import User
+
+    tid = str(settings.super_admin_telegram_id)
+    if not tid:
+        logger.warning("SUPER_ADMIN_TELEGRAM_ID not set — skipping seed")
+        return
+
+    try:
+        dept = Department(settings.super_admin_department)
+        gen = Gender(settings.super_admin_gender)
+    except ValueError as e:
+        logger.warning("Invalid seed config — skipping: %s", e)
+        return
+
+    with SyncSession() as session:
+        existing = session.execute(
+            select(User).where(User.telegram_id == tid)
+        ).scalar_one_or_none()
+
+        if existing:
+            if existing.role != Role.super_admin:
+                existing.role = Role.super_admin
+                existing.updated_at = datetime.utcnow()
+                session.commit()
+                logger.info("Promoted %s to super_admin", tid)
+            else:
+                logger.info("Super admin %s already exists", tid)
+            return
+
+        user = User(
+            name=settings.super_admin_name,
+            surname=settings.super_admin_surname,
+            phone=settings.super_admin_phone or f"pending_{tid}",
+            telegram_id=tid,
+            gender=gen,
+            role=Role.super_admin,
+            department=dept,
+            school="",
+            dob=datetime.strptime(settings.super_admin_dob, "%Y-%m-%d").date(),
+        )
+        session.add(user)
+        session.commit()
+        logger.info("Created super admin user (telegram_id=%s)", tid)
+
+
 def init_db():
     global sync_engine, SyncSession, _is_turso
 
@@ -68,6 +119,7 @@ def init_db():
     SyncSession = sessionmaker(bind=sync_engine)
 
     run_migrations()
+    seed_default_user()
 
     logger.info("Database ready (url: %s)", raw_url)
 

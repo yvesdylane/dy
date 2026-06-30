@@ -1,10 +1,72 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+<div id="section-users" class="hidden space-y-4">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div>
+      <h2 class="text-lg font-bold">People</h2>
+      <p class="text-sm text-zinc-500 dark:text-zinc-400">Manage all registered users</p>
+    </div>
+    <button onclick="window.openAddUserModal()" class="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors self-start">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add User
+    </button>
+  </div>
 
-</body>
-</html>
+  <!-- Search + Filters -->
+  <div class="flex flex-col sm:flex-row gap-2">
+    <div class="relative flex-1">
+      <input id="userSearch" type="text" placeholder="Search name, surname, email…" oninput="debounceSearchUsers()"
+        class="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50" />
+      <svg class="absolute left-2.5 top-2.5 w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <select id="filterRole" onchange="loadUsers()" class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50">
+      <option value="">All Roles</option>
+      <option value="intern">Intern</option>
+      <option value="instructor">Instructor</option>
+      <option value="admin">Admin</option>
+      <option value="super_admin">Super Admin</option>
+    </select>
+    <select id="filterDept" onchange="loadUsers()" class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50">
+      <option value="">All Departments</option>
+      <option value="ISM">ISM</option>
+      <option value="SWE">SWE</option>
+      <option value="CGWD">CGWD</option>
+      <option value="EDM">EDM</option>
+      <option value="CSN">CSN</option>
+      <option value="DBMS">DBMS</option>
+      <option value="NWS">NWS</option>
+    </select>
+    <select id="filterGroup" onchange="loadUsers()" class="px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50">
+      <option value="">All Groups</option>
+      <option value="A">A</option>
+      <option value="B">B</option>
+    </select>
+  </div>
+
+  <!-- Table -->
+  <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
+    <table class="w-full text-sm">
+      <thead class="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 text-xs uppercase tracking-wider">
+        <tr>
+          <th class="text-left px-4 py-3 font-medium">Name</th>
+          <th class="text-left px-4 py-3 font-medium hidden sm:table-cell">Email</th>
+          <th class="text-left px-4 py-3 font-medium">Role</th>
+          <th class="text-left px-4 py-3 font-medium hidden lg:table-cell">Dept</th>
+          <th class="text-left px-4 py-3 font-medium hidden md:table-cell">Fees</th>
+          <th class="text-right px-4 py-3 font-medium">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="usersTableBody" class="divide-y divide-zinc-100 dark:divide-zinc-800">
+        <!-- populated by JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div id="usersPagination" class="flex items-center justify-between text-sm text-zinc-500">
+    <span id="usersInfo">0 users</span>
+    <div class="flex gap-1">
+      <button id="prevPage" onclick="changePage(-1)" class="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors" disabled>Prev</button>
+      <button id="nextPage" onclick="changePage(1)" class="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors" disabled>Next</button>
+    </div>
+  </div>
+</div>

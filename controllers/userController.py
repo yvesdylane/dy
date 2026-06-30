@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from models.enums import Department, Gender, Group, Role
@@ -65,6 +65,45 @@ def get_user_by_telegram_id(db: Session, telegram_id: str) -> User | None:
     return db.execute(
         select(User).where(User.telegram_id == telegram_id)
     ).scalar_one_or_none()
+
+
+def search_users(
+    db: Session,
+    *,
+    query: Optional[str] = None,
+    role: Optional[Role] = None,
+    department: Optional[Department] = None,
+    group: Optional[Group] = None,
+    skip: int = 0,
+    limit: int = 100,
+) -> tuple[list[User], int]:
+    stmt = select(User)
+    count_stmt = select(func.count(User.id))
+
+    if query:
+        pattern = f"%{query}%"
+        clause = or_(
+            User.name.ilike(pattern),
+            User.surname.ilike(pattern),
+            User.email.ilike(pattern),
+        )
+        stmt = stmt.where(clause)
+        count_stmt = count_stmt.where(clause)
+
+    if role is not None:
+        stmt = stmt.where(User.role == role)
+        count_stmt = count_stmt.where(User.role == role)
+    if department is not None:
+        stmt = stmt.where(User.department == department)
+        count_stmt = count_stmt.where(User.department == department)
+    if group is not None:
+        stmt = stmt.where(User.group == group)
+        count_stmt = count_stmt.where(User.group == group)
+
+    total = db.scalar(count_stmt) or 0
+    stmt = stmt.offset(skip).limit(limit).order_by(User.id.desc())
+    users = list(db.execute(stmt).scalars().all())
+    return users, total
 
 
 def get_users(

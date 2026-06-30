@@ -1,20 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-
-    <title>Telegram Login</title>
-
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                      400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309',
+                      800: '#92400e', 900: '#78350f' }
+          }
+        }
+      }
+    }
+  </script>
+  <title>dy</title>
 </head>
+<body class="bg-zinc-50 dark:bg-zinc-950 min-h-[100dvh] flex items-center justify-center transition-colors duration-200">
 
-<body>
+  <div class="text-center px-6">
+    <div class="w-12 h-12 mx-auto mb-5">
+      <div class="w-full h-full rounded-full border-4 border-zinc-200 dark:border-zinc-800 border-t-brand-500 animate-spin"></div>
+    </div>
+    <p class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Authenticating...</p>
+    <p id="errorMsg" class="text-sm text-red-500 dark:text-red-400 mt-4 hidden"></p>
+  </div>
 
-<h2>Authenticating...</h2>
-
-<script src="/static/app.js"></script>
-
+  <script src="/static/app.js"></script>
 </body>
-
 </html>
