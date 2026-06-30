@@ -2,13 +2,15 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request, Body
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
-from auth.telegram import verify_init_data
+from config import settings
 from db.database import init_db, close_db
+from routes import auth as auth_routes
+from routes import web as web_routes
 
 logger = logging.getLogger(__name__)
 
@@ -25,30 +27,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.session_secret,
+    max_age=1800,
+    same_site="lax",
+    https_only=False,
+)
+
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
 templates = Jinja2Templates(directory="web/templates")
+app.state.templates = templates
 
-
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    return templates.TemplateResponse(
-        request=request,
-        name="index.html",
-    )
-
-
-@app.post("/auth/telegram")
-async def telegram_auth(data: dict = Body(...)):
-
-    telegram_user = verify_init_data(
-        data["initData"]
-    )
-
-    print(telegram_user)
-
-    return {
-        "success": True,
-        "telegram_id": telegram_user.id,
-        "username": telegram_user.username,
-    }
+app.include_router(web_routes.router)
+app.include_router(auth_routes.router)

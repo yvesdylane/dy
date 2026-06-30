@@ -4,9 +4,6 @@ tg.ready();
 tg.expand();
 
 (async () => {
-
-    console.log("initData:", tg.initData);
-
     const response = await fetch("/auth/telegram", {
         method: "POST",
         headers: {
@@ -19,6 +16,9 @@ tg.expand();
 
     const result = await response.json();
 
-    console.log(result);
-
+    if (result.ok) {
+        window.location.href = result.redirect;
+    } else if (result.needs_registration) {
+        window.location.href = "/register";
+    }
 })();

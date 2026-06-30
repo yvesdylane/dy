@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     super_admin_department: str
     super_admin_dob: str
 
+    session_secret: str
 
     recognition_threshold: float = 0.4
 
