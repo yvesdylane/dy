@@ -1,10 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy.orm import Session
 
 from auth.dependencies import get_current_user
-from db.database import get_db
-from models.user import User
 
 router = APIRouter()
 
@@ -17,6 +14,7 @@ ROLE_PATHS = {
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
+    print(request.session)
     role = request.session.get("role")
     if role:
         path = ROLE_PATHS.get(role)
@@ -32,21 +30,10 @@ async def register_page(request: Request):
     return templates.TemplateResponse(request=request, name="registraion.html")
 
 
-@router.get("/admin", response_class=HTMLResponse)
-async def admin_dashboard(
-    request: Request,
-    user: User = Depends(get_current_user),
-):
-    templates = request.app.state.templates
-    return templates.TemplateResponse(
-        request=request, name="admin/index.html", context={"user": user}
-    )
-
-
 @router.get("/instructor", response_class=HTMLResponse)
 async def instructor_dashboard(
     request: Request,
-    user: User = Depends(get_current_user),
+    user=Depends(get_current_user),
 ):
     templates = request.app.state.templates
     return templates.TemplateResponse(

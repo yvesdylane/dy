@@ -9,6 +9,9 @@ from models.enums import Department, Gender, Group, Role
 from models.user import User
 
 
+import secrets
+
+
 class UserCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -16,7 +19,7 @@ class UserCreate(BaseModel):
     surname: str
     email: Optional[str] = None
     phone: str
-    telegram_id: str
+    telegram_id: Optional[str] = None
     gender: Gender
     role: Role
     department: Department
@@ -24,7 +27,7 @@ class UserCreate(BaseModel):
     school: str
     dob: date
     image: Optional[str] = None
-    quarter: Optional[int] = None
+    quarter: Optional[str] = None
     fees_paid: Optional[float] = 0
     total_fees: Optional[float] = 40000
 
@@ -44,13 +47,28 @@ class UserUpdate(BaseModel):
     school: Optional[str] = None
     dob: Optional[date] = None
     image: Optional[str] = None
-    quarter: Optional[int] = None
+    quarter: Optional[str] = None
     fees_paid: Optional[float] = None
     total_fees: Optional[float] = None
 
 
+def _generate_fake_telegram_id(db: Session) -> str:
+    for _ in range(100):
+        suffix = secrets.token_hex(4)
+        tid = f"dy_{suffix}"
+        existing = db.execute(
+            select(User).where(User.telegram_id == tid)
+        ).scalar_one_or_none()
+        if not existing:
+            return tid
+    raise ValueError("Could not generate unique telegram_id")
+
+
 def create_user(db: Session, data: UserCreate) -> User:
-    user = User(**data.model_dump())
+    dump = data.model_dump()
+    if dump.get("telegram_id") is None:
+        dump["telegram_id"] = _generate_fake_telegram_id(db)
+    user = User(**dump)
     db.add(user)
     db.flush()
     db.refresh(user)
@@ -67,6 +85,12 @@ def get_user_by_telegram_id(db: Session, telegram_id: str) -> User | None:
     ).scalar_one_or_none()
 
 
+def get_user_by_phone(db: Session, phone: str) -> User | None:
+    return db.execute(
+        select(User).where(User.phone == phone)
+    ).scalar_one_or_none()
+
+
 def search_users(
     db: Session,
     *,
@@ -74,6 +98,7 @@ def search_users(
     role: Optional[Role] = None,
     department: Optional[Department] = None,
     group: Optional[Group] = None,
+    gender: Optional[Gender] = None,
     skip: int = 0,
     limit: int = 100,
 ) -> tuple[list[User], int]:
@@ -99,6 +124,9 @@ def search_users(
     if group is not None:
         stmt = stmt.where(User.group == group)
         count_stmt = count_stmt.where(User.group == group)
+    if gender is not None:
+        stmt = stmt.where(User.gender == gender)
+        count_stmt = count_stmt.where(User.gender == gender)
 
     total = db.scalar(count_stmt) or 0
     stmt = stmt.offset(skip).limit(limit).order_by(User.id.desc())
