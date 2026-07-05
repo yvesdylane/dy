@@ -24,6 +24,9 @@ from routes.api.attendance import router as attendance_api_router
 from routes.api.leaves import router as leaves_api_router
 from routes.api.pass_codes import router as pass_api_router
 from routes.api.tasks import router as tasks_api_router
+from routes.api.notes import router as notes_api_router
+from routes.api.info import router as info_api_router
+from routes.api.complaints import router as complaints_api_router
 
 logger = logging.getLogger(__name__)
 
@@ -73,3 +76,6 @@ app.include_router(attendance_api_router)
 app.include_router(leaves_api_router)
 app.include_router(pass_api_router)
 app.include_router(tasks_api_router)
+app.include_router(notes_api_router)
+app.include_router(info_api_router)
+app.include_router(complaints_api_router)

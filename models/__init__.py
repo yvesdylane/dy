@@ -3,6 +3,7 @@ from models.enums import ComplainType, Department, Gender, Group, LeaveStatus, R
 from models.attendance import Attendance, InternAttendance
 from models.cleaning import CleaningCompletion, CleaningDuty, CleaningGroup, CleaningGroupMember
 from models.complain import UserComplain
+from models.complaint import Complaint
 from models.infoNote import Info, Note
 from models.leave import LeaveRequest
 from models.task import Task, TaskSubmission
@@ -32,4 +33,5 @@ __all__ = [
     "TaskSubmission",
     "User",
     "UserComplain",
+    "Complaint",
 ]

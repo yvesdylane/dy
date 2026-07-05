@@ -1,6 +1,4 @@
-import uuid
 from datetime import datetime
-from pathlib import Path
 from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
@@ -10,8 +8,6 @@ from sqlalchemy.orm import Session
 from models.enums import Department
 from models.task import Task
 from models.user import User
-
-TASK_UPLOAD_DIR = Path("uploads/tasks")
 
 
 class TaskCreate(BaseModel):
@@ -25,23 +21,15 @@ class TaskCreate(BaseModel):
     file_name: Optional[str] = None
 
 
-class TaskOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    name: str
-    description: str
+class TaskUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    department: Optional[str] = None
+    submission_deadline: Optional[datetime] = None
+    total_mark_on: Optional[int] = None
     supporting_doc: Optional[str] = None
     file_id: Optional[str] = None
     file_name: Optional[str] = None
-    department: Optional[str] = None
-    submission_deadline: datetime
-    total_mark_on: int
-    created_by: int
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    creator_name: Optional[str] = None
-    creator_surname: Optional[str] = None
 
 
 def _to_dict(task: Task, creator_name: str | None = None, creator_surname: str | None = None) -> dict:
@@ -112,9 +100,26 @@ def create_task(db: Session, user_id: int, data: TaskCreate) -> dict:
     return _to_dict(task)
 
 
-def save_task_file(file_bytes: bytes, original_filename: str) -> tuple[str, str]:
-    TASK_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    unique = f"{uuid.uuid4().hex}_{original_filename}"
-    path = TASK_UPLOAD_DIR / unique
-    path.write_bytes(file_bytes)
-    return unique, original_filename
+def update_task(db: Session, task_id: int, data: TaskUpdate) -> dict | None:
+    task = db.get(Task, task_id)
+    if task is None:
+        return None
+    updates = data.model_dump(exclude_unset=True)
+    for key, val in updates.items():
+        if key == "department" and val is not None:
+            val = Department(val)
+        setattr(task, key, val)
+    task.updated_at = datetime.utcnow()
+    db.flush()
+    db.refresh(task)
+    user = db.get(User, task.created_by)
+    return _to_dict(task, user.name if user else None, user.surname if user else None)
+
+
+def delete_task(db: Session, task_id: int) -> bool:
+    task = db.get(Task, task_id)
+    if task is None:
+        return False
+    db.delete(task)
+    db.flush()
+    return True

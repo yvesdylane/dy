@@ -55,7 +55,7 @@
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           <span>Tasks</span>
         </button>
-        <button data-page="notes" class="nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
+        <button data-page="notes" class="hidden md:flex nav-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-brand-100 dark:hover:bg-brand-950 flex items-center gap-2.5 transition-colors">
           <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           <span>Notes</span>
         </button>
@@ -91,6 +91,14 @@
           <button class="att-tab px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100" data-att-tab="leaves">Leaves</button>
           <button class="att-tab px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100" data-att-tab="pass">Pass</button>
         </div>
+        <div id="headerTasksPills" class="hidden shrink-0 flex gap-0.5 p-0.5 mr-1 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+          <button class="tasks-tab px-2.5 py-1 text-[11px] font-medium rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm" data-tasks-tab="tasks">Tasks</button>
+          <button class="tasks-tab px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100" data-tasks-tab="notes">Notes</button>
+        </div>
+        <div id="headerBulletinPills" class="hidden shrink-0 flex gap-0.5 p-0.5 mr-1 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+          <button class="bulletin-tab px-2.5 py-1 text-[11px] font-medium rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm" data-bulletin-tab="info">Info</button>
+          <button class="bulletin-tab px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100" data-bulletin-tab="complaints">Issues</button>
+        </div>
         <button id="mobileThemeToggle" class="p-2 rounded-lg text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
           <svg id="mobileMoonIcon" class="w-5 h-5 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
           <svg id="mobileSunIcon" class="w-5 h-5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
@@ -118,10 +126,6 @@
       <button data-page="tasks" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5 text-zinc-500 dark:text-zinc-400">
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
         <span>Tasks</span>
-      </button>
-      <button data-page="notes" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5 text-zinc-500 dark:text-zinc-400">
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <span>Notes</span>
       </button>
       <button data-page="info" class="nav-btn flex-1 py-2 text-center text-xs font-medium flex flex-col items-center gap-0.5 text-zinc-500 dark:text-zinc-400">
         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>

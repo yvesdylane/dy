@@ -21,13 +21,21 @@
   }
 
   function updateActiveNav(name) {
+    var navMap = {
+      codes: "users",
+      leaves: "registers",
+      pass: "registers",
+      notes: "tasks",
+      complaints: "info",
+    };
+    var navName = navMap[name] || name;
     document.querySelectorAll(".nav-btn").forEach(function (btn) {
       btn.classList.remove(
         "bg-brand-100", "dark:bg-brand-950/50",
         "text-brand-700", "dark:text-brand-300", "font-semibold"
       );
     });
-    document.querySelectorAll('[data-page="' + name + '"]').forEach(function (btn) {
+    document.querySelectorAll('[data-page="' + navName + '"]').forEach(function (btn) {
       btn.classList.add(
         "bg-brand-100", "dark:bg-brand-950/50",
         "text-brand-700", "dark:text-brand-300", "font-semibold"
@@ -44,44 +52,97 @@
       leaves: "Leaves",
       pass: "Pass Codes",
       tasks: "Tasks",
+      notes: "Tasks",
       cleaning: "Cleaning",
-      notes: "Notes",
-      info: "Announcements",
-      complaints: "Complaints",
+      info: "Bulletin",
+      complaints: "Bulletin",
     };
     var el = document.getElementById("headerTitle");
     if (el) el.textContent = map[name] || "Dashboard";
 
     var pills = document.getElementById("headerPills");
     var attPills = document.getElementById("headerAttPills");
+    var tasksPills = document.getElementById("headerTasksPills");
+    var bulletinPills = document.getElementById("headerBulletinPills");
     if (pills) {
-      if (name === "users") {
+      if (name === "users" || name === "codes") {
         pills.classList.remove("hidden");
+        var activePeople = name === "codes" ? 1 : 0;
         var ps = pills.querySelectorAll(".people-tab");
         if (ps.length) {
-          ps[0].classList.add("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
-          ps[0].classList.remove("text-zinc-600", "dark:text-zinc-300");
-          ps[1].classList.remove("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
-          ps[1].classList.add("text-zinc-600", "dark:text-zinc-300");
+          ps.forEach(function (p, i) {
+            p.classList.toggle("bg-white", i === activePeople);
+            p.classList.toggle("dark:bg-zinc-700", i === activePeople);
+            p.classList.toggle("text-zinc-900", i === activePeople);
+            p.classList.toggle("dark:text-zinc-100", i === activePeople);
+            p.classList.toggle("shadow-sm", i === activePeople);
+            p.classList.toggle("text-zinc-600", i !== activePeople);
+            p.classList.toggle("dark:text-zinc-300", i !== activePeople);
+          });
         }
       } else {
         pills.classList.add("hidden");
       }
     }
     if (attPills) {
-      if (name === "registers") {
+      if (name === "registers" || name === "leaves" || name === "pass") {
         attPills.classList.remove("hidden");
+        var attMap = { registers: 0, leaves: 1, pass: 2 };
+        var activeAtt = attMap[name] || 0;
         var at = attPills.querySelectorAll(".att-tab");
         if (at.length) {
-          at[0].classList.add("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
-          at[0].classList.remove("text-zinc-600", "dark:text-zinc-300");
-          for (var i = 1; i < at.length; i++) {
-            at[i].classList.remove("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
-            at[i].classList.add("text-zinc-600", "dark:text-zinc-300");
-          }
+          at.forEach(function (a, i) {
+            a.classList.toggle("bg-white", i === activeAtt);
+            a.classList.toggle("dark:bg-zinc-700", i === activeAtt);
+            a.classList.toggle("text-zinc-900", i === activeAtt);
+            a.classList.toggle("dark:text-zinc-100", i === activeAtt);
+            a.classList.toggle("shadow-sm", i === activeAtt);
+            a.classList.toggle("text-zinc-600", i !== activeAtt);
+            a.classList.toggle("dark:text-zinc-300", i !== activeAtt);
+          });
         }
       } else {
         attPills.classList.add("hidden");
+      }
+    }
+    if (tasksPills) {
+      if (name === "tasks" || name === "notes") {
+        tasksPills.classList.remove("hidden");
+        var isNote = name === "notes" ? 1 : 0;
+        var ts = tasksPills.querySelectorAll(".tasks-tab");
+        if (ts.length) {
+          ts.forEach(function (t, i) {
+            t.classList.toggle("bg-white", i === isNote);
+            t.classList.toggle("dark:bg-zinc-700", i === isNote);
+            t.classList.toggle("text-zinc-900", i === isNote);
+            t.classList.toggle("dark:text-zinc-100", i === isNote);
+            t.classList.toggle("shadow-sm", i === isNote);
+            t.classList.toggle("text-zinc-600", i !== isNote);
+            t.classList.toggle("dark:text-zinc-300", i !== isNote);
+          });
+        }
+      } else {
+        tasksPills.classList.add("hidden");
+      }
+    }
+    if (bulletinPills) {
+      if (name === "info" || name === "complaints") {
+        bulletinPills.classList.remove("hidden");
+        var isIssue = name === "complaints" ? 1 : 0;
+        var bs = bulletinPills.querySelectorAll(".bulletin-tab");
+        if (bs.length) {
+          bs.forEach(function (b, i) {
+            b.classList.toggle("bg-white", i === isIssue);
+            b.classList.toggle("dark:bg-zinc-700", i === isIssue);
+            b.classList.toggle("text-zinc-900", i === isIssue);
+            b.classList.toggle("dark:text-zinc-100", i === isIssue);
+            b.classList.toggle("shadow-sm", i === isIssue);
+            b.classList.toggle("text-zinc-600", i !== isIssue);
+            b.classList.toggle("dark:text-zinc-300", i !== isIssue);
+          });
+        }
+      } else {
+        bulletinPills.classList.add("hidden");
       }
     }
   }
@@ -148,6 +209,30 @@
     if (btn) {
       e.preventDefault();
       loadPage(btn.getAttribute("data-page"));
+      return;
+    }
+    var pTab = e.target.closest("[data-people-tab]");
+    if (pTab) {
+      e.preventDefault();
+      loadPage(pTab.getAttribute("data-people-tab"));
+      return;
+    }
+    var aTab = e.target.closest("[data-att-tab]");
+    if (aTab) {
+      e.preventDefault();
+      loadPage(aTab.getAttribute("data-att-tab"));
+      return;
+    }
+    var tTab = e.target.closest("[data-tasks-tab]");
+    if (tTab) {
+      e.preventDefault();
+      loadPage(tTab.getAttribute("data-tasks-tab"));
+      return;
+    }
+    var bTab = e.target.closest("[data-bulletin-tab]");
+    if (bTab) {
+      e.preventDefault();
+      loadPage(bTab.getAttribute("data-bulletin-tab"));
     }
   });
 

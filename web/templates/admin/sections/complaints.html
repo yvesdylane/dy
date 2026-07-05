@@ -1,3 +1,21 @@
-<div id="section-complaints">
-  <p class="text-zinc-400 dark:text-zinc-600 text-sm py-8 text-center">Complaints coming soon.</p>
+<div id="section-complaints" class="w-full min-w-0 overflow-x-hidden space-y-4">
+  <div class="flex items-center gap-2 flex-wrap">
+    <select id="complaintTypeFilter" onchange="loadComplaints()" class="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+      <option value="">All Types</option>
+      <option value="complaint">Complaints</option>
+      <option value="advice">Advice</option>
+    </select>
+    <select id="complaintDeptFilter" onchange="loadComplaints()" class="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+      <option value="">All Departments</option>
+      <option value="ISM">ISM</option>
+      <option value="SWE">SWE</option>
+      <option value="CGWD">CGWD</option>
+      <option value="EDM">EDM</option>
+      <option value="CSN">CSN</option>
+      <option value="DBMS">DBMS</option>
+      <option value="NWS">NWS</option>
+    </select>
+    <button onclick="exportComplaintsCSV()" class="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium transition-colors shrink-0">Export CSV</button>
+  </div>
+  <div id="complaintsList" class="space-y-2"></div>
 </div>

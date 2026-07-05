@@ -1,28 +1,21 @@
-<div id="section-tasks" class="space-y-3">
-  <!-- Filter bar -->
-  <div class="flex items-center gap-2">
-    <div class="relative flex-1">
-      <input id="taskSearch" type="text" placeholder="Search tasks…" oninput="debounceSearchTasks()"
-        class="w-full pl-8 pr-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50">
-      <svg class="absolute left-2.5 top-2.5 w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+<div id="section-tasks" class="w-full min-w-0 overflow-x-hidden space-y-4">
+  <div id="tasksTab">
+    <div class="flex items-center gap-2 flex-wrap">
+      <select id="filterDept" onchange="loadTasks()" class="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+        <option value="">All Departments</option>
+        <option value="ISM">ISM</option>
+        <option value="SWE">SWE</option>
+        <option value="CGWD">CGWD</option>
+        <option value="EDM">EDM</option>
+        <option value="CSN">CSN</option>
+        <option value="DBMS">DBMS</option>
+        <option value="NWS">NWS</option>
+      </select>
+      <input id="taskSearch" type="text" placeholder="Search tasks..." oninput="debounceSearchTasks()" class="min-w-0 flex-1 px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50">
     </div>
-    <select id="filterDept" onchange="loadTasks()" class="px-2 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50">
-      <option value="">All Depts</option>
-      <option value="ISM">ISM</option>
-      <option value="SWE">SWE</option>
-      <option value="CGWD">CGWD</option>
-      <option value="EDM">EDM</option>
-      <option value="CSN">CSN</option>
-      <option value="DBMS">DBMS</option>
-      <option value="NWS">NWS</option>
-    </select>
+    <div id="tasksList" class="mt-2 space-y-2"></div>
+    <button onclick="openCreateTaskModal()" class="fixed bottom-20 right-5 w-12 h-12 rounded-full bg-teal-600 hover:bg-teal-700 text-white shadow-lg flex items-center justify-center transition-colors z-40">
+      <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
   </div>
-
-  <!-- Task list -->
-  <div id="tasksList" class="space-y-2"></div>
-
-  <!-- Floating create button -->
-  <button onclick="openCreateTaskModal()" class="fixed bottom-20 right-4 z-40 w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white shadow-lg flex items-center justify-center transition-colors">
-    <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-  </button>
 </div>

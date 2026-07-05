@@ -9,14 +9,14 @@ from telegram import InputFile
 
 from auth.dependencies import get_current_user
 from config import settings
-from controllers.taskController import (
-    TaskCreate,
-    TaskUpdate,
-    create_task,
-    delete_task,
-    get_task,
-    get_tasks,
-    update_task,
+from controllers.notesController import (
+    NoteCreate,
+    NoteUpdate,
+    create_note,
+    delete_note,
+    get_note,
+    get_notes,
+    update_note,
 )
 from db.database import get_db
 from models.user import User
@@ -25,40 +25,37 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin")
 
 
-@router.get("/tasks")
-async def list_tasks(
+@router.get("/notes")
+async def list_notes(
     q: str | None = Query(None, alias="q"),
     department: str | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     loop = asyncio.get_running_loop()
-    tasks = await loop.run_in_executor(None, get_tasks, db, q, department)
-    return {"ok": True, "tasks": tasks}
+    notes = await loop.run_in_executor(None, get_notes, db, q, department)
+    return {"ok": True, "notes": notes}
 
 
-@router.get("/tasks/{task_id}")
-async def task_detail(
-    task_id: int,
+@router.get("/notes/{note_id}")
+async def note_detail(
+    note_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     loop = asyncio.get_running_loop()
-    task = await loop.run_in_executor(None, get_task, db, task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return {"ok": True, "task": task}
+    note = await loop.run_in_executor(None, get_note, db, note_id)
+    if note is None:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"ok": True, "note": note}
 
 
-@router.post("/tasks")
-async def create_task_endpoint(
+@router.post("/notes")
+async def create_note_endpoint(
     request: Request,
-    name: str = Form(...),
-    description: str = Form(...),
-    department: str = Form(...),
-    submission_deadline: str = Form(...),
-    total_mark_on: int = Form(...),
-    supporting_doc: str | None = Form(None),
+    title: str = Form(...),
+    content: str | None = Form(None),
+    department: str | None = Form(None),
     file: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -78,32 +75,26 @@ async def create_task_endpoint(
             file_id = msg.document.file_id
             file_name = file.filename
         except Exception as e:
-            logger.error("Failed to upload task file to Telegram: %s", e)
+            logger.error("Failed to upload note file to Telegram: %s", e)
 
-    data = TaskCreate(
-        name=name,
-        description=description,
+    data = NoteCreate(
+        title=title,
+        content=content,
         department=department,
-        submission_deadline=submission_deadline,
-        total_mark_on=total_mark_on,
-        supporting_doc=supporting_doc,
         file_id=file_id,
         file_name=file_name,
     )
-    task = await loop.run_in_executor(None, create_task, db, current_user.id, data)
-    return {"ok": True, "task": task}
+    note = await loop.run_in_executor(None, create_note, db, current_user.id, data)
+    return {"ok": True, "note": note}
 
 
-@router.put("/tasks/{task_id}")
-async def update_task_endpoint(
+@router.put("/notes/{note_id}")
+async def update_note_endpoint(
     request: Request,
-    task_id: int,
-    name: str | None = Form(None),
-    description: str | None = Form(None),
+    note_id: int,
+    title: str | None = Form(None),
+    content: str | None = Form(None),
     department: str | None = Form(None),
-    submission_deadline: str | None = Form(None),
-    total_mark_on: int | None = Form(None),
-    supporting_doc: str | None = Form(None),
     file: UploadFile | None = File(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -123,56 +114,53 @@ async def update_task_endpoint(
             file_id = msg.document.file_id
             file_name = file.filename
         except Exception as e:
-            logger.error("Failed to upload task file to Telegram: %s", e)
+            logger.error("Failed to upload note file to Telegram: %s", e)
 
     updates = {}
-    if name is not None: updates["name"] = name
-    if description is not None: updates["description"] = description
+    if title is not None: updates["title"] = title
+    if content is not None: updates["content"] = content
     if department is not None: updates["department"] = department
-    if submission_deadline is not None: updates["submission_deadline"] = submission_deadline
-    if total_mark_on is not None: updates["total_mark_on"] = total_mark_on
-    if supporting_doc is not None: updates["supporting_doc"] = supporting_doc
     if file_id: updates["file_id"] = file_id
     if file_name: updates["file_name"] = file_name
 
-    data = TaskUpdate(**updates)
-    task = await loop.run_in_executor(None, update_task, db, task_id, data)
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return {"ok": True, "task": task}
+    data = NoteUpdate(**updates)
+    note = await loop.run_in_executor(None, update_note, db, note_id, data)
+    if note is None:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return {"ok": True, "note": note}
 
 
-@router.delete("/tasks/{task_id}")
-async def delete_task_endpoint(
-    task_id: int,
+@router.delete("/notes/{note_id}")
+async def delete_note_endpoint(
+    note_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     loop = asyncio.get_running_loop()
-    ok = await loop.run_in_executor(None, delete_task, db, task_id)
+    ok = await loop.run_in_executor(None, delete_note, db, note_id)
     if not ok:
-        raise HTTPException(status_code=404, detail="Task not found")
+        raise HTTPException(status_code=404, detail="Note not found")
     return {"ok": True}
 
 
-@router.get("/tasks/{task_id}/file")
-async def download_task_file(
-    task_id: int,
+@router.get("/notes/{note_id}/file")
+async def download_note_file(
+    note_id: int,
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     loop = asyncio.get_running_loop()
-    task = await loop.run_in_executor(None, get_task, db, task_id)
-    if task is None or not task.get("file_id"):
+    note = await loop.run_in_executor(None, get_note, db, note_id)
+    if note is None or not note.get("file_id"):
         raise HTTPException(status_code=404, detail="File not found")
 
     bot = request.app.state.bot
-    tg_file = await bot.get_file(task["file_id"])
+    tg_file = await bot.get_file(note["file_id"])
     file_bytes = bytes(await tg_file.download_as_bytearray())
 
     return Response(
         content=file_bytes,
         media_type="application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{task["file_name"]}"'},
+        headers={"Content-Disposition": f'attachment; filename="{note["file_name"]}"'},
     )
