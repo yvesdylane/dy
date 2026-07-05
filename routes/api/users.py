@@ -3,7 +3,7 @@ from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, field_serializer
+from pydantic import BaseModel, ConfigDict, computed_field, field_serializer
 from sqlalchemy.orm import Session
 
 from auth.dependencies import get_current_user
@@ -39,7 +39,7 @@ class UserOut(BaseModel):
     school: str
     dob: date
     image: Optional[str] = None
-    quarter: Optional[int] = None
+    quarter: Optional[str] = None
     fees_paid: Optional[float] = None
     total_fees: Optional[float] = None
     created_at: Optional[datetime] = None
@@ -48,6 +48,13 @@ class UserOut(BaseModel):
     @field_serializer("dob")
     def serialize_dob(self, v: date) -> str:
         return v.isoformat()
+
+    @computed_field
+    @property
+    def photo_url(self) -> Optional[str]:
+        if self.image:
+            return f"/api/admin/users/{self.id}/photo"
+        return None
 
     @field_serializer("created_at", "updated_at")
     def serialize_dt(self, v: Optional[datetime]) -> Optional[str]:

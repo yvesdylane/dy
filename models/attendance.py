@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy import Column, Date, DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
@@ -32,12 +30,3 @@ class InternAttendance(Base):
 
     attendance = relationship("Attendance", back_populates="intern_attendances")
     user = relationship("User", back_populates="attendances")
-
-
-class AttendanceCode(Base):
-    __tablename__ = "attendance_codes"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    code = Column(String(5), nullable=False, index=True)
-    expires_at = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)

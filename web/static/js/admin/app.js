@@ -40,7 +40,7 @@
       dashboard: "Dashboard",
       users: "People",
       codes: "Registration Codes",
-      registers: "Attendance Registers",
+      registers: "Attendance",
       leaves: "Leaves",
       pass: "Pass Codes",
       tasks: "Tasks",
@@ -51,6 +51,39 @@
     };
     var el = document.getElementById("headerTitle");
     if (el) el.textContent = map[name] || "Dashboard";
+
+    var pills = document.getElementById("headerPills");
+    var attPills = document.getElementById("headerAttPills");
+    if (pills) {
+      if (name === "users") {
+        pills.classList.remove("hidden");
+        var ps = pills.querySelectorAll(".people-tab");
+        if (ps.length) {
+          ps[0].classList.add("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
+          ps[0].classList.remove("text-zinc-600", "dark:text-zinc-300");
+          ps[1].classList.remove("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
+          ps[1].classList.add("text-zinc-600", "dark:text-zinc-300");
+        }
+      } else {
+        pills.classList.add("hidden");
+      }
+    }
+    if (attPills) {
+      if (name === "registers") {
+        attPills.classList.remove("hidden");
+        var at = attPills.querySelectorAll(".att-tab");
+        if (at.length) {
+          at[0].classList.add("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
+          at[0].classList.remove("text-zinc-600", "dark:text-zinc-300");
+          for (var i = 1; i < at.length; i++) {
+            at[i].classList.remove("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
+            at[i].classList.add("text-zinc-600", "dark:text-zinc-300");
+          }
+        }
+      } else {
+        attPills.classList.add("hidden");
+      }
+    }
   }
 
   function loadPageScript(name) {
@@ -122,6 +155,35 @@
   window.loadPage = loadPage;
   window.openModal = openModal;
   window.closeModal = closeModal;
+
+  window.withGuard = function (btn, loadingText, fn) {
+    if (typeof loadingText === "function") {
+      fn = loadingText;
+      loadingText = null;
+    }
+    return function () {
+      if (btn.disabled) return;
+      var orig = btn.textContent;
+      btn.disabled = true;
+      if (loadingText) btn.textContent = loadingText;
+      var result;
+      try { result = fn.apply(this, arguments); } catch (e) { result = Promise.reject(e); }
+      if (result && typeof result.then === "function") {
+        return result.then(function (v) {
+          btn.disabled = false;
+          btn.textContent = orig;
+          return v;
+        }).catch(function (e) {
+          btn.disabled = false;
+          btn.textContent = orig;
+          throw e;
+        });
+      }
+      btn.disabled = false;
+      btn.textContent = orig;
+      return result;
+    };
+  };
   window.formatFees = function (val) {
     return Number(val).toLocaleString("en-US", {
       style: "currency",

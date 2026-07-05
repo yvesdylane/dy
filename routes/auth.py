@@ -8,11 +8,13 @@ from auth.telegram import verify_init_data
 from controllers.auth import authenticate_telegram, register_new_user
 from controllers.userController import get_user_by_phone, get_user_by_telegram_id, update_user, UserUpdate
 from db.database import get_db
+from middleware.rate_limit import limiter
 
 router = APIRouter()
 
 
 @router.post("/auth/telegram")
+@limiter.limit("10/minute")
 async def telegram_auth(
     request: Request,
     data: dict = Body(...),
@@ -47,6 +49,7 @@ async def telegram_auth(
 
 
 @router.post("/api/register")
+@limiter.limit("5/minute")
 async def register(
     request: Request,
     data: dict = Body(...),
@@ -72,6 +75,7 @@ async def register(
 
 
 @router.post("/auth/link")
+@limiter.limit("5/minute")
 async def link_account(
     request: Request,
     data: dict = Body(...),

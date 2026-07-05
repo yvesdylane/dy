@@ -28,6 +28,7 @@ dependencies = [
     "python-multipart>=0.0.32",
     "python-telegram-bot",
     "qrcode[pil]",
+    "slowapi>=0.1.10",
     "sqlalchemy",
     "sqlalchemy-libsql>=0.2.0",
     "uvicorn[standard]",

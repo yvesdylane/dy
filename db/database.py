@@ -180,3 +180,38 @@ async def check_db() -> bool:
     except Exception as e:
         logger.warning("DB check failed: %s", e)
         return False
+
+
+async def run_in_session(fn, *args):
+    """Execute a sync DB function in a thread with its own session.
+
+    The session is created, the function is called with ``session`` as the
+    first positional argument, then the session is committed and closed —
+    all inside a single thread.
+
+    Usage inside an async route handler::
+
+        result = await run_in_session(my_func, extra_arg)
+
+    The controller function signature is ``def my_func(session: Session, ...)``.
+    It must **not** call ``session.commit()`` or ``session.close()`` —
+    ``run_in_session`` does that.
+    """
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, _run_in_session, fn, args)
+
+
+def _run_in_session(fn, args):
+    if SyncSession is None:
+        raise RuntimeError("Database not initialized. Call init_db() first.")
+
+    session = SyncSession()
+    try:
+        result = fn(session, *args)
+        session.commit()
+        return result
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        session.close()

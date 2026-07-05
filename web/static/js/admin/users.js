@@ -7,6 +7,152 @@
 
   loadUsers();
 
+  // --- Tab switching ---
+  function switchPeopleTab(name) {
+    var usersTab = document.getElementById("peopleUsersTab");
+    var codesTab = document.getElementById("peopleCodesTab");
+    var pills = document.querySelectorAll(".people-tab");
+    if (name === "codes") {
+      usersTab.classList.add("hidden");
+      codesTab.classList.remove("hidden");
+      pills[0].classList.remove("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
+      pills[0].classList.add("text-zinc-600", "dark:text-zinc-300");
+      pills[1].classList.add("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
+      pills[1].classList.remove("text-zinc-600", "dark:text-zinc-300");
+      loadPeopleCodes();
+    } else {
+      codesTab.classList.add("hidden");
+      usersTab.classList.remove("hidden");
+      pills[1].classList.remove("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
+      pills[1].classList.add("text-zinc-600", "dark:text-zinc-300");
+      pills[0].classList.add("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
+      pills[0].classList.remove("text-zinc-600", "dark:text-zinc-300");
+    }
+  }
+
+  // --- Codes functions ---
+  function loadPeopleCodes() {
+    var list = document.getElementById("codesList");
+    list.innerHTML = '<div class="flex justify-center py-8"><div class="animate-spin h-5 w-5 border-2 border-teal-500 border-t-transparent rounded-full"></div></div>';
+
+    fetch("/api/admin/codes")
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.detail || "Failed");
+        renderCodes(data.codes || []);
+      })
+      .catch(function () {
+        list.innerHTML = '<p class="text-center py-8 text-red-400 text-sm">Failed to load codes.</p>';
+      });
+  }
+
+  function renderCodes(codes) {
+    var list = document.getElementById("codesList");
+    if (codes.length === 0) {
+      list.innerHTML = '<p class="text-center py-8 text-zinc-400 text-sm">No codes yet.</p>';
+      return;
+    }
+    var html = "";
+    codes.forEach(function (c) {
+      var statusClass = c.is_used
+        ? "text-red-500 bg-red-50 dark:bg-red-950/30"
+        : "text-green-600 bg-green-50 dark:bg-green-950/30";
+      var roleColor = c.role === "admin"
+        ? "bg-brand-100 dark:bg-brand-900/50 text-brand-700 dark:text-brand-300"
+        : c.role === "instructor"
+        ? "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"
+        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300";
+      html += '<div class="flex items-center gap-2 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">'
+        + '<input type="checkbox" class="code-checkbox shrink-0 accent-teal-600" data-id="' + c.id + '">'
+        + '<div class="flex-1 min-w-0">'
+        + '<p class="font-mono text-sm font-medium">' + esc(c.code) + '</p>'
+        + '<p class="text-xs text-zinc-500 flex items-center gap-1.5 mt-0.5">'
+        + '<span class="inline-block px-1.5 py-0.5 rounded text-xs font-medium ' + statusClass + '">' + (c.is_used ? "Used" : "Available") + '</span>'
+        + '<span class="inline-block px-1.5 py-0.5 rounded text-xs font-medium ' + roleColor + '">' + c.role + '</span>'
+        + '<span>expires ' + c.expires_at + '</span>'
+        + '</p>'
+        + '</div>'
+        + '<button class="del-code-btn p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg text-xs transition-colors" data-id="' + c.id + '">'
+        + '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+        + '</button>'
+        + '</div>';
+    });
+    list.innerHTML = html;
+    updateCodeButtons();
+  }
+
+  function updateCodeButtons() {
+    var checked = document.querySelectorAll("#peopleCodesTab .code-checkbox:checked");
+    var btn = document.getElementById("deleteSelectedCodesBtn");
+    var count = document.getElementById("selectedCount");
+    if (!btn || !count) return;
+    if (checked.length) {
+      btn.classList.remove("hidden");
+      count.classList.remove("hidden");
+      count.textContent = checked.length + " selected";
+    } else {
+      btn.classList.add("hidden");
+      count.classList.add("hidden");
+    }
+  }
+
+  function openAddCodeModal() {
+    var m = document.getElementById("modalOverlay");
+    var c = document.getElementById("modalContent");
+    c.innerHTML = '<h3 class="text-lg font-bold mb-1">Generate Code</h3>'
+      + '<p class="text-xs text-zinc-500 mb-4">Enter 1 to create a single code, or more to create multiple at once</p>'
+      + '<form id="codeForm" class="space-y-3" onsubmit="return false">'
+      + '<label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Role'
+      + '<select name="role" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50">'
+      + '<option value="intern">Intern</option><option value="instructor">Instructor</option><option value="admin">Admin</option></select></label>'
+      + '<label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">Expires in (minutes)'
+      + '<input name="expiry" type="number" value="60" min="1" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"></label>'
+      + '<label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300">How many'
+      + '<input name="count" type="number" value="1" min="1" max="100" required class="mt-1 w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"></label>'
+      + '<p id="codeFormErr" class="text-red-500 text-xs hidden"></p>'
+      + '<div class="flex gap-2 pt-2">'
+      + '<button type="button" onclick="window.closeModal()" class="flex-1 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">Cancel</button>'
+      + '<button type="submit" id="codeSubmitBtn" class="flex-1 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium transition-colors">Generate</button></div></form>';
+    m.classList.remove("hidden");
+    window.closeModal = function () { m.classList.add("hidden"); c.innerHTML = ""; };
+
+    document.getElementById("codeForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      var btn = document.getElementById("codeSubmitBtn");
+      if (btn.disabled) return;
+      btn.disabled = true; btn.textContent = "Generating...";
+      var f = e.target;
+      var body = {
+        role: f.elements["role"].value,
+        expiry_minutes: parseInt(f.elements["expiry"].value) || 60,
+        count: parseInt(f.elements["count"].value) || 1,
+      };
+      fetch("/api/admin/codes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          btn.disabled = false; btn.textContent = "Generate";
+          if (res.ok) {
+            window.closeModal();
+            loadPeopleCodes();
+          } else {
+            var err = document.getElementById("codeFormErr");
+            err.textContent = res.detail || "Error";
+            err.classList.remove("hidden");
+          }
+        })
+        .catch(function () {
+          btn.disabled = false; btn.textContent = "Generate";
+          var err = document.getElementById("codeFormErr");
+          err.textContent = "Network error";
+          err.classList.remove("hidden");
+        });
+    });
+  }
+
   // --- Search toggle ---
   function toggleSearch() {
     var bar = document.getElementById("searchBar");
@@ -115,6 +261,7 @@
 
   // --- Edit / Create modal ---
   function openEditUserModal(userId) {
+    pendingPhotoFile = null;
     fetch("/api/admin/users/" + userId)
       .then(function (r) { return r.json(); })
       .then(function (u) {
@@ -127,19 +274,36 @@
   }
 
   function openAddUserModal() {
+    pendingPhotoFile = null;
     var html = buildUserForm(null);
     window.openModal(html);
   }
+
+  var pendingPhotoFile = null;
+  var savingUser = false;
+  var deletingUser = false;
 
   function buildUserForm(u) {
     var isEdit = u !== null;
     var title = isEdit ? "Edit User" : "Add User";
     var btnText = isEdit ? "Save Changes" : "Create User";
     var initials = u ? (u.name[0] + u.surname[0]).toUpperCase() : "?";
+    var photoUrl = u && u.photo_url ? u.photo_url : null;
+
+    var avatarHtml = photoUrl
+      ? '<img id="photoPreview" src="' + photoUrl + '" class="w-14 h-14 rounded-full object-cover">'
+      : '<div class="w-14 h-14 rounded-full bg-brand-200 dark:bg-brand-800 text-brand-700 dark:text-brand-300 flex items-center justify-center text-xl font-bold shrink-0" id="photoInitials">' + initials + '</div>';
 
     return '<h3 class="text-lg font-bold mb-1">' + title + '</h3>'
       + '<div class="flex items-center gap-4 mb-4 pb-4 border-b border-zinc-200 dark:border-zinc-700">'
-      + '<div class="w-14 h-14 rounded-full bg-brand-200 dark:bg-brand-800 text-brand-700 dark:text-brand-300 flex items-center justify-center text-xl font-bold shrink-0">' + initials + '</div>'
+      + '<div class="relative shrink-0">'
+      + '<div id="avatarWrap" class="w-14 h-14 rounded-full overflow-hidden cursor-pointer group">'
+      + avatarHtml
+      + '<div class="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">'
+      + '<svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>'
+      + '</div></div>'
+      + '<input type="file" id="photoInput" accept="image/*" class="hidden">'
+      + '</div>'
       + '<div class="flex-1 grid grid-cols-2 gap-2">'
       + field("name", "First name", u ? u.name : "", false)
       + field("surname", "Last name", u ? u.surname : "", false)
@@ -171,14 +335,14 @@
       + '</div>'
       + '<div class="flex gap-2 justify-end pt-3 border-t border-zinc-200 dark:border-zinc-700 mt-4">'
       + '<button onclick="window.closeModal()" class="px-4 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">Cancel</button>'
-      + '<button onclick="saveUser(' + (u ? u.id : "null") + ')" class="px-4 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium transition-colors">' + btnText + '</button>'
+      + '<button onclick="saveUser(' + (u ? u.id : "null") + ')" class="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium transition-colors">' + btnText + '</button>'
       + '</div>';
   }
 
   function field(id, label, value, disabled, type) {
     type = type || "text";
     var lbl = label ? '<label for="f-' + id + '" class="block text-xs font-medium text-zinc-500">' + label + '</label>' : '';
-    return lbl + '<input id="f-' + id + '" type="' + type + '" value="' + esc(value) + '" step="any" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50"/>';
+    return lbl + '<input id="f-' + id + '" type="' + type + '" value="' + esc(value) + '" step="any" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50"/>';
   }
 
   function selectField(id, options, selected) {
@@ -186,10 +350,12 @@
       var sel = o === selected ? ' selected' : '';
       return '<option value="' + o + '"' + sel + '>' + (o || "\u2014") + '</option>';
     }).join("");
-    return '<select id="f-' + id + '" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/50">' + opts + '</select>';
+    return '<select id="f-' + id + '" class="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50">' + opts + '</select>';
   }
 
   function saveUser(userId) {
+    if (savingUser) return;
+    savingUser = true;
     var data = {
       name: document.getElementById("f-name").value.trim(),
       surname: document.getElementById("f-surname").value.trim(),
@@ -225,26 +391,48 @@
         if (!r.ok) throw new Error(r.status);
         return r.json();
       })
-      .then(function () {
+      .then(function (saved) {
+        savingUser = false;
         window.closeModal();
+        var savedId = saved.id || userId;
+        if (pendingPhotoFile) {
+          return uploadPhoto(savedId, pendingPhotoFile).then(function () {
+            pendingPhotoFile = null;
+            fetchUsers();
+          });
+        }
         fetchUsers();
-        if (window.loadPage) window.loadPage("dashboard");
       })
       .catch(function () {
+        savingUser = false;
         alert("Failed to save user. Check console for details.");
       });
   }
 
+  function uploadPhoto(userId, file) {
+    var form = new FormData();
+    form.append("file", file);
+    return fetch("/api/admin/users/" + userId + "/photo", {
+      method: "POST",
+      body: form,
+    }).then(function (r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    });
+  }
+
   function deleteUser(userId) {
-    if (!confirm("Delete this user? This cannot be undone.")) return;
+    if (deletingUser || !confirm("Delete this user? This cannot be undone.")) return;
+    deletingUser = true;
     fetch("/api/admin/users/" + userId, { method: "DELETE" })
       .then(function (r) {
         if (!r.ok) throw new Error(r.status);
+        deletingUser = false;
         window.closeModal();
         fetchUsers();
-        if (window.loadPage) window.loadPage("dashboard");
       })
       .catch(function () {
+        deletingUser = false;
         alert("Failed to delete user.");
       });
   }
@@ -256,13 +444,99 @@
     return div.innerHTML;
   }
 
-  // --- Global event wiring ---
+  // --- Photo upload handler ---
+  document.addEventListener("change", function (e) {
+    if (e.target.id === "photoInput") {
+      var file = e.target.files[0];
+      if (!file) return;
+      pendingPhotoFile = file;
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        var wrap = document.getElementById("avatarWrap");
+        if (!wrap) return;
+        wrap.innerHTML = '<img id="photoPreview" src="' + ev.target.result + '" class="w-14 h-14 rounded-full object-cover">';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("#avatarWrap")) {
+      var input = document.getElementById("photoInput");
+      if (input) input.click();
+    }
+  });
+
+  // --- Event wiring ---
+  document.addEventListener("change", function (e) {
+    if (e.target.classList.contains("code-checkbox")) updateCodeButtons();
+  });
+
+  document.addEventListener("change", function (e) {
+    if (e.target.id === "selectAllCodes") {
+      document.querySelectorAll("#peopleCodesTab .code-checkbox").forEach(function (cb) {
+        cb.checked = e.target.checked;
+      });
+      updateCodeButtons();
+    }
+  });
+
+  document.addEventListener("click", function (e) {
+    var d = e.target.closest(".del-code-btn");
+    if (!d || d.disabled || !confirm("Delete this code?")) return;
+    d.disabled = true;
+    fetch("/api/admin/codes/" + d.dataset.id, { method: "DELETE" })
+      .then(function () { loadPeopleCodes(); })
+      .catch(function () { d.disabled = false; });
+  });
+
+  document.getElementById("deleteSelectedCodesBtn")?.addEventListener("click", function () {
+    var btn = this;
+    if (btn.disabled) return;
+    var checked = document.querySelectorAll("#peopleCodesTab .code-checkbox:checked");
+    var ids = Array.from(checked).map(function (cb) { return parseInt(cb.dataset.id); });
+    if (!ids.length || !confirm("Delete " + ids.length + " selected code" + (ids.length > 1 ? "s" : "") + "?")) return;
+    btn.disabled = true;
+    btn.textContent = "Deleting...";
+    fetch("/api/admin/codes/delete-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: ids }),
+    })
+      .then(function () { loadPeopleCodes(); })
+      .catch(function () { btn.disabled = false; btn.textContent = "Delete Selected"; });
+  });
+
+  document.getElementById("deleteAllCodesBtn")?.addEventListener("click", function () {
+    var btn = this;
+    if (btn.disabled) return;
+    if (!confirm("Delete ALL codes? This cannot be undone.")) return;
+    btn.disabled = true;
+    btn.textContent = "Deleting...";
+    fetch("/api/admin/codes/delete-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ all: true }),
+    })
+      .then(function () { loadPeopleCodes(); })
+      .catch(function () { btn.disabled = false; btn.textContent = "Delete All"; });
+  });
+
+  // --- Pill click delegation ---
+  document.addEventListener("click", function (e) {
+    var pill = e.target.closest(".people-tab");
+    if (pill) switchPeopleTab(pill.dataset.peopleTab);
+  });
+
+  // --- Global exports ---
   window.toggleSearch = toggleSearch;
   window.openEditUserModal = openEditUserModal;
   window.openAddUserModal = openAddUserModal;
+  window.openAddCodeModal = openAddCodeModal;
   window.saveUser = saveUser;
   window.deleteUser = deleteUser;
   window.changePage = changePage;
   window.debounceSearchUsers = debounceSearchUsers;
   window.loadUsers = loadUsers;
+  window.switchPeopleTab = switchPeopleTab;
 })();

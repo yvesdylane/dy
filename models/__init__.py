@@ -1,6 +1,6 @@
 from models.enums import ComplainType, Department, Gender, Group, LeaveStatus, Role
 
-from models.attendance import Attendance, AttendanceCode, InternAttendance
+from models.attendance import Attendance, InternAttendance
 from models.cleaning import CleaningCompletion, CleaningDuty, CleaningGroup, CleaningGroupMember
 from models.complain import UserComplain
 from models.infoNote import Info, Note
@@ -18,7 +18,6 @@ __all__ = [
     "Role",
     # models
     "Attendance",
-    "AttendanceCode",
     "CleaningCompletion",
     "CleaningDuty",
     "CleaningGroup",

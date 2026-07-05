@@ -5,15 +5,24 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.sessions import SessionMiddleware
+from telegram import Bot
 
 from config import settings
+from middleware.rate_limit import limiter
 from db.database import init_db, close_db
 from routes import auth as auth_routes
 from routes import web as web_routes
 from routes.adminRoutes import router as admin_router
 from routes.api.stats import router as stats_api_router
 from routes.api.users import router as users_api_router
+from routes.api.codes import router as codes_api_router
+from routes.api.photos import router as photos_api_router
+from routes.api.attendance import router as attendance_api_router
+from routes.api.leaves import router as leaves_api_router
+from routes.api.pass_codes import router as pass_api_router
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +31,12 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, init_db)
+    bot = Bot(token=settings.bot_token)
+    await bot.initialize()
+    app.state.bot = bot
     logger.info("Application started")
     yield
+    await bot.shutdown()
     await loop.run_in_executor(None, close_db)
     logger.info("Application shut down")
 
@@ -38,6 +51,10 @@ app.add_middleware(
     https_only=False,
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(429, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
 templates = Jinja2Templates(directory="web/templates")
@@ -48,3 +65,8 @@ app.include_router(admin_router)
 app.include_router(auth_routes.router)
 app.include_router(stats_api_router)
 app.include_router(users_api_router)
+app.include_router(codes_api_router)
+app.include_router(photos_api_router)
+app.include_router(attendance_api_router)
+app.include_router(leaves_api_router)
+app.include_router(pass_api_router)

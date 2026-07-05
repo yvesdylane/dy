@@ -1,3 +1,40 @@
-<div id="section-registers">
-  <p class="text-zinc-400 dark:text-zinc-600 text-sm py-8 text-center">Attendance registers coming soon.</p>
+<div id="section-registers" class="space-y-4">
+  <!-- Registers sub-tab -->
+  <div id="attRegistersTab" class="space-y-4">
+    <div class="flex items-center gap-2">
+      <input id="attDate" type="date" class="flex-1 px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+      <button id="attLoadBtn" class="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium transition-colors">Load</button>
+    </div>
+    <div id="attGroupBadge" class="hidden text-xs font-medium px-2 py-1 rounded-full bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 inline-block"></div>
+    <div id="attStudents" class="space-y-2"></div>
+    <div id="attActions" class="hidden flex gap-2">
+      <button id="attSaveBtn" class="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium transition-colors">Save</button>
+      <button id="attCreateBtn" class="flex-1 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium transition-colors">Create</button>
+      <button id="attDeleteBtn" class="flex-1 py-2 rounded-lg border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium transition-colors">Delete</button>
+    </div>
+  </div>
+
+  <!-- Leaves sub-tab -->
+  <div id="attLeavesTab" class="hidden space-y-3">
+    <div class="flex items-center justify-between">
+      <p class="text-xs text-zinc-500">Leave requests from interns</p>
+      <select id="leaveStatusFilter" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50">
+        <option value="">All</option>
+        <option value="pending">Pending</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+      </select>
+    </div>
+    <div id="leavesList" class="space-y-2"></div>
+  </div>
+
+  <!-- Pass sub-tab -->
+  <div id="attPassTab" class="hidden flex flex-col items-center gap-4 py-4">
+    <div class="flex items-center gap-3">
+      <button id="passStartBtn" class="px-6 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium transition-colors">Start</button>
+      <button id="passStopBtn" class="px-6 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium hidden transition-colors">Stop</button>
+    </div>
+    <p id="passStatus" class="text-xs text-zinc-500"></p>
+    <div id="passGrid" class="hidden grid grid-cols-2 gap-2 w-full max-w-md"></div>
+  </div>
 </div>

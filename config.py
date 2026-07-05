@@ -33,6 +33,8 @@ class Settings(BaseSettings):
 
     face_model_name: str = "insightface-arcface"
 
+    rate_limit_default: str = "60/minute"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
