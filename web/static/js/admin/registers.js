@@ -309,6 +309,7 @@
         grid.classList.toggle("hidden", codes.length === 0);
         startBtn.classList.toggle("hidden", codes.length > 0);
         stopBtn.classList.toggle("hidden", codes.length === 0);
+        stopBtn.disabled = false;
 
         if (codes.length && !passAnimFrame) {
           passAnimFrame = requestAnimationFrame(animatePass);

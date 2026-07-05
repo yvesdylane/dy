@@ -23,6 +23,7 @@ from routes.api.photos import router as photos_api_router
 from routes.api.attendance import router as attendance_api_router
 from routes.api.leaves import router as leaves_api_router
 from routes.api.pass_codes import router as pass_api_router
+from routes.api.tasks import router as tasks_api_router
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ app.add_exception_handler(429, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 templates = Jinja2Templates(directory="web/templates")
 app.state.templates = templates
@@ -70,3 +72,4 @@ app.include_router(photos_api_router)
 app.include_router(attendance_api_router)
 app.include_router(leaves_api_router)
 app.include_router(pass_api_router)
+app.include_router(tasks_api_router)
