@@ -142,6 +142,8 @@ async def _show_update_menu(update: Update, context, text="What would you like t
     keyboard = [
         [InlineKeyboardButton("Name", callback_data="update_name"),
          InlineKeyboardButton("Surname", callback_data="update_surname")],
+        [InlineKeyboardButton("Phone", callback_data="update_phone"),
+         InlineKeyboardButton("School", callback_data="update_school")],
         [InlineKeyboardButton("Gender", callback_data="update_gender")],
         [InlineKeyboardButton("Done", callback_data="update_done")],
     ]
@@ -170,7 +172,7 @@ async def update_field_callback(update: Update, context):
         return ConversationHandler.END
 
     context.user_data["update_field"] = field
-    labels = {"name": "Name", "surname": "Surname", "gender": "Gender (male/female)"}
+    labels = {"name": "Name", "surname": "Surname", "phone": "Phone", "school": "School", "gender": "Gender (male/female)"}
     await query.edit_message_text(f"Enter your new {labels.get(field, field)}:")
     return UPDATE_VALUE
 
@@ -194,6 +196,12 @@ async def update_value(update: Update, context):
             user.name = value
         elif field == "surname":
             user.surname = value
+        elif field == "phone":
+            if not value.startswith("+"):
+                value = "+237" + value
+            user.phone = value
+        elif field == "school":
+            user.school = value
         elif field == "gender":
             try:
                 user.gender = Gender(value.lower())
