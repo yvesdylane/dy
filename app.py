@@ -2,18 +2,19 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from telegram import Bot
 
 from config import settings
 from cronjobs.scheduler import start_scheduler, stop_scheduler
 from middleware.rate_limit import limiter
 from db.database import init_db, close_db
+from bot.router import init_bot, shutdown_bot, process_update, application
+from bot.commands import handlers
 from routes import auth as auth_routes
 from routes import web as web_routes
 from routes.adminRoutes import router as admin_router
@@ -36,14 +37,14 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     loop = asyncio.get_running_loop()
     await loop.run_in_executor(None, init_db)
-    bot = Bot(token=settings.bot_token)
-    await bot.initialize()
+    await init_bot(handlers)
+    bot = application.bot if application else None
     app.state.bot = bot
     start_scheduler(bot)
     logger.info("Application started")
     yield
     stop_scheduler()
-    await bot.shutdown()
+    await shutdown_bot()
     await loop.run_in_executor(None, close_db)
     logger.info("Application shut down")
 
@@ -82,3 +83,11 @@ app.include_router(tasks_api_router)
 app.include_router(notes_api_router)
 app.include_router(info_api_router)
 app.include_router(complaints_api_router)
+
+
+@app.post("/telegram")
+async def telegram_webhook(request: Request):
+    data = await request.json()
+    logger.debug("Telegram update received")
+    await process_update(data)
+    return {"ok": True}

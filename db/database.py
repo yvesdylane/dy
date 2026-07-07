@@ -3,6 +3,7 @@ import logging
 import subprocess
 import sys
 from collections.abc import AsyncGenerator, Generator
+from contextlib import contextmanager
 from pathlib import Path
 
 from sqlalchemy import create_engine, text
@@ -149,12 +150,13 @@ async def get_db() -> AsyncGenerator[Session, None]:
         await loop.run_in_executor(None, session.close)
 
 
+@contextmanager
 def get_sync_db() -> Generator[Session, None, None]:
     """Sync version of get_db for non-async contexts."""
     if SyncSession is None:
         raise RuntimeError("Database not initialized. Call init_db() first.")
 
-    session = SyncSession()
+    session = SyncSession(expire_on_commit=False)
     try:
         yield session
         session.commit()
