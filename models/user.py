@@ -8,11 +8,28 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Integer,
-    LargeBinary,
     Numeric,
     String,
 )
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import UserDefinedType
+
+
+class RawBinary(UserDefinedType):
+    cache_ok = True
+
+    def get_col_spec(self, **kw):
+        return "BLOB"
+
+    def bind_processor(self, dialect):
+        def process(value):
+            return value
+        return process
+
+    def result_processor(self, dialect, coltype):
+        def process(value):
+            return value
+        return process
 
 from db.database import Base
 from models.enums import Department, Gender, Group, Role
@@ -86,7 +103,7 @@ class FaceEmbedding(Base):
         nullable=False,
         index=True,
     )
-    embedding = Column(LargeBinary, nullable=False)
+    embedding = Column(RawBinary, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

@@ -49,22 +49,37 @@ async def upload_user_photo(
         raise HTTPException(status_code=400, detail="Only image files allowed")
 
     # send to Telegram group
-    try:
-        msg = await bot.send_photo(
-            chat_id=settings.telegram_group_id,
-            photo=InputFile(BytesIO(file_bytes), filename=file.filename or "photo.jpg"),
+    file_id = None
+    if bot is not None:
+        try:
+            msg = await bot.send_photo(
+                chat_id=settings.telegram_group_id,
+                photo=InputFile(BytesIO(file_bytes), filename=file.filename or "photo.jpg"),
+            )
+            file_id = msg.photo[-1].file_id
+        except Exception as e:
+            logger.warning("Current bot failed to upload photo: %s", e)
+    if file_id is None and settings.old_bot_token:
+        logger.info("Trying old_bot_token to upload photo")
+        file_id = await loop.run_in_executor(
+            None, _try_upload, settings.old_bot_token,
+            settings.telegram_group_id, file_bytes, file.filename or "photo.jpg",
         )
-        file_id = msg.photo[-1].file_id
-    except Exception as e:
-        logger.error("Failed to upload photo to Telegram: %s", e)
+    if file_id is None:
         raise HTTPException(status_code=502, detail="Failed to upload photo to Telegram")
 
     # download full quality from Telegram
-    try:
-        tg_file = await bot.get_file(file_id)
-        full_bytes = bytes(await tg_file.download_as_bytearray())
-    except Exception as e:
-        logger.error("Failed to download file from Telegram: %s", e)
+    full_bytes = None
+    if bot is not None:
+        try:
+            tg_file = await bot.get_file(file_id)
+            full_bytes = bytes(await tg_file.download_as_bytearray())
+        except Exception as e:
+            logger.warning("Current bot failed to download after upload: %s", e)
+    if full_bytes is None and settings.old_bot_token:
+        logger.info("Trying old_bot_token to download after upload")
+        full_bytes = await loop.run_in_executor(None, _try_download, settings.old_bot_token, file_id)
+    if full_bytes is None:
         raise HTTPException(status_code=502, detail="Failed to download photo from Telegram")
 
     # cache thumbnail locally
@@ -94,6 +109,51 @@ async def upload_user_photo(
     return {"ok": True, "photo_url": f"/api/admin/users/{user_id}/photo"}
 
 
+TELEGRAM_FILE_API = "https://api.telegram.org/bot{token}/getFile?file_id={file_id}"
+TELEGRAM_DL_API = "https://api.telegram.org/file/bot{token}/{file_path}"
+
+
+def _try_download(token: str, file_id: str) -> bytes | None:
+    import httpx
+    try:
+        info_resp = httpx.get(
+            TELEGRAM_FILE_API.format(token=token, file_id=file_id),
+            timeout=15,
+        )
+        info_resp.raise_for_status()
+        file_path = info_resp.json()["result"]["file_path"]
+        dl_resp = httpx.get(
+            TELEGRAM_DL_API.format(token=token, file_path=file_path),
+            timeout=30,
+        )
+        dl_resp.raise_for_status()
+        return dl_resp.content
+    except Exception:
+        return None
+
+
+TELEGRAM_SEND_PHOTO_API = "https://api.telegram.org/bot{token}/sendPhoto"
+
+
+def _try_upload(token: str, chat_id: int, file_bytes: bytes, filename: str) -> str | None:
+    import httpx
+    try:
+        resp = httpx.post(
+            TELEGRAM_SEND_PHOTO_API.format(token=token),
+            data={"chat_id": chat_id},
+            files={"photo": (filename, file_bytes, "image/jpeg")},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        result = resp.json()
+        if not result.get("ok"):
+            return None
+        photos = result["result"]["photo"]
+        return photos[-1]["file_id"]
+    except Exception:
+        return None
+
+
 @router.get("/users/{user_id}/photo")
 async def serve_user_photo(
     user_id: int,
@@ -112,12 +172,19 @@ async def serve_user_photo(
     if not user or not user.image:
         raise HTTPException(status_code=404, detail="No photo available")
 
-    try:
-        tg_file = await bot.get_file(user.image)
-        full_bytes = bytes(await tg_file.download_as_bytearray())
-    except Exception as e:
-        logger.error("Failed to download photo from Telegram: %s", e)
-        raise HTTPException(status_code=502, detail="Failed to download photo")
+    full_bytes = None
+    if bot is not None:
+        try:
+            tg_file = await bot.get_file(user.image)
+            full_bytes = bytes(await tg_file.download_as_bytearray())
+        except Exception as e:
+            logger.warning("Current bot failed to download photo for user %d: %s", user_id, e)
+
+    if full_bytes is None and settings.old_bot_token:
+        full_bytes = await loop.run_in_executor(None, _try_download, settings.old_bot_token, user.image)
+
+    if full_bytes is None:
+        raise HTTPException(status_code=404, detail="No photo available")
 
     os.makedirs(CACHE_DIR, exist_ok=True)
     thumb = await loop.run_in_executor(None, resize_for_cache, full_bytes)

@@ -38,7 +38,7 @@ async def init_bot(handler_list: list):
                 menu_button={
                     "type": "web_app",
                     "text": "dy",
-                    "web_app": {"url": f"{base_url}/app"},
+                    "web_app": {"url": base_url},
                 }
             )
             logger.info("Mini app menu button set")

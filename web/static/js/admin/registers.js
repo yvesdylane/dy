@@ -45,6 +45,35 @@
   document.getElementById("attSaveBtn")?.addEventListener("click", saveAttendance);
   document.getElementById("attDeleteBtn")?.addEventListener("click", deleteAttendance);
 
+  // ── Search toggle & filter ──
+  var attSearchVisible = false;
+  document.getElementById("attSearchBtn").addEventListener("click", function () {
+    attSearchVisible = !attSearchVisible;
+    var bar = document.getElementById("attSearchBar");
+    bar.classList.toggle("hidden", !attSearchVisible);
+    if (attSearchVisible) {
+      document.getElementById("attSearchInput").focus();
+    } else {
+      document.getElementById("attSearchInput").value = "";
+      filterAttendance("");
+    }
+  });
+
+  document.getElementById("attSearchInput").addEventListener("input", function () {
+    filterAttendance(this.value);
+  });
+
+  function filterAttendance(query) {
+    var rows = document.querySelectorAll("#attStudents > div[data-user-id]");
+    var q = query.toLowerCase().trim();
+    rows.forEach(function (row) {
+      var nameEl = row.querySelector("span");
+      if (!nameEl) return;
+      var name = nameEl.textContent.toLowerCase();
+      row.style.display = (!q || name.indexOf(q) !== -1) ? "" : "none";
+    });
+  }
+
   loadAttendance();
 
   function loadAttendance() {
@@ -59,6 +88,8 @@
         if (!data.ok) throw new Error("Failed");
         window._attId = data.attendance_id;
         renderAttendance(data);
+        var input = document.getElementById("attSearchInput");
+        if (input && input.value) filterAttendance(input.value);
       })
       .catch(function () {
         list.innerHTML = '<p class="text-center py-8 text-red-400 text-sm">Failed to load attendance.</p>';
@@ -309,6 +340,8 @@
         grid.classList.toggle("hidden", codes.length === 0);
         startBtn.classList.toggle("hidden", codes.length > 0);
         stopBtn.classList.toggle("hidden", codes.length === 0);
+        var modeSelect = document.getElementById("passModeSelect");
+        if (modeSelect) modeSelect.disabled = codes.length > 0;
         stopBtn.disabled = false;
 
         if (codes.length && !passAnimFrame) {
@@ -322,9 +355,15 @@
 
   function startPass() {
     var btn = document.getElementById("passStartBtn");
+    var modeSelect = document.getElementById("passModeSelect");
+    var mode = modeSelect ? modeSelect.value : "entry";
     btn.disabled = true;
     btn.textContent = "Starting...";
-    fetch("/api/admin/codes/pass/start", { method: "POST" })
+    fetch("/api/admin/codes/pass/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode: mode }),
+    })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         btn.disabled = false; btn.textContent = "Start";
@@ -354,6 +393,8 @@
     document.getElementById("passStatus").textContent = "0/16 active";
     document.getElementById("passStartBtn").classList.remove("hidden");
     document.getElementById("passStopBtn").classList.add("hidden");
+    var modeSelect = document.getElementById("passModeSelect");
+    if (modeSelect) modeSelect.disabled = false;
   }
 
   // ========== Utilities ==========

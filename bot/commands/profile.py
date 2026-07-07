@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import os
 
 from sqlalchemy import select
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -6,6 +8,7 @@ from telegram.ext import CallbackQueryHandler, CommandHandler, ConversationHandl
 
 from bot.common import get_user_sync, reply_fn
 from bot.files import upload_file_to_group
+from controllers.face import resize_for_cache
 from db.database import get_sync_db
 from models.complaint import Complaint
 from models.enums import ComplainType, Gender
@@ -16,6 +19,8 @@ logger = logging.getLogger(__name__)
 IMAGE_PHOTO = 0
 COMPLAIN_TYPE, COMPLAIN_CONTENT = range(2)
 UPDATE_SELECT, UPDATE_VALUE = range(2)
+
+CACHE_DIR = "uploads/cache/users"
 
 
 async def _cancel(update: Update, _context):
@@ -52,6 +57,16 @@ async def image_handle_photo(update: Update, context):
         u = session.execute(select(User).where(User.telegram_id == telegram_id)).scalar_one_or_none()
         if u:
             u.image = file_id
+
+    # Cache thumbnail locally
+    try:
+        loop = asyncio.get_running_loop()
+        thumb = await loop.run_in_executor(None, resize_for_cache, bytes(photo_bytes))
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        cache_path = os.path.join(CACHE_DIR, f"{u.id}.jpg")
+        await loop.run_in_executor(None, lambda: open(cache_path, "wb").write(thumb))
+    except Exception as e:
+        logger.warning("Failed to cache profile photo for user %d: %s", u.id if u else 0, e)
 
     await reply("Profile picture updated!")
     return ConversationHandler.END
@@ -141,10 +156,11 @@ complain_conv = ConversationHandler(
 async def _show_update_menu(update: Update, context, text="What would you like to update?"):
     keyboard = [
         [InlineKeyboardButton("Name", callback_data="update_name"),
-         InlineKeyboardButton("Surname", callback_data="update_surname")],
+         InlineKeyboardButton("Surname", callback_data="update_surname"),
+         InlineKeyboardButton("Email", callback_data="update_email")],
         [InlineKeyboardButton("Phone", callback_data="update_phone"),
-         InlineKeyboardButton("School", callback_data="update_school")],
-        [InlineKeyboardButton("Gender", callback_data="update_gender")],
+         InlineKeyboardButton("School", callback_data="update_school"),
+         InlineKeyboardButton("Gender", callback_data="update_gender")],
         [InlineKeyboardButton("Done", callback_data="update_done")],
     ]
     if update.callback_query:
@@ -172,7 +188,7 @@ async def update_field_callback(update: Update, context):
         return ConversationHandler.END
 
     context.user_data["update_field"] = field
-    labels = {"name": "Name", "surname": "Surname", "phone": "Phone", "school": "School", "gender": "Gender (male/female)"}
+    labels = {"name": "Name", "surname": "Surname", "email": "Email", "phone": "Phone", "school": "School", "gender": "Gender (male/female)"}
     await query.edit_message_text(f"Enter your new {labels.get(field, field)}:")
     return UPDATE_VALUE
 
@@ -202,6 +218,8 @@ async def update_value(update: Update, context):
             user.phone = value
         elif field == "school":
             user.school = value
+        elif field == "email":
+            user.email = value
         elif field == "gender":
             try:
                 user.gender = Gender(value.lower())

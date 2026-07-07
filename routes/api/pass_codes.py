@@ -14,8 +14,10 @@ async def start_pass_endpoint(
     request: Request,
     current_user: User = Depends(get_current_user),
 ):
-    codes = start_pass()
-    return {"ok": True, "codes": codes}
+    body = await request.json()
+    mode = body.get("mode", "entry")
+    codes = start_pass(mode=mode)
+    return {"ok": True, "codes": codes, "mode": mode}
 
 
 @router.get("/pass/active")

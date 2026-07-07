@@ -220,11 +220,17 @@
       if (u.quarter) meta += " \u00b7 " + esc(u.quarter);
       meta += " \u00b7 " + esc(u.phone);
 
+      var initials = (u.name[0] + u.surname[0]).toUpperCase();
+      var avatarHtml = u.photo_url
+        ? '<img src="' + u.photo_url + '" class="w-full h-full object-cover" loading="lazy">'
+        : '<span class="text-xs font-bold text-brand-700 dark:text-brand-300">' + initials + '</span>';
+      var avatarClass = u.photo_url
+        ? 'w-9 h-9 rounded-full shrink-0 overflow-hidden'
+        : 'w-9 h-9 rounded-full bg-brand-200 dark:bg-brand-800 text-brand-700 dark:text-brand-300 flex items-center justify-center text-xs font-bold shrink-0';
+
       html += '<div class="user-row p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors" onclick="openEditUserModal(' + u.id + ')">'
         + '<div class="flex items-center gap-3 min-w-0 flex-1">'
-        + '<div class="w-9 h-9 rounded-full bg-brand-200 dark:bg-brand-800 text-brand-700 dark:text-brand-300 flex items-center justify-center text-xs font-bold shrink-0">'
-        + (u.name[0] + u.surname[0]).toUpperCase()
-        + '</div>'
+        + '<div class="' + avatarClass + '">' + avatarHtml + '</div>'
         + '<div class="min-w-0 flex-1">'
         + '<p class="font-medium text-sm truncate">' + esc(u.name) + ' ' + esc(u.surname) + '</p>'
         + '<p class="text-xs text-zinc-500 truncate">' + meta + '</p>'
@@ -234,6 +240,10 @@
         + '</div>';
     });
     list.innerHTML = html;
+    // Pre-cache profile images for instant subsequent loads
+    users.forEach(function (u) {
+      if (u.photo_url) { var img = new Image(); img.src = u.photo_url; }
+    });
   }
 
   function updatePagination(total) {
@@ -396,12 +406,21 @@
         window.closeModal();
         var savedId = saved.id || userId;
         if (pendingPhotoFile) {
-          return uploadPhoto(savedId, pendingPhotoFile).then(function () {
-            pendingPhotoFile = null;
+          var file = pendingPhotoFile;
+          pendingPhotoFile = null;
+          uploadPhoto(savedId, file).then(function () {
+            var currentUserId = document.getElementById("appView").getAttribute("data-current-user-id");
+            if (currentUserId && parseInt(currentUserId) === savedId) {
+              window.refreshHeaderAvatar(savedId);
+            }
             fetchUsers();
+          }).catch(function () {
+            fetchUsers();
+            setTimeout(function () { alert("Photo upload failed. User data was saved."); }, 100);
           });
+        } else {
+          fetchUsers();
         }
-        fetchUsers();
       })
       .catch(function () {
         savingUser = false;

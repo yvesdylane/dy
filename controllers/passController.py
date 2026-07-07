@@ -6,7 +6,8 @@ CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 POOL_SIZE = 16
 CODE_TTL_SECONDS = 60
 
-_pool: dict[str, datetime] = {}
+_pool: dict[str, tuple[datetime, str]] = {}
+_current_mode: str = "entry"
 _lock = threading.Lock()
 
 
@@ -19,8 +20,9 @@ def _generate_code(existing: set[str] | None = None) -> str:
             return code
 
 
-def start_pass() -> list[dict]:
-    global _pool
+def start_pass(mode: str = "entry") -> list[dict]:
+    global _pool, _current_mode
+    _current_mode = mode
     now = datetime.now(timezone.utc)
     expires_at = now + timedelta(seconds=CODE_TTL_SECONDS)
     seen: set[str] = set()
@@ -29,24 +31,28 @@ def start_pass() -> list[dict]:
         _pool.clear()
         for _ in range(POOL_SIZE):
             code_str = _generate_code(seen)
-            _pool[code_str] = expires_at
-            codes.append({"code": code_str, "expires_at": expires_at.isoformat()})
+            _pool[code_str] = (expires_at, mode)
+            codes.append({
+                "code": code_str,
+                "expires_at": expires_at.isoformat(),
+                "mode": mode,
+            })
     return codes
 
 
 def get_active_codes() -> list[dict]:
     now = datetime.now(timezone.utc)
     with _lock:
-        expired = [c for c, exp in _pool.items() if exp <= now]
+        expired = [c for c, (exp, _) in _pool.items() if exp <= now]
         for c in expired:
             del _pool[c]
         while len(_pool) < POOL_SIZE:
             code_str = _generate_code(set(_pool.keys()))
             exp = datetime.now(timezone.utc) + timedelta(seconds=CODE_TTL_SECONDS)
-            _pool[code_str] = exp
+            _pool[code_str] = (exp, _current_mode)
         result = [
-            {"code": c, "expires_at": exp.isoformat()}
-            for c, exp in _pool.items()
+            {"code": c, "expires_at": exp.isoformat(), "mode": md}
+            for c, (exp, md) in _pool.items()
         ]
     return result
 
@@ -56,15 +62,18 @@ def stop_pass() -> None:
         _pool.clear()
 
 
-def use_code(code_str: str) -> bool:
-    """Validate and consume a pass code. Returns True if valid."""
+def use_code(code_str: str) -> tuple[bool, str | None]:
+    """Validate and consume a pass code.
+    Returns (valid, mode) or (False, None).
+    """
     now = datetime.now(timezone.utc)
     with _lock:
-        exp = _pool.get(code_str)
-        if exp is None:
-            return False
+        entry = _pool.get(code_str)
+        if entry is None:
+            return False, None
+        exp, mode = entry
         if exp <= now:
             del _pool[code_str]
-            return False
+            return False, None
         del _pool[code_str]
-    return True
+    return True, mode

@@ -236,10 +236,34 @@
     }
   });
 
+  // --- Header avatar ---
+  function refreshHeaderAvatar(userId) {
+    var el = document.getElementById("headerAvatar");
+    if (!el) return;
+    var src = "/api/admin/users/" + userId + "/photo?t=" + Date.now();
+    if (el.tagName === "IMG") {
+      el.src = src;
+    } else {
+      var img = document.createElement("img");
+      img.id = "headerAvatar";
+      img.className = "w-8 h-8 rounded-lg object-cover border-2 border-brand-500 shrink-0";
+      img.src = src;
+      img.onerror = function () {
+        var div = document.createElement("div");
+        div.id = "headerAvatar";
+        div.className = "w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm shrink-0";
+        div.textContent = "A";
+        img.parentNode.replaceChild(div, img);
+      };
+      el.parentNode.replaceChild(img, el);
+    }
+  }
+
   // --- Expose globals ---
   window.loadPage = loadPage;
   window.openModal = openModal;
   window.closeModal = closeModal;
+  window.refreshHeaderAvatar = refreshHeaderAvatar;
 
   window.withGuard = function (btn, loadingText, fn) {
     if (typeof loadingText === "function") {

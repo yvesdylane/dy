@@ -42,6 +42,24 @@ async def handle_attendance_code(update: Update, _context):
             )
             return
 
+        fees_paid = float(user.fees_paid or 0)
+        if user.role == "intern" and fees_paid < 20000:
+            from config import settings
+
+            if date.today() >= settings.fee_block_start_date:
+                await update.message.reply_text(
+                    f"⚠️ Your fees ({fees_paid:,.0f} FCFA) are below 20,000 FCFA. "
+                    "Starting this week, attendance is blocked until fees are "
+                    "resolved. Contact the admin."
+                )
+                return
+            else:
+                await update.message.reply_text(
+                    f"⚠️ Reminder: your fees ({fees_paid:,.0f} FCFA) are below 20,000 FCFA. "
+                    "Starting next week you won't be able to take attendance. "
+                    "Please settle your fees."
+                )
+
         att = session.execute(
             select(Attendance).where(
                 Attendance.date == today,

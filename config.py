@@ -1,3 +1,5 @@
+from datetime import date
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -34,6 +36,10 @@ class Settings(BaseSettings):
     face_model_name: str = "insightface-arcface"
 
     rate_limit_default: str = "60/minute"
+
+    fee_block_start_date: date = date(2026, 7, 14)
+
+    old_bot_token: str | None = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

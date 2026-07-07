@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 async def start(update: Update, _context):
     telegram_id = str(update.effective_user.id)
-    mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app"
+    mini_app_url = settings.mini_app_url.rstrip("/")
     button = InlineKeyboardButton("Open App", web_app=WebAppInfo(url=mini_app_url))
     keyboard = InlineKeyboardMarkup([[button]])
 
@@ -21,7 +21,7 @@ async def start(update: Update, _context):
             menu_button={
                 "type": "web_app",
                 "text": "dy",
-                "web_app": {"url": f"{settings.mini_app_url.rstrip('/')}/app"},
+                "web_app": {"url": settings.mini_app_url.rstrip("/")},
             }
         )
     except Exception as e:
@@ -63,7 +63,7 @@ async def me(update: Update, _context):
 
     user = get_user_sync(telegram_id)
     if not user:
-        mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app"
+        mini_app_url = settings.mini_app_url.rstrip("/")
         button = InlineKeyboardButton("Create Account", web_app=WebAppInfo(url=mini_app_url))
         keyboard = InlineKeyboardMarkup([[button]])
         await reply_text(
@@ -105,7 +105,7 @@ async def me(update: Update, _context):
 
 async def dashboard(update: Update, _context):
     telegram_id = str(update.effective_user.id)
-    mini_app_url = f"{settings.mini_app_url.rstrip('/')}/app?telegram_id={telegram_id}"
+    mini_app_url = f"{settings.mini_app_url.rstrip('/')}?telegram_id={telegram_id}"
     button = InlineKeyboardButton("Open Dashboard", web_app=WebAppInfo(url=mini_app_url))
     keyboard = InlineKeyboardMarkup([[button]])
     await update.message.reply_text(
