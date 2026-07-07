@@ -20,7 +20,6 @@ PAGES = {
     "leaves": "admin/sections/leaves.html",
     "pass": "admin/sections/pass.html",
     "tasks": "admin/sections/tasks.html",
-    "cleaning": "admin/sections/cleaning.html",
     "notes": "admin/sections/notes.html",
     "info": "admin/sections/info.html",
     "complaints": "admin/sections/complaints.html",

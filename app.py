@@ -11,6 +11,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from telegram import Bot
 
 from config import settings
+from cronjobs.scheduler import start_scheduler, stop_scheduler
 from middleware.rate_limit import limiter
 from db.database import init_db, close_db
 from routes import auth as auth_routes
@@ -38,8 +39,10 @@ async def lifespan(app: FastAPI):
     bot = Bot(token=settings.bot_token)
     await bot.initialize()
     app.state.bot = bot
+    start_scheduler(bot)
     logger.info("Application started")
     yield
+    stop_scheduler()
     await bot.shutdown()
     await loop.run_in_executor(None, close_db)
     logger.info("Application shut down")
