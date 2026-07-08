@@ -6,10 +6,18 @@
     </select>
     <button id="passStartBtn" class="px-6 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium transition-colors">Start</button>
     <button id="passStopBtn" class="px-6 py-2.5 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium hidden transition-colors">Stop</button>
-    <button id="passCameraBtn" class="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors opacity-50 cursor-not-allowed" disabled title="Coming soon">
+    <button id="passCameraBtn" class="px-6 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
       <svg class="w-5 h-5 inline-block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
     </button>
   </div>
   <p id="passStatus" class="text-xs text-zinc-500"></p>
   <div id="passGrid" class="hidden grid grid-cols-2 gap-2 w-full max-w-md"></div>
+  <div id="passCameraContainer" class="hidden flex-col items-center gap-2 w-full max-w-md">
+    <div class="relative w-full">
+      <video id="passVideo" autoplay playsinline class="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-black"></video>
+      <canvas id="passCanvas" class="absolute inset-0 w-full h-full pointer-events-none"></canvas>
+    </div>
+    <div id="passDetectedList" class="w-full space-y-1 text-sm"></div>
+    <button id="passCameraStopBtn" class="w-full py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white text-sm font-medium transition-colors">Stop Camera</button>
+  </div>
 </div>
