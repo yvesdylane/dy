@@ -7,8 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     database_url: str
 
-    turso_auth_token: str = Field(
-        alias="TURSO_AUTH_TOKEN"
+    turso_auth_token: str | None = Field(
+        default=None, alias="TURSO_AUTH_TOKEN"
     )
 
     bot_token: str = Field(

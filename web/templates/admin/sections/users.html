@@ -21,14 +21,14 @@
         <svg class="w-5 h-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
       <div class="flex gap-1.5 overflow-x-auto flex-1 pb-1 scrollbar-hide">
-        <select id="filterRole" onchange="loadUsers()" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 shrink-0">
+        <select id="filterRole" onchange="loadUsers(true)" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 shrink-0">
           <option value="">All Roles</option>
           <option value="intern">Intern</option>
           <option value="instructor">Instructor</option>
           <option value="admin">Admin</option>
           <option value="super_admin">Super Admin</option>
         </select>
-        <select id="filterDept" onchange="loadUsers()" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 shrink-0">
+        <select id="filterDept" onchange="loadUsers(true)" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 shrink-0">
           <option value="">All Depts</option>
           <option value="ISM">ISM</option>
           <option value="SWE">SWE</option>
@@ -38,12 +38,12 @@
           <option value="DBMS">DBMS</option>
           <option value="NWS">NWS</option>
         </select>
-        <select id="filterGroup" onchange="loadUsers()" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 shrink-0">
+        <select id="filterGroup" onchange="loadUsers(true)" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 shrink-0">
           <option value="">All Groups</option>
           <option value="A">A</option>
           <option value="B">B</option>
         </select>
-        <select id="filterGender" onchange="loadUsers()" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 shrink-0">
+        <select id="filterGender" onchange="loadUsers(true)" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 shrink-0">
           <option value="">All Genders</option>
           <option value="male">Male</option>
           <option value="female">Female</option>

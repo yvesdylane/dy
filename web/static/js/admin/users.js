@@ -2,8 +2,21 @@
   'use strict';
 
   var currentPage = 0;
-  var pageLimit = 50;
+  var pageLimit = 20;
   var searchTimer = null;
+  var initialFeesMin = null;
+  var initialFullyPaid = null;
+
+  var df = window.dashboardFilter;
+  if (df) {
+    window.dashboardFilter = null;
+    if (df.role) {
+      var roleSel = document.getElementById("filterRole");
+      if (roleSel) roleSel.value = df.role;
+    }
+    if (df.fees_paid_min) initialFeesMin = df.fees_paid_min;
+    if (df.fully_paid) initialFullyPaid = true;
+  }
 
   loadUsers();
 
@@ -163,8 +176,12 @@
   }
 
   // --- Load ---
-  function loadUsers() {
+  function loadUsers(resetFee) {
     currentPage = 0;
+    if (resetFee) {
+      initialFeesMin = null;
+      initialFullyPaid = null;
+    }
     fetchUsers();
   }
 
@@ -180,6 +197,8 @@
     if (dept) params += "&department=" + dept;
     if (group) params += "&group=" + group;
     if (gender) params += "&gender=" + gender;
+    if (initialFeesMin) params += "&fees_paid_min=" + initialFeesMin;
+    if (initialFullyPaid) params += "&fully_paid=true";
     return params;
   }
 
@@ -265,6 +284,8 @@
     clearTimeout(searchTimer);
     searchTimer = setTimeout(function () {
       currentPage = 0;
+      initialFeesMin = null;
+      initialFullyPaid = null;
       fetchUsers();
     }, 300);
   }
@@ -272,6 +293,7 @@
   // --- Edit / Create modal ---
   function openEditUserModal(userId) {
     pendingPhotoFile = null;
+    editingUserId = userId;
     fetch("/api/admin/users/" + userId)
       .then(function (r) { return r.json(); })
       .then(function (u) {
@@ -290,6 +312,7 @@
   }
 
   var pendingPhotoFile = null;
+  var editingUserId = null;
   var savingUser = false;
   var deletingUser = false;
 
@@ -319,6 +342,16 @@
       + field("surname", "Last name", u ? u.surname : "", false)
       + '</div>'
       + '</div>'
+      + (isEdit
+        ? '<div class="mb-4 -mt-2">'
+          + '<button type="button" id="addEmbeddingBtn" class="text-xs text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 flex items-center gap-1 transition-colors">'
+          + '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>'
+          + ' Add face photo for recognition'
+          + '</button>'
+          + '<input type="file" id="embeddingInput" accept="image/*" class="hidden">'
+          + '<span id="embeddingStatus" class="text-xs ml-2"></span>'
+        + '</div>'
+        : '')
       + '<div class="space-y-3">'
       + '<div class="grid grid-cols-2 gap-3">'
       + field("quarter", "Quarter/Neighborhood", u ? (u.quarter || "") : "", false)
@@ -409,10 +442,7 @@
           var file = pendingPhotoFile;
           pendingPhotoFile = null;
           uploadPhoto(savedId, file).then(function () {
-            var currentUserId = document.getElementById("appView").getAttribute("data-current-user-id");
-            if (currentUserId && parseInt(currentUserId) === savedId) {
-              window.refreshHeaderAvatar(savedId);
-            }
+            window.refreshHeaderAvatar(savedId);
             fetchUsers();
           }).catch(function () {
             fetchUsers();
@@ -476,6 +506,48 @@
         wrap.innerHTML = '<img id="photoPreview" src="' + ev.target.result + '" class="w-14 h-14 rounded-full object-cover">';
       };
       reader.readAsDataURL(file);
+    }
+  });
+
+  // --- Embedding upload handler ---
+  document.addEventListener("click", function (e) {
+    if (e.target.id === "addEmbeddingBtn" || e.target.closest("#addEmbeddingBtn")) {
+      var input = document.getElementById("embeddingInput");
+      if (input) input.click();
+    }
+  });
+
+  document.addEventListener("change", function (e) {
+    if (e.target.id === "embeddingInput") {
+      var file = e.target.files[0];
+      if (!file) return;
+      if (!editingUserId) return;
+      var status = document.getElementById("embeddingStatus");
+      if (status) status.textContent = "Uploading...";
+      var form = new FormData();
+      form.append("file", file);
+      fetch("/api/admin/users/" + editingUserId + "/embeddings", {
+        method: "POST",
+        body: form,
+      })
+        .then(function (r) {
+          if (!r.ok) return r.json().then(function (d) { throw new Error(d.detail || r.status); });
+          return r.json();
+        })
+        .then(function (data) {
+          if (status) {
+            status.textContent = "\u2713 Face added (" + data.embeddings_count + " total)";
+            status.className = "text-xs ml-2 text-emerald-500";
+            setTimeout(function () { status.textContent = ""; }, 3000);
+          }
+        })
+        .catch(function (err) {
+          if (status) {
+            status.textContent = "\u2717 " + err.message;
+            status.className = "text-xs ml-2 text-red-400";
+            setTimeout(function () { status.textContent = ""; }, 3000);
+          }
+        });
     }
   });
 

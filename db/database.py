@@ -8,7 +8,6 @@ from pathlib import Path
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-from sqlalchemy.pool import NullPool
 
 from config import settings
 
@@ -21,7 +20,6 @@ class Base(DeclarativeBase):
 
 sync_engine = None
 SyncSession = None
-_is_turso = False
 
 
 def normalize_url(url: str) -> tuple[str, dict]:
@@ -30,7 +28,7 @@ def normalize_url(url: str) -> tuple[str, dict]:
         url = url.replace("libsql://", "sqlite+libsql://", 1)
         url += "?secure=true" if "?" not in url else "&secure=true"
         connect_args["auth_token"] = settings.turso_auth_token
-    elif url.startswith("sqlite") and "aiosqlite" in url:
+    elif url.startswith("sqlite://"):
         connect_args["check_same_thread"] = False
     return url, connect_args
 
@@ -101,28 +99,20 @@ def seed_default_user() -> None:
 
 
 def init_db():
-    global sync_engine, SyncSession, _is_turso
+    global sync_engine, SyncSession
 
-    raw_url = settings.database_url
-    _is_turso = "libsql" in raw_url
-
-    url, connect_args = normalize_url(raw_url)
-
-    kwargs: dict = {
-        "pool_pre_ping": True,
-        "connect_args": connect_args,
-    }
-
-    if _is_turso:
-        kwargs["poolclass"] = NullPool
-
-    sync_engine = create_engine(url, **kwargs)
+    url, connect_args = normalize_url(settings.database_url)
+    sync_engine = create_engine(
+        url,
+        pool_pre_ping=True,
+        connect_args=connect_args,
+    )
     SyncSession = sessionmaker(bind=sync_engine)
 
     run_migrations()
     seed_default_user()
 
-    logger.info("Database ready (url: %s)", raw_url)
+    logger.info("Database ready (url: %s)", settings.database_url)
 
 
 def close_db():

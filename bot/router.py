@@ -59,6 +59,9 @@ async def init_bot(handler_list: list):
                     BotCommand("submit", "Submit your task work"),
                     BotCommand("cancel", "Cancel current operation"),
                     BotCommand("skip", "Skip current step"),
+                    BotCommand("db", "Download database backup (admin)"),
+                    BotCommand("sync", "Sync from uploaded database file (admin)"),
+                    BotCommand("pics", "Download all profile pictures as archive (staff)"),
                 ],
                 scope=BotCommandScopeAllPrivateChats(),
             )

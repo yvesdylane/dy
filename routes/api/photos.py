@@ -109,6 +109,41 @@ async def upload_user_photo(
     return {"ok": True, "photo_url": f"/api/admin/users/{user_id}/photo"}
 
 
+def _count_embeddings(db: Session, user_id: int) -> int:
+    return db.query(FaceEmbedding).filter(FaceEmbedding.user_id == user_id).count()
+
+
+@router.post("/users/{user_id}/embeddings")
+async def add_user_embedding(
+    user_id: int,
+    request: Request,
+    file: UploadFile,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    loop = asyncio.get_running_loop()
+
+    file_bytes = await file.read()
+    if file.content_type and not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files allowed")
+
+    user = await loop.run_in_executor(None, _get_user, db, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    embedding = await loop.run_in_executor(None, extract_embedding, file_bytes)
+    if embedding is None:
+        raise HTTPException(status_code=400, detail="No face detected in image")
+
+    emb_bytes = embedding.tobytes()
+    await loop.run_in_executor(None, _save_embedding, db, user_id, emb_bytes)
+    db.commit()
+
+    count = await loop.run_in_executor(None, _count_embeddings, db, user_id)
+    logger.info("Face embedding appended for user %d (total %d)", user_id, count)
+    return {"ok": True, "embeddings_count": count}
+
+
 TELEGRAM_FILE_API = "https://api.telegram.org/bot{token}/getFile?file_id={file_id}"
 TELEGRAM_DL_API = "https://api.telegram.org/file/bot{token}/{file_path}"
 

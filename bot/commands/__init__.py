@@ -1,3 +1,4 @@
+from bot.commands.admin import admin_handlers
 from bot.commands.views import views_handlers
 from bot.commands.info import info_handlers
 from bot.commands.profile import profile_handlers
@@ -7,7 +8,8 @@ from bot.commands.link import link_handlers
 from bot.commands.attendance import attendance_handlers
 
 handlers = (
-    views_handlers
+    admin_handlers
+    + views_handlers
     + info_handlers
     + profile_handlers
     + tasks_handlers

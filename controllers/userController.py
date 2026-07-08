@@ -99,6 +99,8 @@ def search_users(
     department: Optional[Department] = None,
     group: Optional[Group] = None,
     gender: Optional[Gender] = None,
+    fees_paid_min: Optional[float] = None,
+    fully_paid: Optional[bool] = None,
     skip: int = 0,
     limit: int = 100,
 ) -> tuple[list[User], int]:
@@ -127,6 +129,13 @@ def search_users(
     if gender is not None:
         stmt = stmt.where(User.gender == gender)
         count_stmt = count_stmt.where(User.gender == gender)
+
+    if fees_paid_min is not None:
+        stmt = stmt.where(User.fees_paid >= fees_paid_min)
+        count_stmt = count_stmt.where(User.fees_paid >= fees_paid_min)
+    if fully_paid:
+        stmt = stmt.where(User.fees_paid >= User.total_fees)
+        count_stmt = count_stmt.where(User.fees_paid >= User.total_fees)
 
     total = db.scalar(count_stmt) or 0
     stmt = stmt.offset(skip).limit(limit).order_by(User.id.desc())

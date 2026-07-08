@@ -31,6 +31,19 @@ def get_stats(db: Session) -> dict:
         select(func.coalesce(func.sum(User.fees_paid), 0)).where(User.role == Role.intern)
     )
 
+    first_installment_paid = db.scalar(
+        select(func.count(User.id)).where(
+            User.role == Role.intern,
+            User.fees_paid >= 20000,
+        )
+    )
+    fully_paid = db.scalar(
+        select(func.count(User.id)).where(
+            User.role == Role.intern,
+            User.fees_paid >= User.total_fees,
+        )
+    )
+
     return {
         "total_users": total_users or 0,
         "interns": interns or 0,
@@ -42,4 +55,6 @@ def get_stats(db: Session) -> dict:
         "leave_requests": leave_requests or 0,
         "total_fees": float(total_fees or 0),
         "paid_fees": float(paid_fees or 0),
+        "first_installment_paid": first_installment_paid or 0,
+        "fully_paid": fully_paid or 0,
     }
