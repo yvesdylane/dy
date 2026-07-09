@@ -87,6 +87,11 @@ app.include_router(face_api_router)
 app.include_router(complaints_api_router)
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.post("/telegram")
 async def telegram_webhook(request: Request):
     data = await request.json()
