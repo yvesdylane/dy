@@ -132,6 +132,10 @@ def create_attendance(db: Session, d: date) -> Attendance:
 def save_attendance(
     db: Session, attendance_id: int, entries: list[dict]
 ) -> None:
+    att = db.get(Attendance, attendance_id)
+    if not att:
+        return
+    att_date = att.date
     for entry in entries:
         uid = entry["user_id"]
         ia = db.execute(
@@ -150,9 +154,9 @@ def save_attendance(
             continue
 
         if enter_str:
-            ia.enter_at = datetime.strptime(enter_str, "%H:%M").time()
+            ia.enter_at = datetime.combine(att_date, datetime.strptime(enter_str, "%H:%M").time())
         if left_str:
-            ia.left_at = datetime.strptime(left_str, "%H:%M").time()
+            ia.left_at = datetime.combine(att_date, datetime.strptime(left_str, "%H:%M").time())
     db.flush()
 
 

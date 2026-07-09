@@ -95,6 +95,12 @@ async def health():
 @app.post("/telegram")
 async def telegram_webhook(request: Request):
     data = await request.json()
-    logger.debug("Telegram update received")
+    msg_text = (
+        data.get("message", {}).get("text")
+        or data.get("message", {}).get("caption")
+        or data.get("edited_message", {}).get("text")
+        or "(non-text)"
+    )
     await process_update(data)
+    logger.info("MSG: %s \u2192 OK", msg_text)
     return {"ok": True}
