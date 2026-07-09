@@ -27,8 +27,11 @@ DEPARTMENT_MAP = {
     "SWE": Department.SWE,
     "CGWD": Department.CGWD,
     "EDM": Department.EDM,
+    "CSN": Department.CSN,
     "CSNW": Department.CSN,
+    "DBMS": Department.DBMS,
     "DBM": Department.DBMS,
+    "NWS": Department.NWS,
     "CNWS": Department.NWS,
     "NS": Department.NWS,
 }
