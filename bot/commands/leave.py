@@ -90,18 +90,62 @@ async def leave_reason_received(update: Update, context):
         await update.message.reply_text("User not found.")
         return ConversationHandler.END
 
+    leave_id = None
     with get_sync_db() as session:
-        session.add(LeaveRequest(
+        lr = LeaveRequest(
             user_id=user.id,
             date=date.fromisoformat(leave_date),
             reason=reason,
-        ))
+        )
+        session.add(lr)
+        session.flush()
+        leave_id = lr.id
 
     await update.message.reply_text(
         f"✅ Leave request submitted for *{leave_date}*. Waiting for approval.",
         parse_mode="Markdown",
     )
     context.user_data.pop("leave_date", None)
+
+    # Notify staff
+    try:
+        with get_sync_db() as session:
+            staff = session.execute(
+                select(User).where(
+                    User.role.in_([Role.admin, Role.instructor, Role.super_admin]),
+                    User.telegram_id.isnot(None),
+                    ~User.telegram_id.like("pending_%"),
+                )
+            ).scalars().all()
+
+        dept_info = user.department.value
+        if user.group:
+            dept_info += f" · Group {user.group.value}"
+        lines = [
+            f"📩 *New Leave Request*",
+            f"👤 {user.name} {user.surname}",
+            f"📂 {dept_info}",
+            f"📅 {leave_date}",
+            f"💬 {reason}",
+        ]
+        notif_text = "\n".join(lines)
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("👁 View & Review", callback_data=f"leave_view_{leave_id}")]
+        ])
+
+        for staff_user in staff:
+            try:
+                await context.bot.send_message(
+                    chat_id=int(staff_user.telegram_id),
+                    text=notif_text,
+                    reply_markup=keyboard,
+                    parse_mode="Markdown",
+                )
+            except Exception as e:
+                logger.warning("Failed to notify staff %s about leave: %s", staff_user.telegram_id, e)
+    except Exception as e:
+        logger.error("Error notifying staff about leave: %s", e)
+
     return ConversationHandler.END
 
 
