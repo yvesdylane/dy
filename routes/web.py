@@ -1,9 +1,17 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from auth.dependencies import get_current_user
+from models.enums import Role
+from models.user import User
 
 router = APIRouter()
+
+INSTRUCTOR_PAGES = {
+    "dashboard": "instructor/sections/dashboard.html",
+    "face-scan": "instructor/sections/face-scan.html",
+    "tasks": "instructor/sections/tasks.html",
+}
 
 ROLE_PATHS = {
     "admin": "/admin",
@@ -38,4 +46,21 @@ async def instructor_dashboard(
     templates = request.app.state.templates
     return templates.TemplateResponse(
         request=request, name="instructor/index.html", context={"user": user}
+    )
+
+
+@router.get("/instructor/page/{page_name}", response_class=HTMLResponse)
+async def instructor_page(
+    request: Request,
+    page_name: str,
+    user: User = Depends(get_current_user),
+):
+    if user.role != Role.instructor:
+        raise HTTPException(status_code=403, detail="Instructor only")
+    template = INSTRUCTOR_PAGES.get(page_name)
+    if template is None:
+        raise HTTPException(status_code=404, detail="Page not found")
+    templates = request.app.state.templates
+    return templates.TemplateResponse(
+        request=request, name=template, context={"user": user}
     )

@@ -47,6 +47,8 @@ async def generate_codes(
     current_user: User = Depends(get_current_user),
 ):
     role_val = data.get("role", "intern")
+    if role_val == "super_admin" and current_user.role != Role.super_admin:
+        raise HTTPException(status_code=403, detail="Only super admin can create super admin codes")
     expiry_minutes = data.get("expiry_minutes", 60)
     count = min(data.get("count", 1), 100)
 
