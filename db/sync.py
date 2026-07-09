@@ -650,7 +650,10 @@ def sync_from_backup(backup_db_path: str) -> str:
     # skipped old tables
     old_skipped = []
     for tname in ("cleaning_groups", "cleaning_group_members", "cleaning_duties", "cleaning_completions", "attendance_codes"):
-        rows = sqlite_fetch_all(old, tname)
+        try:
+            rows = sqlite_fetch_all(old, tname)
+        except sqlite3.OperationalError:
+            continue
         if rows:
             short = tname.replace("cleaning_completions", "clean_completions").replace("cleaning_group_members", "clean_members").replace("cleaning_duties", "clean_duties").replace("cleaning_groups", "clean_groups").replace("attendance_codes", "att_codes")
             old_skipped.append(f"{short} ({len(rows)})")

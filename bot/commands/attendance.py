@@ -7,7 +7,7 @@ from telegram.ext import MessageHandler, filters
 
 from db.database import get_sync_db
 from models.attendance import Attendance, InternAttendance
-from models.enums import Group
+from models.enums import Group, Role
 from models.user import User
 
 logger = logging.getLogger(__name__)
@@ -43,7 +43,7 @@ async def handle_attendance_code(update: Update, _context):
             return
 
         fees_paid = float(user.fees_paid or 0)
-        if user.role == "intern" and fees_paid < 20000:
+        if user.role == Role.intern and fees_paid < 20000:
             from config import settings
 
             if date.today() >= settings.fee_block_start_date:
