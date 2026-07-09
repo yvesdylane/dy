@@ -9,7 +9,6 @@ router = APIRouter()
 
 INSTRUCTOR_PAGES = {
     "dashboard": "instructor/sections/dashboard.html",
-    "face-scan": "instructor/sections/face-scan.html",
     "tasks": "instructor/sections/tasks.html",
 }
 

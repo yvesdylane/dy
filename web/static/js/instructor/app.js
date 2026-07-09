@@ -37,7 +37,6 @@
   function updateTitle(name) {
     var map = {
       dashboard: "Dashboard",
-      "face-scan": "Face Scan",
       tasks: "Tasks",
     };
     var el = document.getElementById("headerTitle");

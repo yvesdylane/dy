@@ -370,16 +370,7 @@
       + '<button id="captureGalleryBtn" class="text-xs text-zinc-400 underline hover:text-zinc-300 transition-colors" type="button">Upload from gallery</button>'
       + '</div>'
       + '</div>'
-      + (isEdit
-        ? '<div class="mb-4 -mt-2">'
-          + '<button type="button" id="addEmbeddingBtn" class="text-xs text-zinc-400 hover:text-brand-600 dark:hover:text-brand-400 flex items-center gap-1 transition-colors">'
-          + '<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>'
-          + ' Add face photo for recognition'
-          + '</button>'
-          + '<input type="file" id="embeddingInput" accept="image/*" class="hidden">'
-          + '<span id="embeddingStatus" class="text-xs ml-2"></span>'
-        + '</div>'
-        : '')
+
       + '<div class="space-y-3">'
       + '<div class="grid grid-cols-2 gap-3">'
       + field("quarter", "Quarter/Neighborhood", u ? (u.quarter || "") : "", false)
@@ -569,47 +560,7 @@
     }
   });
 
-  // --- Embedding upload handler ---
-  document.addEventListener("click", function (e) {
-    if (e.target.id === "addEmbeddingBtn" || e.target.closest("#addEmbeddingBtn")) {
-      var input = document.getElementById("embeddingInput");
-      if (input) input.click();
-    }
-  });
 
-  document.addEventListener("change", function (e) {
-    if (e.target.id === "embeddingInput") {
-      var file = e.target.files[0];
-      if (!file) return;
-      if (!editingUserId) return;
-      var status = document.getElementById("embeddingStatus");
-      if (status) status.textContent = "Uploading...";
-      var form = new FormData();
-      form.append("file", file);
-      fetch("/api/admin/users/" + editingUserId + "/embeddings", {
-        method: "POST",
-        body: form,
-      })
-        .then(function (r) {
-          if (!r.ok) return r.json().then(function (d) { throw new Error(d.detail || r.status); });
-          return r.json();
-        })
-        .then(function (data) {
-          if (status) {
-            status.textContent = "\u2713 Face added (" + data.embeddings_count + " total)";
-            status.className = "text-xs ml-2 text-emerald-500";
-            setTimeout(function () { status.textContent = ""; }, 3000);
-          }
-        })
-        .catch(function (err) {
-          if (status) {
-            status.textContent = "\u2717 " + err.message;
-            status.className = "text-xs ml-2 text-red-400";
-            setTimeout(function () { status.textContent = ""; }, 3000);
-          }
-        });
-    }
-  });
 
   function startCaptureCamera() {
     if (cameraCaptureStream) return;

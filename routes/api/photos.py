@@ -10,9 +10,9 @@ from telegram import InputFile
 
 from auth.dependencies import get_current_user
 from config import settings
-from controllers.face import extract_embedding, resize_for_cache
+from controllers.face import resize_for_cache
 from db.database import get_db
-from models.user import FaceEmbedding, User
+from models.user import User
 
 logger = logging.getLogger(__name__)
 
@@ -22,15 +22,6 @@ CACHE_DIR = "uploads/cache/users"
 
 def _get_user(db: Session, user_id: int) -> User | None:
     return db.query(User).filter(User.id == user_id).first()
-
-
-def _delete_embeddings(db: Session, user_id: int):
-    db.query(FaceEmbedding).filter(FaceEmbedding.user_id == user_id).delete()
-
-
-def _save_embedding(db: Session, user_id: int, embedding_bytes: bytes):
-    emb = FaceEmbedding(user_id=user_id, embedding=embedding_bytes)
-    db.add(emb)
 
 
 @router.post("/users/{user_id}/photo")
@@ -95,22 +86,7 @@ async def upload_user_photo(
     user.image = file_id
     db.commit()
 
-    # extract face embedding
-    embedding = await loop.run_in_executor(None, extract_embedding, full_bytes)
-    if embedding is not None:
-        await loop.run_in_executor(None, _delete_embeddings, db, user_id)
-        emb_bytes = embedding.tobytes()
-        await loop.run_in_executor(None, _save_embedding, db, user_id, emb_bytes)
-        db.commit()
-        logger.info("Face embedding stored for user %d", user_id)
-    else:
-        logger.warning("No face found in photo for user %d — embedding not stored", user_id)
-
     return {"ok": True, "photo_url": f"/api/admin/users/{user_id}/photo"}
-
-
-def _count_embeddings(db: Session, user_id: int) -> int:
-    return db.query(FaceEmbedding).filter(FaceEmbedding.user_id == user_id).count()
 
 
 @router.post("/users/{user_id}/embeddings")
@@ -121,27 +97,7 @@ async def add_user_embedding(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    loop = asyncio.get_running_loop()
-
-    file_bytes = await file.read()
-    if file.content_type and not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Only image files allowed")
-
-    user = await loop.run_in_executor(None, _get_user, db, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    embedding = await loop.run_in_executor(None, extract_embedding, file_bytes)
-    if embedding is None:
-        raise HTTPException(status_code=400, detail="No face detected in image")
-
-    emb_bytes = embedding.tobytes()
-    await loop.run_in_executor(None, _save_embedding, db, user_id, emb_bytes)
-    db.commit()
-
-    count = await loop.run_in_executor(None, _count_embeddings, db, user_id)
-    logger.info("Face embedding appended for user %d (total %d)", user_id, count)
-    return {"ok": True, "embeddings_count": count}
+    return {"ok": False, "disabled": True, "detail": "Face recognition is disabled (512MB RAM limit)"}
 
 
 TELEGRAM_FILE_API = "https://api.telegram.org/bot{token}/getFile?file_id={file_id}"
@@ -240,7 +196,6 @@ async def delete_user_photo(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.image = None
-    await loop.run_in_executor(None, _delete_embeddings, db, user_id)
     db.commit()
 
     cache_path = os.path.join(CACHE_DIR, f"{user_id}.jpg")

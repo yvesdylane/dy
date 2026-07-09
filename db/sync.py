@@ -261,44 +261,10 @@ def sync_from_backup(backup_db_path: str) -> str:
     stats["user"]["inserted"] = len(to_insert_users)
     report_lines.append(f"  {len(old_users)} read \u2192 {len(to_insert_users)} inserted, {len(old_users) - len(to_insert_users)} skipped")
 
-    # ── 1b. Face embeddings ────────────────────────────────────
+    # ── 1b. Face embeddings (disabled — 512MB RAM limit) ──────
     report_lines.append("")
     report_lines.append("── Face embeddings ──────────────────────────────────────")
-    pending: list[tuple[int, str]] = []
-    with SessionLocal() as session:
-        users_with_images = session.query(User).filter(
-            User.image.isnot(None),
-            User.image != "",
-        ).all()
-        existing_ids = {r[0] for r in session.query(FaceEmbedding.user_id).all()}
-        for u in users_with_images:
-            if u.id not in existing_ids:
-                pending.append((u.id, u.image))
-
-    emb_stats = {"created": 0, "no_face": 0, "dl_failed": 0}
-    results: list[tuple[int, bytes]] = []
-    for idx, (uid, image_val) in enumerate(pending, 1):
-        img_bytes = download_image_bytes(image_val)
-        if img_bytes is None:
-            emb_stats["dl_failed"] += 1
-            continue
-        embedding = extract_embedding(img_bytes)
-        if embedding is None:
-            emb_stats["no_face"] += 1
-            continue
-        results.append((uid, embedding.tobytes()))
-        emb_stats["created"] += 1
-
-    with SessionLocal() as session:
-        for uid, emb_bytes in results:
-            session.add(FaceEmbedding(user_id=uid, embedding=emb_bytes))
-        session.commit()
-
-    report_lines.append(
-        f"  {emb_stats['created']} created, "
-        f"{emb_stats['no_face']} no-face, "
-        f"{emb_stats['dl_failed']} dl-failed"
-    )
+    report_lines.append("  skipped (face recognition disabled)")
 
     # ── 2. Attendances ─────────────────────────────────────────
     report_lines.append("")
