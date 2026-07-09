@@ -10,6 +10,7 @@
   document.getElementById("passStopBtn")?.addEventListener("click", stopPass);
   document.getElementById("passCameraBtn")?.addEventListener("click", startCamera);
   document.getElementById("passCameraStopBtn")?.addEventListener("click", stopCamera);
+  document.getElementById("passCameraToggleBtn")?.addEventListener("click", togglePassCamera);
 
   function animatePass() {
     var cells = document.querySelectorAll("#passGrid .pass-cell");
@@ -120,6 +121,7 @@
   // ========== Camera Face Scan ==========
   var passStream = null;
   var passScanInterval = null;
+  var passFacingMode = "environment";
 
   function startCamera() {
     if (passStream) return;
@@ -134,7 +136,7 @@
     }
 
     navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
+      video: { facingMode: passFacingMode, width: { ideal: 640 }, height: { ideal: 480 } },
     })
       .then(function (stream) {
         passStream = stream;
@@ -155,6 +157,19 @@
       .catch(function (err) {
         alert("Camera access denied: " + err.message);
       });
+  }
+
+  function togglePassCamera() {
+    if (!passStream) return;
+    passFacingMode = passFacingMode === "environment" ? "user" : "environment";
+    if (passScanInterval) {
+      clearInterval(passScanInterval);
+      passScanInterval = null;
+    }
+    passStream.getTracks().forEach(function (t) { t.stop(); });
+    passStream = null;
+    document.getElementById("passVideo").srcObject = null;
+    startCamera();
   }
 
   function stopCamera() {

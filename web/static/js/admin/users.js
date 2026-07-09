@@ -4,8 +4,6 @@
   var currentPage = 0;
   var pageLimit = 20;
   var searchTimer = null;
-  var initialFeesMin = null;
-  var initialFullyPaid = null;
 
   var df = window.dashboardFilter;
   if (df) {
@@ -14,8 +12,14 @@
       var roleSel = document.getElementById("filterRole");
       if (roleSel) roleSel.value = df.role;
     }
-    if (df.fees_paid_min) initialFeesMin = df.fees_paid_min;
-    if (df.fully_paid) initialFullyPaid = true;
+    if (df.fees_paid_min) {
+      var feesInput = document.getElementById("filterFees");
+      if (feesInput) feesInput.value = df.fees_paid_min;
+    }
+    if (df.fully_paid) {
+      var paidChk = document.getElementById("filterFullyPaid");
+      if (paidChk) paidChk.checked = true;
+    }
   }
 
   loadUsers();
@@ -176,12 +180,8 @@
   }
 
   // --- Load ---
-  function loadUsers(resetFee) {
+  function loadUsers() {
     currentPage = 0;
-    if (resetFee) {
-      initialFeesMin = null;
-      initialFullyPaid = null;
-    }
     fetchUsers();
   }
 
@@ -191,14 +191,16 @@
     var dept = document.getElementById("filterDept").value;
     var group = document.getElementById("filterGroup").value;
     var gender = document.getElementById("filterGender").value;
+    var feesMin = document.getElementById("filterFees").value;
+    var fullyPaid = document.getElementById("filterFullyPaid").checked;
     var params = "?skip=" + (currentPage * pageLimit) + "&limit=" + pageLimit;
     if (q) params += "&q=" + encodeURIComponent(q);
     if (role) params += "&role=" + role;
     if (dept) params += "&department=" + dept;
     if (group) params += "&group=" + group;
     if (gender) params += "&gender=" + gender;
-    if (initialFeesMin) params += "&fees_paid_min=" + initialFeesMin;
-    if (initialFullyPaid) params += "&fully_paid=true";
+    if (feesMin) params += "&fees_paid_min=" + feesMin;
+    if (fullyPaid) params += "&fully_paid=true";
     return params;
   }
 
@@ -206,7 +208,7 @@
     var list = document.getElementById("usersList");
     list.innerHTML = '<div class="flex justify-center py-8"><div class="animate-spin h-5 w-5 border-2 border-brand-500 border-t-transparent rounded-full"></div></div>';
 
-    fetch("/api/admin/users" + getFilterParams())
+    return fetch("/api/admin/users" + getFilterParams())
       .then(function (r) {
         if (!r.ok) throw new Error(r.status);
         return r.json();
@@ -238,6 +240,7 @@
       if (u.group) meta += " \u00b7 Group " + u.group;
       if (u.quarter) meta += " \u00b7 " + esc(u.quarter);
       meta += " \u00b7 " + esc(u.phone);
+      if (u.fees_paid) meta += ' \u00b7 <span class="' + (u.fees_paid >= u.total_fees ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-500') + '">\u00A3' + u.fees_paid + '</span>';
 
       var initials = (u.name[0] + u.surname[0]).toUpperCase();
       var avatarHtml = u.photo_url
@@ -247,7 +250,7 @@
         ? 'w-9 h-9 rounded-full shrink-0 overflow-hidden'
         : 'w-9 h-9 rounded-full bg-brand-200 dark:bg-brand-800 text-brand-700 dark:text-brand-300 flex items-center justify-center text-xs font-bold shrink-0';
 
-      html += '<div class="user-row p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors" onclick="openEditUserModal(' + u.id + ')">'
+      html += '<div class="user-row p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex items-center justify-between cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors" data-user-id="' + u.id + '" onclick="openEditUserModal(' + u.id + ')">'
         + '<div class="flex items-center gap-3 min-w-0 flex-1">'
         + '<div class="' + avatarClass + '">' + avatarHtml + '</div>'
         + '<div class="min-w-0 flex-1">'
@@ -284,14 +287,13 @@
     clearTimeout(searchTimer);
     searchTimer = setTimeout(function () {
       currentPage = 0;
-      initialFeesMin = null;
-      initialFullyPaid = null;
       fetchUsers();
     }, 300);
   }
 
   // --- Edit / Create modal ---
   function openEditUserModal(userId) {
+    stopCaptureCamera();
     pendingPhotoFile = null;
     editingUserId = userId;
     fetch("/api/admin/users/" + userId)
@@ -306,6 +308,7 @@
   }
 
   function openAddUserModal() {
+    stopCaptureCamera();
     pendingPhotoFile = null;
     var html = buildUserForm(null);
     window.openModal(html);
@@ -315,6 +318,14 @@
   var editingUserId = null;
   var savingUser = false;
   var deletingUser = false;
+  var cameraCaptureStream = null;
+  var cameraCaptureFacing = "environment";
+
+  document.addEventListener("click", function (e) {
+    if (e.target === document.getElementById("modalOverlay")) {
+      stopCaptureCamera();
+    }
+  });
 
   function buildUserForm(u) {
     var isEdit = u !== null;
@@ -328,7 +339,7 @@
       : '<div class="w-14 h-14 rounded-full bg-brand-200 dark:bg-brand-800 text-brand-700 dark:text-brand-300 flex items-center justify-center text-xl font-bold shrink-0" id="photoInitials">' + initials + '</div>';
 
     return '<h3 class="text-lg font-bold mb-1">' + title + '</h3>'
-      + '<div class="flex items-center gap-4 mb-4 pb-4 border-b border-zinc-200 dark:border-zinc-700">'
+      + '<div id="photoSection" class="flex items-center gap-4 mb-4 pb-4 border-b border-zinc-200 dark:border-zinc-700">'
       + '<div class="relative shrink-0">'
       + '<div id="avatarWrap" class="w-14 h-14 rounded-full overflow-hidden cursor-pointer group">'
       + avatarHtml
@@ -340,6 +351,23 @@
       + '<div class="flex-1 grid grid-cols-2 gap-2">'
       + field("name", "First name", u ? u.name : "", false)
       + field("surname", "Last name", u ? u.surname : "", false)
+      + '</div>'
+      + '</div>'
+      + '<div id="cameraCaptureView" class="hidden mb-4">'
+      + '<div class="relative w-full max-w-xs mx-auto">'
+      + '<video id="cameraCaptureVideo" autoplay playsinline class="w-full rounded-lg bg-black" style="aspect-ratio:3/4"></video>'
+      + '<button id="captureCloseBtn" class="absolute top-1 right-1 p-1.5 rounded-full bg-black/50 text-white hover:bg-black/70 text-sm leading-none transition-colors">\u2715</button>'
+      + '</div>'
+      + '<div class="flex items-center justify-center gap-6 mt-2">'
+      + '<button id="captureToggleBtn" class="p-2 rounded-full bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors" type="button">'
+      + '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>'
+      + '</button>'
+      + '<button id="captureBtn" class="w-14 h-14 rounded-full border-4 border-zinc-400 dark:border-zinc-500 bg-transparent hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex items-center justify-center" type="button">'
+      + '<div class="w-10 h-10 rounded-full bg-zinc-500 dark:bg-zinc-400"></div>'
+      + '</button>'
+      + '</div>'
+      + '<div class="text-center mt-1">'
+      + '<button id="captureGalleryBtn" class="text-xs text-zinc-400 underline hover:text-zinc-300 transition-colors" type="button">Upload from gallery</button>'
       + '</div>'
       + '</div>'
       + (isEdit
@@ -436,6 +464,7 @@
       })
       .then(function (saved) {
         savingUser = false;
+        stopCaptureCamera();
         window.closeModal();
         var savedId = saved.id || userId;
         if (pendingPhotoFile) {
@@ -443,8 +472,15 @@
           pendingPhotoFile = null;
           uploadPhoto(savedId, file).then(function () {
             window.refreshHeaderAvatar(savedId);
-            fetchUsers();
+            return fetchUsers();
+          }).then(function () {
+            var card = document.querySelector('.user-row[data-user-id="' + savedId + '"]');
+            if (card) {
+              var img = card.querySelector('img');
+              if (img) img.src = img.src.split('?')[0] + '?t=' + Date.now();
+            }
           }).catch(function () {
+            if (pendingPhotoFile) pendingPhotoFile = null;
             fetchUsers();
             setTimeout(function () { alert("Photo upload failed. User data was saved."); }, 100);
           });
@@ -477,6 +513,7 @@
       .then(function (r) {
         if (!r.ok) throw new Error(r.status);
         deletingUser = false;
+        stopCaptureCamera();
         window.closeModal();
         fetchUsers();
       })
@@ -506,6 +543,29 @@
         wrap.innerHTML = '<img id="photoPreview" src="' + ev.target.result + '" class="w-14 h-14 rounded-full object-cover">';
       };
       reader.readAsDataURL(file);
+    }
+  });
+
+  // --- Camera capture handlers ---
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("#captureCloseBtn")) {
+      stopCaptureCamera();
+    }
+  });
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("#captureBtn")) {
+      captureSnapshot();
+    }
+  });
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("#captureToggleBtn")) {
+      toggleCaptureCamera();
+    }
+  });
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("#captureGalleryBtn")) {
+      var input = document.getElementById("photoInput");
+      if (input) input.click();
     }
   });
 
@@ -551,10 +611,89 @@
     }
   });
 
+  function startCaptureCamera() {
+    if (cameraCaptureStream) return;
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: cameraCaptureFacing, width: { ideal: 640 }, height: { ideal: 480 } },
+    })
+      .then(function (stream) {
+        cameraCaptureStream = stream;
+        var video = document.getElementById("cameraCaptureVideo");
+        video.srcObject = stream;
+        document.getElementById("photoSection").classList.add("hidden");
+        document.getElementById("cameraCaptureView").classList.remove("hidden");
+      })
+      .catch(function (err) {
+        alert("Camera access denied: " + err.message);
+      });
+  }
+
+  function stopCaptureCamera() {
+    if (cameraCaptureStream) {
+      cameraCaptureStream.getTracks().forEach(function (t) { t.stop(); });
+      cameraCaptureStream = null;
+    }
+    var video = document.getElementById("cameraCaptureVideo");
+    if (video) video.srcObject = null;
+    var view = document.getElementById("cameraCaptureView");
+    if (view) view.classList.add("hidden");
+    var section = document.getElementById("photoSection");
+    if (section) section.classList.remove("hidden");
+  }
+
+  function captureSnapshot() {
+    var video = document.getElementById("cameraCaptureVideo");
+    if (!video || !video.videoWidth) return;
+    var canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    var ctx = canvas.getContext("2d");
+    if (cameraCaptureFacing === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    ctx.drawImage(video, 0, 0);
+    canvas.toBlob(function (blob) {
+      var file = new File([blob], "capture.jpg", { type: "image/jpeg" });
+      pendingPhotoFile = file;
+      var reader = new FileReader();
+      reader.onload = function (ev) {
+        var wrap = document.getElementById("avatarWrap");
+        if (wrap) wrap.innerHTML = '<img id="photoPreview" src="' + ev.target.result + '" class="w-full h-full object-cover">';
+      };
+      reader.readAsDataURL(file);
+      stopCaptureCamera();
+    }, "image/jpeg", 0.8);
+  }
+
+  function toggleCaptureCamera() {
+    if (!cameraCaptureStream) return;
+    cameraCaptureFacing = cameraCaptureFacing === "environment" ? "user" : "environment";
+    cameraCaptureStream.getTracks().forEach(function (t) { t.stop(); });
+    cameraCaptureStream = null;
+    var video = document.getElementById("cameraCaptureVideo");
+    video.srcObject = null;
+    navigator.mediaDevices.getUserMedia({
+      video: { facingMode: cameraCaptureFacing, width: { ideal: 640 }, height: { ideal: 480 } },
+    })
+      .then(function (stream) {
+        cameraCaptureStream = stream;
+        video.srcObject = stream;
+      })
+      .catch(function (err) {
+        alert("Camera access denied: " + err.message);
+        document.getElementById("cameraCaptureView").classList.add("hidden");
+        document.getElementById("photoSection").classList.remove("hidden");
+      });
+  }
+
+  function stopCaptureOnModalClose() {
+    stopCaptureCamera();
+  }
+
   document.addEventListener("click", function (e) {
     if (e.target.closest("#avatarWrap")) {
-      var input = document.getElementById("photoInput");
-      if (input) input.click();
+      startCaptureCamera();
     }
   });
 

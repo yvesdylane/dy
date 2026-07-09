@@ -1,4 +1,5 @@
 import asyncio
+import re
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
@@ -8,6 +9,7 @@ from auth.telegram import verify_init_data
 from controllers.auth import authenticate_telegram, register_new_user
 from controllers.userController import get_user_by_phone, get_user_by_telegram_id, update_user, UserUpdate
 from db.database import get_db
+from helpers.phone import normalize_phone
 from middleware.rate_limit import limiter
 
 router = APIRouter()
@@ -91,8 +93,7 @@ async def link_account(
     phone = data.get("phone", "")
     if not phone:
         return {"ok": False, "detail": "Phone is required"}
-    if not phone.startswith("+"):
-        phone = "+237" + phone
+    phone = normalize_phone(phone)
 
     def _link():
         existing = get_user_by_telegram_id(db, str(tg_user.id))
@@ -102,6 +103,9 @@ async def link_account(
         user = get_user_by_phone(db, phone)
         if user is None:
             raise ValueError("No user found with this phone number")
+
+        if user.telegram_id and not re.search(r"[a-zA-Z]", user.telegram_id) and user.telegram_id != str(tg_user.id):
+            raise ValueError("This account is already linked to a Telegram account")
 
         user.telegram_id = str(tg_user.id)
         db.flush()

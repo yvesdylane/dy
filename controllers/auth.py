@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from auth.telegram import verify_init_data
 from controllers.userController import create_user, get_user_by_telegram_id, UserCreate
+from helpers.phone import normalize_phone
 from models.enums import Department, Gender, Group, Role
 from models.user import CreationCode
 from models.telegramUser import TelegramUser
@@ -27,8 +28,7 @@ def register_new_user(db: Session, data: dict) -> User:
     phone = data.get("phone", "")
     if not phone:
         raise ValueError("Phone is required")
-    if not phone.startswith("+"):
-        phone = "+237" + phone
+    phone = normalize_phone(phone)
 
     existing_tid = db.execute(
         select(User).where(User.telegram_id == telegram_id)
@@ -40,15 +40,7 @@ def register_new_user(db: Session, data: dict) -> User:
         select(User).where(User.phone == phone)
     ).scalar_one_or_none()
     if existing_phone:
-        existing_phone.telegram_id = telegram_id
-        old_tid = existing_phone.telegram_id
-        if (
-            old_tid
-            and not old_tid.startswith("pending_")
-            and old_tid != telegram_id
-        ):
-            pass
-        return existing_phone
+        raise ValueError("A user with this phone number already exists. Link your existing account instead.")
 
     code_val = data.get("code", "")
     if not code_val:

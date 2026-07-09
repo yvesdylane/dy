@@ -3,15 +3,17 @@
 
   var scanStream = null;
   var scanInterval = null;
+  var scanFacingMode = "environment";
 
   document.getElementById("scanStartBtn")?.addEventListener("click", startScan);
   document.getElementById("scanStopBtn")?.addEventListener("click", stopScan);
+  document.getElementById("scanToggleBtn")?.addEventListener("click", toggleScanCamera);
 
   function startScan() {
     if (scanStream) return;
 
     navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } },
+      video: { facingMode: scanFacingMode, width: { ideal: 640 }, height: { ideal: 480 } },
     })
       .then(function (stream) {
         scanStream = stream;
@@ -50,6 +52,19 @@
     document.getElementById("scanModeSelect").disabled = false;
     document.getElementById("scanDetectedList").innerHTML = "";
     document.getElementById("scanStatus").textContent = "Camera stopped";
+  }
+
+  function toggleScanCamera() {
+    if (!scanStream) return;
+    scanFacingMode = scanFacingMode === "environment" ? "user" : "environment";
+    if (scanInterval) {
+      clearInterval(scanInterval);
+      scanInterval = null;
+    }
+    scanStream.getTracks().forEach(function (t) { t.stop(); });
+    scanStream = null;
+    document.getElementById("scanVideo").srcObject = null;
+    startScan();
   }
 
   function captureAndScan() {

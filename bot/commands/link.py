@@ -1,4 +1,5 @@
 import logging
+import re
 
 from sqlalchemy import select
 from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
@@ -6,9 +7,16 @@ from telegram.ext import CommandHandler, MessageHandler, filters
 
 from bot.common import logger
 from db.database import get_sync_db
+from helpers.phone import normalize_phone
 from models.user import User
 
 logger = logging.getLogger(__name__)
+
+
+def _is_fake(tid: str | None) -> bool:
+    if not tid:
+        return True
+    return bool(re.search(r"[a-zA-Z]", tid))
 
 
 async def link_cmd(update: Update, _context):
@@ -24,31 +32,15 @@ async def handle_contact(update: Update, _context):
     contact = update.message.contact
     if not contact:
         return
-    phone = contact.phone_number
-    if not phone.startswith("+"):
-        phone = "+237" + phone
+    phone = normalize_phone(contact.phone_number)
     caller_id = str(update.effective_user.id)
     contact_user_id = str(contact.user_id)
+    is_own = caller_id == contact_user_id
 
     with get_sync_db() as session:
         user = session.execute(
             select(User).where(User.phone == phone)
         ).scalar_one_or_none()
-
-        if caller_id == contact_user_id:
-            if user:
-                user.telegram_id = caller_id
-                await update.message.reply_text(
-                    f"Linked! Welcome back {user.name} {user.surname}.",
-                    reply_markup=ReplyKeyboardRemove(),
-                )
-                return
-            else:
-                await update.message.reply_text(
-                    "No account found with this phone number.",
-                    reply_markup=ReplyKeyboardRemove(),
-                )
-                return
 
         if not user:
             await update.message.reply_text(
@@ -57,8 +49,28 @@ async def handle_contact(update: Update, _context):
             )
             return
 
-        if user.telegram_id and not user.telegram_id.startswith("pending_") and user.telegram_id != caller_id:
+        if is_own:
+            if not _is_fake(user.telegram_id) and user.telegram_id == caller_id:
+                await update.message.reply_text("Already linked!", reply_markup=ReplyKeyboardRemove())
+                return
+            if not _is_fake(user.telegram_id) and user.telegram_id != caller_id:
+                await update.message.reply_text(
+                    "This account is already linked to a different Telegram account.",
+                    reply_markup=ReplyKeyboardRemove(),
+                )
+                return
+            user.telegram_id = caller_id
+            await update.message.reply_text(
+                f"Linked! Welcome back {user.name} {user.surname}.",
+                reply_markup=ReplyKeyboardRemove(),
+            )
+            return
+
+        if not _is_fake(user.telegram_id):
             old_tid = user.telegram_id
+            if old_tid == caller_id:
+                await update.message.reply_text("Already linked!", reply_markup=ReplyKeyboardRemove())
+                return
             user.telegram_id = caller_id
             try:
                 await update.get_bot().send_message(
@@ -69,13 +81,6 @@ async def handle_contact(update: Update, _context):
                 pass
             await update.message.reply_text(
                 f"Linked! Welcome {user.name} {user.surname}.",
-                reply_markup=ReplyKeyboardRemove(),
-            )
-            return
-
-        if user.telegram_id == caller_id:
-            await update.message.reply_text(
-                "Already linked!",
                 reply_markup=ReplyKeyboardRemove(),
             )
             return

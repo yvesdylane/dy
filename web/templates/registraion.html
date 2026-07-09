@@ -117,6 +117,19 @@
         Register
       </button>
     </form>
+
+    <div id="linkSection" class="hidden mt-6 p-4 rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950">
+      <h2 class="text-lg font-semibold text-brand-700 dark:text-brand-300">Already Registered?</h2>
+      <p class="text-sm text-zinc-600 dark:text-zinc-400 mt-1 mb-4">
+        This phone number is already registered. Link your existing account instead.
+      </p>
+      <input id="linkPhone" type="tel" readonly
+        class="w-full px-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-sm mb-3">
+      <button id="linkBtn" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-semibold text-sm transition-colors disabled:opacity-50">
+        Link Account
+      </button>
+      <p id="linkError" class="text-sm text-red-600 dark:text-red-400 hidden mt-2"></p>
+    </div>
   </div>
 
   <script>
@@ -124,12 +137,19 @@
     var tg = null;
     try { tg = window.Telegram?.WebApp; if (tg) tg.ready(); } catch(e) {}
 
+    var initData = null;
     var tid = null;
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
       tid = String(tg.initDataUnsafe.user.id);
+      initData = tg.initData;
     }
     if (!tid) {
       tid = new URLSearchParams(window.location.search).get('telegram_id');
+    }
+
+    function closeApp() {
+      if (tg && tg.close) { tg.close(); return; }
+      window.close();
     }
 
     var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -174,7 +194,12 @@
           body: JSON.stringify(data)
         })).json();
         if (res.ok) {
-          window.location.href = res.redirect;
+          closeApp();
+        } else if (res.detail && res.detail.includes('already exists')) {
+          document.getElementById('linkPhone').value = form.elements['phone'].value;
+          form.classList.add('hidden');
+          document.getElementById('linkSection').classList.remove('hidden');
+          err.classList.add('hidden');
         } else {
           err.textContent = res.detail;
           err.classList.remove('hidden');
@@ -186,6 +211,37 @@
         err.classList.remove('hidden');
         btn.disabled = false;
         btn.textContent = 'Register';
+      }
+    });
+
+    document.getElementById('linkBtn').addEventListener('click', async function() {
+      if (!initData) {
+        document.getElementById('linkError').textContent = 'Telegram init data not available';
+        document.getElementById('linkError').classList.remove('hidden');
+        return;
+      }
+      var linkBtn = document.getElementById('linkBtn');
+      linkBtn.disabled = true;
+      linkBtn.textContent = 'Linking...';
+      try {
+        var res = await (await fetch('/auth/link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ initData: initData, phone: document.getElementById('linkPhone').value })
+        })).json();
+        if (res.ok) {
+          closeApp();
+        } else {
+          document.getElementById('linkError').textContent = res.detail;
+          document.getElementById('linkError').classList.remove('hidden');
+          linkBtn.disabled = false;
+          linkBtn.textContent = 'Link Account';
+        }
+      } catch(e) {
+        document.getElementById('linkError').textContent = 'Network error';
+        document.getElementById('linkError').classList.remove('hidden');
+        linkBtn.disabled = false;
+        linkBtn.textContent = 'Link Account';
       }
     });
   })();
