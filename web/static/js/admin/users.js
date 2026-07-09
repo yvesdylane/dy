@@ -389,7 +389,7 @@
       + '</div>'
       + field("phone", "Phone", u ? u.phone : "", false)
       + field("email", "Email", u ? u.email || "" : "", false)
-      + field("dob", "Date of Birth", u ? u.dob : "", false)
+      + field("dob", "Date of Birth", u ? u.dob : "", false, "date")
       + '<div class="grid grid-cols-2 gap-3">'
       + field("total_fees", "Total Fees", u ? u.total_fees : "40000", false, "number")
       + field("fees_paid", "Fees Paid", u ? u.fees_paid : "0", false, "number")

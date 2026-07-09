@@ -141,6 +141,54 @@ sync_conv = ConversationHandler(
 )
 
 
+SYNC_ATT_FILE = 2
+
+
+async def sync_att_start(update: Update, _context):
+    if not await _is_admin(update):
+        return ConversationHandler.END
+    await update.message.reply_text("Upload a *.db* file to sync users, attendance, leaves, and task submissions:")
+    return SYNC_ATT_FILE
+
+
+async def sync_att_receive(update: Update, context):
+    telegram_id = str(update.effective_user.id)
+    document = update.message.document
+    if not document or not document.file_name.lower().endswith(".db"):
+        await update.message.reply_text("Please send a .db file.")
+        return SYNC_ATT_FILE
+
+    msg = await update.message.reply_text("Downloading database file...")
+
+    file = await context.bot.get_file(document.file_id)
+    safe_name = re.sub(r"[^a-zA-Z0-9._-]", "_", document.file_name or "sync.db")
+    tmp_path = os.path.join(tempfile.gettempdir(), f"sync_att_{telegram_id}_{safe_name}")
+    await file.download_to_drive(tmp_path)
+
+    await msg.edit_text("Syncing user & attendance data...")
+    try:
+        from db.sync import sync_user_attendance_data
+        result = sync_user_attendance_data(tmp_path)
+        await msg.edit_text(f"\u2705 Done!\n{result}")
+    except Exception as e:
+        await msg.edit_text(f"\u274c Sync failed: {e}")
+        logger.error("Sync-attendance error: %s", e, exc_info=True)
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+    return ConversationHandler.END
+
+
+sync_att_conv = ConversationHandler(
+    entry_points=[CommandHandler("sync_attendance", sync_att_start)],
+    states={
+        SYNC_ATT_FILE: [MessageHandler(filters.Document.ALL, sync_att_receive)],
+    },
+    fallbacks=[CommandHandler("cancel", cancel)],
+)
+
+
 # ── /pics ───────────────────────────────────────────────────────
 
 
@@ -329,5 +377,6 @@ pics_conv = ConversationHandler(
 admin_handlers = [
     CommandHandler("db", db_backup),
     sync_conv,
+    sync_att_conv,
     pics_conv,
 ]

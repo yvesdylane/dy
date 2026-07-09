@@ -18,6 +18,7 @@ from models.infoNote import Info, Note
 from models.leave import LeaveRequest
 from models.task import Task, TaskSubmission
 from models.user import CreationCode, FaceEmbedding, User
+from helpers.phone import is_fake_telegram_id
 
 logger = logging.getLogger(__name__)
 
@@ -190,19 +191,21 @@ def sync_from_backup(backup_db_path: str) -> str:
     id_map["user"] = {}
     old_users = sqlite_fetch_all(old, "users")
     existing_by_tid = {}
-    existing_phones = set()
+    existing_by_phone = {}
     with SessionLocal() as session:
         for u in session.query(User).with_entities(User.id, User.telegram_id, User.phone).all():
-            existing_by_tid[u.telegram_id] = u.id
-            existing_phones.add(u.phone)
+            if u.telegram_id and not is_fake_telegram_id(u.telegram_id):
+                existing_by_tid[u.telegram_id] = u.id
+            existing_by_phone[u.phone] = u.id
 
     to_insert_users = []
     user_old_ids = []
     seen_phones = set()
     for row in old_users:
         inc_read("user")
-        tid = str(row["telegram_id"])
-        if tid in existing_by_tid:
+        tid = str(row["telegram_id"]) if row["telegram_id"] is not None else ""
+        backup_has_valid_tid = bool(tid) and not is_fake_telegram_id(tid)
+        if backup_has_valid_tid and tid in existing_by_tid:
             id_map["user"][row["id"]] = existing_by_tid[tid]
             inc_skipped("user")
             continue
@@ -219,8 +222,26 @@ def sync_from_backup(backup_db_path: str) -> str:
             inc_error("user")
             continue
         phone = normalize_phone(row["phone"])
-        if phone in existing_phones or phone in seen_phones:
-            print(f"  \u26a0  User {row['id']}: duplicate phone '{phone}', skipping")
+        if phone in existing_by_phone:
+            existing_id = existing_by_phone[phone]
+            tid_updated = False
+            if backup_has_valid_tid:
+                with SessionLocal() as session:
+                    existing_user = session.query(User).filter(User.id == existing_id).first()
+                    if existing_user and is_fake_telegram_id(existing_user.telegram_id):
+                        old_tid = existing_user.telegram_id
+                        existing_user.telegram_id = tid
+                        session.commit()
+                        tid_updated = True
+                        print(f"  \u2714  Updated telegram_id for user {existing_id}: '{old_tid}' \u2192 '{tid}'")
+            if tid_updated:
+                id_map["user"][row["id"]] = existing_id
+            else:
+                print(f"  \u26a0  User {row['id']}: duplicate phone '{phone}', skipping")
+            inc_skipped("user")
+            continue
+        if phone in seen_phones:
+            print(f"  \u26a0  User {row['id']}: duplicate phone '{phone}' in backup, skipping")
             inc_skipped("user")
             continue
         g_val = row["group"]
@@ -236,7 +257,7 @@ def sync_from_backup(backup_db_path: str) -> str:
             surname=row["surname"],
             email=None,
             phone=phone,
-            telegram_id=tid,
+            telegram_id=tid or None,
             gender=gender,
             role=role,
             department=dept,
@@ -683,6 +704,301 @@ def sync_from_backup(backup_db_path: str) -> str:
     if total_errors:
         summary += f" \u00b7 {total_errors} errors"
     report_lines.append(summary)
+
+    old_conn.close()
+    engine.dispose()
+
+    return "\n".join(report_lines)
+
+
+def sync_user_attendance_data(backup_db_path: str) -> str:
+    """Sync only users, attendances, leave requests, and task submissions.
+
+    Matches backup users to existing DB users by phone (primary) or telegram_id.
+    Updates existing users' telegram_id if backup has a valid one. Only imports
+    attendance, leave, and submission records for matched users — no new users created.
+    """
+    backup_path = Path(backup_db_path)
+    if not backup_path.exists():
+        raise FileNotFoundError(f"Backup file not found: {backup_db_path}")
+
+    old_conn = sqlite3.connect(str(backup_path))
+    old_conn.row_factory = sqlite3.Row
+    old = old_conn.cursor()
+
+    url, connect_args = normalize_url(settings.database_url)
+    engine = create_engine(url, pool_pre_ping=True, connect_args=connect_args)
+    SessionLocal = sessionmaker(bind=engine)
+
+    id_map: dict[str, dict[int, int]] = {"user": {}}
+    stats: dict[str, dict[str, int]] = {}
+    report_lines: list[str] = []
+
+    def inc(table, key):
+        s = stats.setdefault(table, {"read": 0, "matched": 0, "inserted": 0, "skipped": 0, "errors": 0})
+        s[key] = s.get(key, 0) + 1
+
+    # ── 1. Match users by phone, then telegram_id ──────────────
+    report_lines.append("── Users ──────────────────────────────────────────────")
+    old_users = sqlite_fetch_all(old, "users")
+
+    existing_by_phone = {}
+    existing_by_tid = {}
+    with SessionLocal() as session:
+        for u in session.query(User).with_entities(User.id, User.telegram_id, User.phone).all():
+            existing_by_phone[u.phone] = u.id
+            if u.telegram_id and not is_fake_telegram_id(u.telegram_id):
+                existing_by_tid[u.telegram_id] = u.id
+
+    matched = 0
+    tid_updated = 0
+    unmatched = 0
+    for row in old_users:
+        inc("user", "read")
+        phone = normalize_phone(row["phone"])
+        tid = str(row["telegram_id"]) if row["telegram_id"] is not None else ""
+        backup_has_valid_tid = bool(tid) and not is_fake_telegram_id(tid)
+
+        existing_id = existing_by_phone.get(phone)
+
+        if existing_id is None and backup_has_valid_tid:
+            existing_id = existing_by_tid.get(tid)
+
+        if existing_id is not None:
+            id_map["user"][row["id"]] = existing_id
+            matched += 1
+            inc("user", "matched")
+
+            if backup_has_valid_tid:
+                with SessionLocal() as session:
+                    u = session.query(User).filter(User.id == existing_id).first()
+                    if u and is_fake_telegram_id(u.telegram_id):
+                        u.telegram_id = tid
+                        session.commit()
+                        tid_updated += 1
+        else:
+            unmatched += 1
+            inc("user", "skipped")
+
+    report_lines.append(f"  {len(old_users)} read → {matched} matched, {unmatched} unmatched")
+    if tid_updated:
+        report_lines.append(f"  ↳ {tid_updated} telegram_id(s) updated from backup")
+
+    # ── 2. Attendances + Intern attendances ─────────────────────
+    report_lines.append("")
+    report_lines.append("── Attendances ────────────────────────────────────────")
+    id_map["attendance"] = {}
+    old_attendances = sqlite_fetch_all(old, "attendances")
+    existing_att_keys = {}
+    with SessionLocal() as session:
+        for a in session.query(Attendance).all():
+            existing_att_keys[(a.date, a.group)] = a.id
+
+    to_insert_att = []
+    att_old_ids = []
+    for row in old_attendances:
+        inc("attendance", "read")
+        d = parse_date(row["date"])
+        if not d:
+            inc("attendance", "errors")
+            continue
+        group = normalize_enum_value(row["group"], GROUP_MAP, "group")
+        if group is None:
+            inc("attendance", "errors")
+            continue
+        key = (d, group)
+        if key in existing_att_keys:
+            id_map["attendance"][row["id"]] = existing_att_keys[key]
+            inc("attendance", "skipped")
+            continue
+        to_insert_att.append(Attendance(date=d, group=group))
+        att_old_ids.append(row["id"])
+
+    if to_insert_att:
+        with SessionLocal() as session:
+            session.add_all(to_insert_att)
+            session.flush()
+            for old_id, new_att in zip(att_old_ids, to_insert_att):
+                id_map["attendance"][old_id] = new_att.id
+            session.commit()
+    stats["attendance"]["inserted"] = len(to_insert_att)
+    report_lines.append(f"  {len(old_attendances)} read → {len(to_insert_att)} new, {len(old_attendances) - len(to_insert_att)} existing")
+
+    # ── 2b. Intern attendances ──────────────────────────────────
+    report_lines.append("")
+    report_lines.append("── Intern attendances ──────────────────────────────────")
+    old_ia = sqlite_fetch_all(old, "intern_attendances", order_by=None)
+    existing_pairs = set()
+    with SessionLocal() as session:
+        for r in session.query(InternAttendance.attendance_id, InternAttendance.user_id).all():
+            existing_pairs.add((r.attendance_id, r.user_id))
+
+    to_insert_ia = []
+    for row in old_ia:
+        inc("intern_attendance", "read")
+        mapped_att_id = id_map.get("attendance", {}).get(row["attendance_id"])
+        mapped_user_id = id_map.get("user", {}).get(row["user_id"])
+        if not mapped_att_id or not mapped_user_id:
+            inc("intern_attendance", "skipped")
+            continue
+        if (mapped_att_id, mapped_user_id) in existing_pairs:
+            inc("intern_attendance", "skipped")
+            continue
+        to_insert_ia.append({
+            "attendance_id": mapped_att_id,
+            "user_id": mapped_user_id,
+            "enter_at": parse_datetime(row["enter_at"]),
+            "left_at": parse_datetime(row["left_at"]) if row.get("left_at") else None,
+            "status": row.get("status"),
+        })
+
+    if to_insert_ia:
+        with SessionLocal() as session:
+            session.bulk_insert_mappings(InternAttendance, to_insert_ia)
+            session.commit()
+    stats["intern_attendance"]["inserted"] = len(to_insert_ia)
+    report_lines.append(f"  {len(old_ia)} read → {len(to_insert_ia)} imported")
+
+    # ── 3. Leave requests ──────────────────────────────────────
+    report_lines.append("")
+    report_lines.append("── Leave requests ──────────────────────────────────────")
+    old_leaves = sqlite_fetch_all(old, "leave_requests")
+    existing_leave_keys = set()
+    with SessionLocal() as session:
+        for lr in session.query(LeaveRequest.user_id, LeaveRequest.date).all():
+            existing_leave_keys.add((lr.user_id, lr.date))
+
+    to_insert_leaves = []
+    for row in old_leaves:
+        inc("leave_request", "read")
+        mapped_user_id = id_map.get("user", {}).get(row["user_id"])
+        if not mapped_user_id:
+            inc("leave_request", "skipped")
+            continue
+        d = parse_date(row["date"])
+        if not d:
+            inc("leave_request", "errors")
+            continue
+        if (mapped_user_id, d) in existing_leave_keys:
+            inc("leave_request", "skipped")
+            continue
+        status = normalize_enum_value(row.get("status"), LEAVE_STATUS_MAP, "leave_status") if row.get("status") else None
+        mapped_reviewer = id_map.get("user", {}).get(row["reviewed_by"]) if row.get("reviewed_by") else None
+        to_insert_leaves.append(LeaveRequest(
+            user_id=mapped_user_id,
+            date=d,
+            reason=row["reason"],
+            status=status,
+            reviewed_by=mapped_reviewer,
+        ))
+
+    if to_insert_leaves:
+        with SessionLocal() as session:
+            session.add_all(to_insert_leaves)
+            session.commit()
+    stats["leave_request"]["inserted"] = len(to_insert_leaves)
+    report_lines.append(f"  {len(old_leaves)} read → {len(to_insert_leaves)} imported")
+
+    # ── 4. Tasks (for task_id mapping) ──────────────────────────
+    report_lines.append("")
+    report_lines.append("── Tasks ───────────────────────────────────────────────")
+    id_map["task"] = {}
+    old_tasks = sqlite_fetch_all(old, "tasks")
+    existing_task_keys = {}
+    with SessionLocal() as session:
+        for t in session.query(Task).all():
+            existing_task_keys[(t.name, t.department, t.submission_deadline)] = t.id
+
+    task_created = 0
+    for row in old_tasks:
+        dept = normalize_enum_value(row["department"], DEPARTMENT_MAP, "department")
+        if dept is None:
+            continue
+        deadline = parse_datetime(row["submission_deadline"])
+        if not deadline:
+            continue
+        mapped_creator = id_map.get("user", {}).get(row["created_by"])
+        key = (row["name"], dept, deadline)
+        if key in existing_task_keys:
+            id_map["task"][row["id"]] = existing_task_keys[key]
+            continue
+        if not mapped_creator:
+            continue
+        new_task = Task(
+            name=row["name"],
+            description=row["description"],
+            supporting_doc=row.get("supporting_doc"),
+            file_id=row.get("file_id"),
+            file_name=row.get("file_name"),
+            department=dept,
+            submission_deadline=deadline,
+            total_mark_on=row["total_mark_on"],
+            created_by=mapped_creator,
+        )
+        with SessionLocal() as session:
+            session.add(new_task)
+            session.flush()
+            id_map["task"][row["id"]] = new_task.id
+            session.commit()
+            task_created += 1
+    report_lines.append(f"  {len(old_tasks)} read → {task_created} new tasks")
+
+    # ── 5. Task submissions ────────────────────────────────────
+    report_lines.append("")
+    report_lines.append("── Task submissions ────────────────────────────────────")
+    old_submissions = sqlite_fetch_all(old, "task_submissions")
+    existing_ts_pairs = set()
+    with SessionLocal() as session:
+        for r in session.query(TaskSubmission.task_id, TaskSubmission.user_id).all():
+            existing_ts_pairs.add((r.task_id, r.user_id))
+
+    to_insert_ts = []
+    for row in old_submissions:
+        inc("task_submission", "read")
+        mapped_task_id = id_map.get("task", {}).get(row["task_id"])
+        mapped_user_id = id_map.get("user", {}).get(row["user_id"])
+        if not mapped_task_id or not mapped_user_id:
+            inc("task_submission", "skipped")
+            continue
+        if (mapped_task_id, mapped_user_id) in existing_ts_pairs:
+            inc("task_submission", "skipped")
+            continue
+        to_insert_ts.append({
+            "task_id": mapped_task_id,
+            "user_id": mapped_user_id,
+            "submitted_file": row.get("submitted_file"),
+            "file_id": row.get("file_id"),
+            "file_name": row.get("file_name"),
+            "submitted_url": row.get("submitted_url"),
+            "mark_obtained": parse_numeric(row.get("mark_obtained")),
+            "feedback": row.get("feedback"),
+        })
+
+    if to_insert_ts:
+        with SessionLocal() as session:
+            session.bulk_insert_mappings(TaskSubmission, to_insert_ts)
+            session.commit()
+    stats["task_submission"]["inserted"] = len(to_insert_ts)
+    report_lines.append(f"  {len(old_submissions)} read → {len(to_insert_ts)} imported")
+
+    # ── Build compact report ───────────────────────────────────
+    report_lines = ["✅ User/attendance sync complete\n"]
+    total_imported = 0
+    for table, s in stats.items():
+        i = s.get("inserted", 0)
+        r = s.get("read", 0)
+        if r == 0 and i == 0:
+            continue
+        total_imported += i
+        parts = [str(i)]
+        sk = s.get("skipped", 0)
+        if sk:
+            parts.append(f"{sk} ⚠")
+        e = s.get("errors", 0)
+        if e:
+            parts.append(f"{e} ❌")
+        report_lines.append(f"  {table}: {' · '.join(parts)}")
+    report_lines.append(f"\n  Total: {total_imported} records imported")
 
     old_conn.close()
     engine.dispose()
