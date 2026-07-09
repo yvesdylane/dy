@@ -223,17 +223,23 @@ def sync_from_backup(backup_db_path: str) -> str:
             continue
         dept = normalize_enum_value(row["department"], DEPARTMENT_MAP, "department")
         if dept is None:
-            user_messages.append(f"  \u274c {label}: unknown department '{row['department']}'")
+            msg = f"  \u274c {label}: unknown department '{row['department']}'"
+            user_messages.append(msg)
+            print(msg)
             inc_error("user")
             continue
         gender = normalize_enum_value(row["gender"], GENDER_MAP, "gender")
         if gender is None:
-            user_messages.append(f"  \u274c {label}: unknown gender '{row['gender']}'")
+            msg = f"  \u274c {label}: unknown gender '{row['gender']}'"
+            user_messages.append(msg)
+            print(msg)
             inc_error("user")
             continue
         role = normalize_enum_value(row["role"], ROLE_MAP, "role")
         if role is None:
-            user_messages.append(f"  \u274c {label}: unknown role '{row['role']}'")
+            msg = f"  \u274c {label}: unknown role '{row['role']}'"
+            user_messages.append(msg)
+            print(msg)
             inc_error("user")
             continue
         phone = normalize_phone(row["phone"])
@@ -248,22 +254,30 @@ def sync_from_backup(backup_db_path: str) -> str:
                         existing_user.telegram_id = tid
                         session.commit()
                         tid_updated = True
-                        user_messages.append(f"  \u2714  {label}: updated telegram_id '{old_tid}' \u2192 '{tid}'")
+                        msg = f"  \u2714  {label}: updated telegram_id '{old_tid}' \u2192 '{tid}'"
+                        user_messages.append(msg)
+                        print(msg)
             if tid_updated:
                 id_map["user"][row["id"]] = existing_id
             else:
-                user_messages.append(f"  \u26a0  {label}: duplicate phone '{phone}', skipping")
+                msg = f"  \u26a0  {label}: duplicate phone '{phone}', skipping"
+                user_messages.append(msg)
+                print(msg)
             inc_skipped("user")
             continue
         if phone in seen_phones:
-            user_messages.append(f"  \u26a0  {label}: duplicate phone '{phone}' in backup, skipping")
+            msg = f"  \u26a0  {label}: duplicate phone '{phone}' in backup, skipping"
+            user_messages.append(msg)
+            print(msg)
             inc_skipped("user")
             continue
         g_val = row["group"]
         group = normalize_enum_value(g_val, GROUP_MAP, "group") if g_val else None
         dob = parse_date(row["dob"])
         if not dob:
-            user_messages.append(f"  \u274c {label}: invalid dob '{row['dob']}'")
+            msg = f"  \u274c {label}: invalid dob '{row['dob']}'"
+            user_messages.append(msg)
+            print(msg)
             inc_error("user")
             continue
         seen_phones.add(phone)
