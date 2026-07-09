@@ -37,6 +37,25 @@ async def image_start(update: Update, _context):
     return IMAGE_PHOTO
 
 
+async def _save_profile_image(update: Update, telegram_id: str, image_bytes: bytes, filename: str) -> None:
+    bot = update.get_bot()
+    file_id, _ = await upload_file_to_group(bot, image_bytes, filename)
+
+    with get_sync_db() as session:
+        u = session.execute(select(User).where(User.telegram_id == telegram_id)).scalar_one_or_none()
+        if u:
+            u.image = file_id
+
+    try:
+        loop = asyncio.get_running_loop()
+        thumb = await loop.run_in_executor(None, resize_for_cache, image_bytes)
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        cache_path = os.path.join(CACHE_DIR, f"{u.id}.jpg")
+        await loop.run_in_executor(None, lambda: open(cache_path, "wb").write(thumb))
+    except Exception as e:
+        logger.warning("Failed to cache profile photo for user %d: %s", u.id if u else 0, e)
+
+
 async def image_handle_photo(update: Update, context):
     telegram_id = str(update.effective_user.id)
     reply = reply_fn(update)
@@ -50,23 +69,31 @@ async def image_handle_photo(update: Update, context):
     file = await photo.get_file()
     photo_bytes = await file.download_as_bytearray()
 
-    bot = update.get_bot()
-    file_id, _ = await upload_file_to_group(bot, bytes(photo_bytes), f"profile_{telegram_id}.jpg")
+    await _save_profile_image(update, telegram_id, bytes(photo_bytes), f"profile_{telegram_id}.jpg")
 
-    with get_sync_db() as session:
-        u = session.execute(select(User).where(User.telegram_id == telegram_id)).scalar_one_or_none()
-        if u:
-            u.image = file_id
+    await reply("Profile picture updated!")
+    return ConversationHandler.END
 
-    # Cache thumbnail locally
-    try:
-        loop = asyncio.get_running_loop()
-        thumb = await loop.run_in_executor(None, resize_for_cache, bytes(photo_bytes))
-        os.makedirs(CACHE_DIR, exist_ok=True)
-        cache_path = os.path.join(CACHE_DIR, f"{u.id}.jpg")
-        await loop.run_in_executor(None, lambda: open(cache_path, "wb").write(thumb))
-    except Exception as e:
-        logger.warning("Failed to cache profile photo for user %d: %s", u.id if u else 0, e)
+
+async def image_handle_document(update: Update, context):
+    telegram_id = str(update.effective_user.id)
+    reply = reply_fn(update)
+
+    user = get_user_sync(telegram_id)
+    if not user:
+        await reply("You need an account first. Use /start to create one.")
+        return ConversationHandler.END
+
+    doc = update.message.document
+    if not doc.mime_type or not doc.mime_type.startswith("image/"):
+        await reply("That's not an image. Please send a photo or an image file (JPEG, PNG, etc.).")
+        return IMAGE_PHOTO
+
+    file = await doc.get_file()
+    image_bytes = await file.download_as_bytearray()
+
+    ext = os.path.splitext(doc.file_name or "image.jpg")[1] or ".jpg"
+    await _save_profile_image(update, telegram_id, bytes(image_bytes), f"profile_{telegram_id}{ext}")
 
     await reply("Profile picture updated!")
     return ConversationHandler.END
@@ -75,7 +102,10 @@ async def image_handle_photo(update: Update, context):
 image_conv = ConversationHandler(
     entry_points=[CommandHandler("image", image_start)],
     states={
-        IMAGE_PHOTO: [MessageHandler(filters.PHOTO, image_handle_photo)],
+        IMAGE_PHOTO: [
+            MessageHandler(filters.PHOTO, image_handle_photo),
+            MessageHandler(filters.Document.ALL, image_handle_document),
+        ],
     },
     fallbacks=[CommandHandler("cancel", _cancel)],
 )

@@ -27,7 +27,7 @@ if (!tg) {
             if (result.ok) {
                 window.location.href = result.redirect;
             } else if (result.needs_registration) {
-                window.location.href = "/register";
+                window.location.href = "/register?telegram_id=" + result.telegram_id;
             } else {
                 const el = document.getElementById("errorMsg");
                 if (el) {
