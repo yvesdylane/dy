@@ -644,35 +644,42 @@ def sync_from_backup(backup_db_path: str) -> str:
     stats["leave_request"]["inserted"] = len(to_insert_leaves)
     report_lines.append(f"  {len(old_leaves)} read \u2192 {len(to_insert_leaves)} inserted, {len(old_leaves) - len(to_insert_leaves)} skipped")
 
-    # ── Skipped tables ─────────────────────────────────────────
+    # ── Build compact report ───────────────────────────────────
+    report_lines = ["✅ Sync complete\n"]
+
+    # skipped old tables
+    old_skipped = []
     for tname in ("cleaning_groups", "cleaning_group_members", "cleaning_duties", "cleaning_completions", "attendance_codes"):
         rows = sqlite_fetch_all(old, tname)
         if rows:
-            report_lines.append("")
-            report_lines.append(f"\u2500\u2500 {tname} \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500")
-            report_lines.append(f"  Skipped ({len(rows)} record{plural(len(rows))} \u2014 table not in v2)")
+            short = tname.replace("cleaning_completions", "clean_completions").replace("cleaning_group_members", "clean_members").replace("cleaning_duties", "clean_duties").replace("cleaning_groups", "clean_groups").replace("attendance_codes", "att_codes")
+            old_skipped.append(f"{short} ({len(rows)})")
+    if old_skipped:
+        report_lines.append(f"\u23ed Old tables ignored: {', '.join(old_skipped)}\n")
 
-    # ── Summary ────────────────────────────────────────────────
-    report_lines.append("")
-    report_lines.append("\u2550" * 55)
-    report_lines.append("SUMMARY")
-    report_lines.append("\u2550" * 55)
-    total_read = 0
     total_inserted = 0
     total_skipped = 0
     total_errors = 0
     for table, s in stats.items():
-        r = s.get("read", 0)
         i = s.get("inserted", 0)
         sk = s.get("skipped", 0)
         e = s.get("errors", 0)
-        total_read += r
+        if i == 0 and sk == 0:
+            continue
         total_inserted += i
         total_skipped += sk
         total_errors += e
-        report_lines.append(f"  {table:20s}  {r:4d} read  \u2192  {i:4d} inserted  {sk:4d} skipped  {e:4d} errors")
-    report_lines.append(f"  {'\u2500' * 50}")
-    report_lines.append(f"  {'TOTAL':20s}  {total_read:4d} read  \u2192  {total_inserted:4d} inserted  {total_skipped:4d} skipped  {total_errors:4d} errors")
+        parts = [str(i)]
+        if sk: parts.append(f"{sk} \u26a0")
+        if e: parts.append(f"{e} \u274c")
+        report_lines.append(f"  {table}: {' \u00b7 '.join(parts)}")
+
+    summary = f"\n  Total: {total_inserted} imported"
+    if total_skipped:
+        summary += f" \u00b7 {total_skipped} skipped"
+    if total_errors:
+        summary += f" \u00b7 {total_errors} errors"
+    report_lines.append(summary)
 
     old_conn.close()
     engine.dispose()
