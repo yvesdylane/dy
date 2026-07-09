@@ -116,13 +116,13 @@ def create_attendance(db: Session, d: date) -> Attendance:
     ).scalars().all()
 
     for u in interns:
-        status = "exempted" if u.id in exempted else None
+        is_exempted = u.id in exempted
         ia = InternAttendance(
             attendance_id=att.id,
             user_id=u.id,
-            enter_at=datetime.combine(d, datetime.min.time()) if status else None,
+            enter_at=datetime.combine(d, datetime.min.time()) if is_exempted else None,
             left_at=None,
-            status=status,
+            status="exempted" if is_exempted else None,
         )
         db.add(ia)
     db.flush()

@@ -24,7 +24,7 @@ class InternAttendance(Base):
 
     attendance_id = Column(Integer, ForeignKey("attendances.id"), primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    enter_at = Column(DateTime, nullable=False)
+    enter_at = Column(DateTime, nullable=True)
     left_at = Column(DateTime, nullable=True)
     status = Column(String(20), nullable=True)
 

@@ -2,7 +2,6 @@ import logging
 from logging.config import fileConfig
 
 from sqlalchemy import create_engine, pool
-from sqlalchemy.engine import Connection
 
 from alembic import context
 
@@ -31,27 +30,23 @@ def run_migrations_offline() -> None:
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        dialect_opts={"paramtype": "named"},
     )
     with context.begin_transaction():
         context.run_migrations()
 
 
-def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
-    with context.begin_transaction():
-        context.run_migrations()
-
-
-def run_migrations_sync() -> None:
+def run_migrations_online() -> None:
     connectable = create_engine(normalized_url, poolclass=pool.NullPool, connect_args=connect_args)
     with connectable.connect() as connection:
-        do_run_migrations(connection)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            render_as_batch=True,
+        )
+        with context.begin_transaction():
+            context.run_migrations()
     connectable.dispose()
-
-
-def run_migrations_online() -> None:
-    run_migrations_sync()
 
 
 if context.is_offline_mode():
