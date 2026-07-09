@@ -86,7 +86,10 @@ async def handle_attendance_code(update: Update, _context):
             )
             session.add(entry)
             msg = f"✅ Entry marked at {now.strftime('%H:%M')}"
-        elif entry.enter_at and not entry.left_at:
+        elif not entry.enter_at:
+            entry.enter_at = now
+            msg = f"✅ Entry marked at {now.strftime('%H:%M')}"
+        elif not entry.left_at:
             entry.left_at = now
             msg = f"✅ Exit marked at {now.strftime('%H:%M')}"
         else:
