@@ -1,6 +1,6 @@
 # 🎮 dy
 
-> **Leveling up one command at a time** — A Telegram bot + mini app for managing attendance, tasks, notes, and announcements.
+> **Leveling up one command at a time** — A Telegram bot + web mini app for managing attendance, tasks, notes, and announcements.
 
 Meet **[dy](https://t.me/dyDMCBOT)** — a side project that started as "let me play with the Telegram Bot API" and grew into a full assistant for my institute. It doesn't reply to random chit-chat (only commands — clean, focused, minimal).
 
@@ -14,7 +14,7 @@ Meet **[dy](https://t.me/dyDMCBOT)** — a side project that started as "let me 
 
 | Feature | What's happening |
 |---|---|
-| 📋 **Attendance** | Daily auto-creation (Mon–Sat), QR code scanning for entry/exit |
+| 📋 **Attendance** | Daily auto-creation (Mon–Sat), QR + face scanning for entry/exit |
 | 📝 **Tasks** | Create, browse, and submit work — staff gives, interns submit |
 | 📒 **Notes** | Share departmental notes with file uploads |
 | 📢 **Info / Announcements** | Broadcast messages — `/info` to see them |
@@ -25,6 +25,27 @@ Meet **[dy](https://t.me/dyDMCBOT)** — a side project that started as "let me 
 | 💾 **DB Sync** | `/sync` upload a `.db` file to merge data — also re-uploads all files to the storage group |
 | 💽 **DB Backup** | `/db` downloads the live database (admin only) |
 | 🖼️ **Profile Pic** | `/image` upload a profile photo — stored in the Telegram group, shown on `/me` |
+
+### 🌐 Web Admin Dashboard
+
+The Telegram Mini App provides a full admin dashboard with shell + fragments architecture:
+
+| Page | Description |
+|---|---|
+| **Dashboard** | Stats overview — total users, attendance, tasks, notes, complaints, leaves |
+| **Users** | CRUD with search, filters (role, dept, group, gender, fees), pagination, photo upload via live camera |
+| **Pass** | Generate/stop attendance pass codes, start/stop camera for face scan with real-time detection |
+| **Tasks** | Create, edit, delete, filter by status/assignee with notes sub-tab |
+| **Leaves** | Review and manage leave requests |
+| **Codes** | Generate and manage registration codes |
+| **Registers** | View attendance registers |
+| **Cleaning** | Cleaning schedule management |
+| **Complaints** | View anonymous complaints |
+| **Notes / Info** | Share and manage notes and announcements |
+
+### 👨‍🏫 Instructor Dashboard
+
+Instructors have their own dashboard with face-scan attendance and task management.
 
 ---
 
@@ -60,13 +81,33 @@ Everything responds only to commands — no passive replies. Minimal by design.
 ## 🛠️ Tech Stack
 
 ```
-FastAPI        ⚡  async web framework
-aiosqlite      🗄️  SQLite (async)
-Telegram       🤖  python-telegram-bot (webhooks)
-Telegram Group 🗂️  file storage (replaced Cloudinary)
-APScheduler    ⏰  daily attendance cron
-Render         🚀  deployment
+FastAPI             ⚡  async web framework + sync SQLAlchemy
+libsql_experimental 🗄️  Turso / SQLite sync dialect (wrapped via asyncio.to_thread)
+Telegram            🤖  python-telegram-bot (webhooks)
+Telegram Group      🗂️  file storage (replaced Cloudinary)
+InsightFace         🧠  face detection + recognition (buffalo_l model)
+Tailwind CSS        🎨  utility-first styling (CDN)
+uv                  📦  package manager
+Alembic             🗺️  database migrations
+Render              🚀  deployment
 ```
+
+---
+
+## 🎯 v1.2 — What's New
+
+| Change | Details |
+|---|---|
+| **Face Attendance** | InsightFace-based face detection & recognition. Real-time camera scanning with green/red bounding boxes. Face enrollment per user. |
+| **Instructor Dashboard** | Full instructor shell + sections (dashboard, face-scan, tasks) |
+| **Phone Normalization** | `helpers/phone.py` — handles `+237`, `237`, bare number, `00237` prefixes. `is_fake_telegram_id()` detects `dy_`/`pending_` fake IDs. |
+| **Registration Fixes** | No more silent auto-link on existing phone. Shows inline link section when phone exists. Closes Mini App on success. |
+| **Bot `/link` Fix** | Clean branch logic, handles fake telegram_ids, uses normalize_phone |
+| **Camera Flip Toggle** | Front/back camera toggle for both admin pass and instructor face-scan pages |
+| **Live Photo Capture** | User profile photo taken via live camera in edit modal (getUserMedia), with flip toggle + gallery fallback. Selfies mirrored correctly. |
+| **Fee Filter** | "Min fees" input + "Paid" checkbox in user filter row. Fee amount shown in user cards. |
+| **Photo Cache-Busting** | Newly uploaded profile photos appear immediately in the user list without page refresh |
+| **Code Restrictions** | `super_admin` role required to create admin registration codes |
 
 ---
 
@@ -99,7 +140,7 @@ uv sync
 uv run python main.py
 ```
 
-The app will be at `http://localhost:8000`, bot webhook at `/telegram`, dashboard at `/app`.
+The app will be at `http://localhost:8000`, bot webhook at `/telegram`.
 
 ### 4. Deploy (Render)
 
@@ -123,8 +164,9 @@ The app will be at `http://localhost:8000`, bot webhook at `/telegram`, dashboar
 
 - **Commands only.** No noise. The bot doesn't reply to every message — it waits for instructions.
 - **Minimal.** Every feature has a reason. I'd rather ship fewer things well.
-- **Play-driven.** This whole project is me messing around with the Telegram Bot API, async Python, and webhooks. It's messy, it's fun, and it's getting better every commit.
-- We intentionally use the libsql_experimental synchronous dialect wrapped with asyncio.to_thread() because the current aiolibsql async dialect causes cursor read failures with Turso. Revisit this only after confirming the async driver is stable.
+- **Play-driven.** This whole project is me messing around with the Telegram Bot API, async Python, face recognition, and webhooks. It's messy, it's fun, and it's getting better every commit.
+- We intentionally use the `libsql_experimental` synchronous dialect wrapped with `asyncio.to_thread()` because the current `aiolibsql` async dialect causes cursor read failures with Turso. Revisit this only after confirming the async driver is stable.
+
 ---
 
 ## 👨‍💻 About the Dev
@@ -142,5 +184,5 @@ If you're reading this and have ideas, suggestions, or just want to say hi — h
 ---
 
 <p align="center">
-  <sub>built with ☕ + 🎮 + way too many late nights</sub>
+  <sub>built with ☕ + 🎮 + 🤖 + way too many late nights</sub>
 </p>
