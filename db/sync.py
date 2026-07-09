@@ -68,11 +68,14 @@ def normalize_phone(raw):
 def normalize_enum_value(val, mapping, label="value"):
     if val is None:
         return None
-    try:
+    if val in mapping:
         return mapping[val]
-    except KeyError:
-        print(f"  \u26a0  Unknown {label} '{val}', skipping record")
-        return None
+    # case-insensitive fallback
+    val_lower = val.lower()
+    for k, v in mapping.items():
+        if k.lower() == val_lower:
+            return v
+    return None
 
 
 def parse_date(val):
@@ -150,6 +153,13 @@ def sqlite_fetch_all(cursor, table, order_by="id"):
     return [dict(zip(col_names, row)) for row in rows]
 
 
+def _user_label(row: dict) -> str:
+    tid = row.get("telegram_id") or "?"
+    name = row.get("name", "?")
+    surname = row.get("surname", "?")
+    return f"#{row['id']} {name} {surname} (tel:{tid})"
+
+
 def sync_from_backup(backup_db_path: str) -> str:
     backup_path = Path(backup_db_path)
     if not backup_path.exists():
@@ -201,8 +211,10 @@ def sync_from_backup(backup_db_path: str) -> str:
     to_insert_users = []
     user_old_ids = []
     seen_phones = set()
+    user_messages: list[str] = []
     for row in old_users:
         inc_read("user")
+        label = _user_label(row)
         tid = str(row["telegram_id"]) if row["telegram_id"] is not None else ""
         backup_has_valid_tid = bool(tid) and not is_fake_telegram_id(tid)
         if backup_has_valid_tid and tid in existing_by_tid:
@@ -211,14 +223,17 @@ def sync_from_backup(backup_db_path: str) -> str:
             continue
         dept = normalize_enum_value(row["department"], DEPARTMENT_MAP, "department")
         if dept is None:
+            user_messages.append(f"  \u274c {label}: unknown department '{row['department']}'")
             inc_error("user")
             continue
         gender = normalize_enum_value(row["gender"], GENDER_MAP, "gender")
         if gender is None:
+            user_messages.append(f"  \u274c {label}: unknown gender '{row['gender']}'")
             inc_error("user")
             continue
         role = normalize_enum_value(row["role"], ROLE_MAP, "role")
         if role is None:
+            user_messages.append(f"  \u274c {label}: unknown role '{row['role']}'")
             inc_error("user")
             continue
         phone = normalize_phone(row["phone"])
@@ -233,22 +248,22 @@ def sync_from_backup(backup_db_path: str) -> str:
                         existing_user.telegram_id = tid
                         session.commit()
                         tid_updated = True
-                        print(f"  \u2714  Updated telegram_id for user {existing_id}: '{old_tid}' \u2192 '{tid}'")
+                        user_messages.append(f"  \u2714  {label}: updated telegram_id '{old_tid}' \u2192 '{tid}'")
             if tid_updated:
                 id_map["user"][row["id"]] = existing_id
             else:
-                print(f"  \u26a0  User {row['id']}: duplicate phone '{phone}', skipping")
+                user_messages.append(f"  \u26a0  {label}: duplicate phone '{phone}', skipping")
             inc_skipped("user")
             continue
         if phone in seen_phones:
-            print(f"  \u26a0  User {row['id']}: duplicate phone '{phone}' in backup, skipping")
+            user_messages.append(f"  \u26a0  {label}: duplicate phone '{phone}' in backup, skipping")
             inc_skipped("user")
             continue
         g_val = row["group"]
         group = normalize_enum_value(g_val, GROUP_MAP, "group") if g_val else None
         dob = parse_date(row["dob"])
         if not dob:
-            print(f"  \u26a0  User {row['id']}: invalid dob '{row['dob']}', skipping")
+            user_messages.append(f"  \u274c {label}: invalid dob '{row['dob']}'")
             inc_error("user")
             continue
         seen_phones.add(phone)
@@ -281,6 +296,9 @@ def sync_from_backup(backup_db_path: str) -> str:
     inc_inserted("user")
     stats["user"]["inserted"] = len(to_insert_users)
     report_lines.append(f"  {len(old_users)} read \u2192 {len(to_insert_users)} inserted, {len(old_users) - len(to_insert_users)} skipped")
+    if user_messages:
+        report_lines.append("")
+        report_lines.extend(user_messages)
 
     # ── 1b. Face embeddings (disabled — 512MB RAM limit) ──────
     report_lines.append("")
