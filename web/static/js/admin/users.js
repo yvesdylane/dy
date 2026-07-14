@@ -4,6 +4,7 @@
   var currentPage = 0;
   var pageLimit = 20;
   var searchTimer = null;
+  var currentUserRole = document.getElementById("appView").dataset.currentUserRole;
 
   var df = window.dashboardFilter;
   if (df) {
@@ -193,12 +194,14 @@
     var gender = document.getElementById("filterGender").value;
     var feesMin = document.getElementById("filterFees").value;
     var fullyPaid = document.getElementById("filterFullyPaid").checked;
+    var status = document.getElementById("filterStatus").value;
     var params = "?skip=" + (currentPage * pageLimit) + "&limit=" + pageLimit;
     if (q) params += "&q=" + encodeURIComponent(q);
     if (role) params += "&role=" + role;
     if (dept) params += "&department=" + dept;
     if (group) params += "&group=" + group;
     if (gender) params += "&gender=" + gender;
+    if (status) params += "&is_active=" + status;
     if (feesMin) params += "&fees_paid_min=" + feesMin;
     if (fullyPaid) params += "&fully_paid=true";
     return params;
@@ -258,7 +261,10 @@
         + '<p class="text-xs text-zinc-500 truncate">' + meta + '</p>'
         + '</div>'
         + '</div>'
+        + '<div class="flex items-center gap-1.5 shrink-0">'
+        + (u.is_active === false ? '<span class="text-xs px-2 py-0.5 rounded-full font-medium bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400">Inactive</span>' : '')
         + '<span class="text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ' + roleColor + '">' + u.role.replace("_", " ") + '</span>'
+        + '</div>'
         + '</div>';
     });
     list.innerHTML = html;
@@ -385,11 +391,12 @@
       + '</div>'
       + '<div class="grid grid-cols-2 gap-3">'
       + selectField("department", ["ISM", "SWE", "CGWD", "EDM", "CSN", "DBMS", "NWS"], u ? u.department : "ISM")
-      + selectField("group", ["", "A", "B"], u ? (u.group || "") : "")
+      + selectField("group", ["", "A", "B", "C"], u ? (u.group || "") : "")
       + '</div>'
       + field("phone", "Phone", u ? u.phone : "", false)
       + field("email", "Email", u ? u.email || "" : "", false)
       + field("dob", "Date of Birth", u ? u.dob : "", false, "date")
+      + (isEdit && currentUserRole === 'super_admin' ? '<div><label class="block text-xs font-medium text-zinc-500 mb-1">Status</label>' + selectField("is_active", ["true", "false"], u ? (u.is_active !== false ? "true" : "false") : "true") + '</div>' : '')
       + '<div class="grid grid-cols-2 gap-3">'
       + field("total_fees", "Total Fees", u ? u.total_fees : "40000", false, "number")
       + field("fees_paid", "Fees Paid", u ? u.fees_paid : "0", false, "number")
@@ -435,6 +442,8 @@
     };
     var url, method;
     if (userId) {
+      var isActiveEl = document.getElementById("f-is_active");
+      if (isActiveEl) data.is_active = isActiveEl.value === "true";
       url = "/api/admin/users/" + userId;
       method = "PUT";
       data.telegram_id = document.getElementById("f-telegram_id")

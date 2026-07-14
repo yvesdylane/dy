@@ -5,6 +5,7 @@ from sqlalchemy import select
 from telegram import Update
 from telegram.ext import MessageHandler, filters
 
+from bot.common import INACTIVE_MSG
 from controllers.passController import use_code
 from db.database import get_sync_db
 from models.attendance import Attendance, InternAttendance
@@ -37,7 +38,11 @@ async def handle_attendance_code(update: Update, _context):
             await update.message.reply_text("You need to create an account first. Use /start.")
             return
 
-        if user.group != today_group:
+        if not user.is_active:
+            await update.message.reply_text(INACTIVE_MSG)
+            return
+
+        if user.group != today_group and user.group != Group.C:
             await update.message.reply_text(
                 f"Today is Group {today_group.value}, you are Group {user.group.value}."
             )

@@ -6,7 +6,7 @@ from sqlalchemy.orm import selectinload
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, ConversationHandler, MessageHandler, filters
 
-from bot.common import get_user_sync, logger
+from bot.common import INACTIVE_MSG, get_user_sync, logger
 from db.database import get_sync_db
 from models.attendance import Attendance, InternAttendance
 from models.enums import Group, LeaveStatus, Role
@@ -31,6 +31,9 @@ async def leave_start(update: Update, context):
     user = get_user_sync(str(update.effective_user.id))
     if not user:
         await update.message.reply_text("User not found.")
+        return ConversationHandler.END
+    if not user.is_active:
+        await update.message.reply_text(INACTIVE_MSG)
         return ConversationHandler.END
 
     if user.role == Role.intern:

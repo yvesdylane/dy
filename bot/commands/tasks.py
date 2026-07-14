@@ -5,7 +5,7 @@ from sqlalchemy import select
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, ConversationHandler, MessageHandler, filters
 
-from bot.common import get_user_sync
+from bot.common import INACTIVE_MSG, get_user_sync
 from bot.files import upload_file_to_group
 from db.database import get_sync_db
 from models.task import Task, TaskSubmission
@@ -24,6 +24,9 @@ async def submit_start(update: Update, _context):
     user = get_user_sync(str(update.effective_user.id))
     if not user:
         await update.message.reply_text("You need an account first.")
+        return ConversationHandler.END
+    if not user.is_active:
+        await update.message.reply_text(INACTIVE_MSG)
         return ConversationHandler.END
 
     now = datetime.utcnow()

@@ -11,7 +11,7 @@ from pathlib import Path
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, InputFile, Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, ConversationHandler, MessageHandler, filters
 
-from bot.common import get_user_sync
+from bot.common import INACTIVE_MSG, get_user_sync
 from config import settings
 from models.enums import Role
 
@@ -31,6 +31,9 @@ async def _is_admin(update: Update) -> bool:
     if not user or user.role not in (Role.admin, Role.super_admin):
         await update.message.reply_text("Only admins can use this command.")
         return False
+    if not user.is_active:
+        await update.message.reply_text(INACTIVE_MSG)
+        return False
     return True
 
 
@@ -38,6 +41,9 @@ async def _is_staff(update: Update) -> bool:
     user = get_user_sync(str(update.effective_user.id))
     if not user or user.role not in (Role.admin, Role.super_admin, Role.instructor):
         await update.message.reply_text("Only staff can use this command.")
+        return False
+    if not user.is_active:
+        await update.message.reply_text(INACTIVE_MSG)
         return False
     return True
 

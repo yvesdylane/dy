@@ -26,6 +26,7 @@ class Department(enum.Enum):
 class Group(enum.Enum):
     A = "A"
     B = "B"
+    C = "C"
 
 
 class ComplainType(enum.Enum):

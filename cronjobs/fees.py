@@ -57,7 +57,7 @@ def _sync_get_interns():
             select(User.name, User.surname, User.telegram_id, User.fees_paid, User.total_fees)
             .where(
                 User.role == Role.intern,
-                User.group == group,
+                User.group.in_([group, Group.C]),
                 User.fees_paid < 15000,
                 User.telegram_id.isnot(None),
                 ~User.telegram_id.like("pending_%"),

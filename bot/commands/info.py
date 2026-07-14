@@ -4,7 +4,7 @@ from sqlalchemy import select
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, CommandHandler
 
-from bot.common import get_user_sync, reply_fn
+from bot.common import INACTIVE_MSG, get_user_sync, reply_fn
 from db.database import get_sync_db
 from models.enums import Role
 from models.infoNote import Info, Note
@@ -14,6 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 async def announcements(update: Update, _context):
+    user = get_user_sync(str(update.effective_user.id))
+    if user and not user.is_active:
+        await update.effective_message.reply_text(INACTIVE_MSG)
+        return
+
     with get_sync_db() as session:
         items = session.execute(
             select(Info).order_by(Info.created_at.desc())
@@ -71,6 +76,9 @@ async def notes_list(update: Update, _context):
     user = get_user_sync(str(update.effective_user.id))
     if not user:
         await update.effective_message.reply_text("You need an account first.")
+        return
+    if not user.is_active:
+        await update.effective_message.reply_text(INACTIVE_MSG)
         return
 
     with get_sync_db() as session:
@@ -134,6 +142,9 @@ async def task_info(update: Update, _context):
     user = get_user_sync(str(update.effective_user.id))
     if not user:
         await reply("You need an account first.")
+        return
+    if not user.is_active:
+        await reply(INACTIVE_MSG)
         return
 
     from datetime import datetime

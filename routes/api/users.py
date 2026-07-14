@@ -40,6 +40,7 @@ class UserOut(BaseModel):
     dob: date
     image: Optional[str] = None
     quarter: Optional[str] = None
+    is_active: bool = True
     fees_paid: Optional[float] = None
     total_fees: Optional[float] = None
     created_at: Optional[datetime] = None
@@ -70,6 +71,7 @@ async def list_users(
     department: Optional[str] = Query(None),
     group: Optional[str] = Query(None),
     gender: Optional[str] = Query(None),
+    is_active: Optional[bool] = Query(None),
     fees_paid_min: Optional[float] = Query(None),
     fully_paid: Optional[bool] = Query(None),
     skip: int = Query(0, ge=0),
@@ -92,6 +94,7 @@ async def list_users(
             department=dept_enum,
             group=group_enum,
             gender=gender_enum,
+            is_active=is_active,
             fees_paid_min=fees_paid_min,
             fully_paid=fully_paid,
             skip=skip,
@@ -138,6 +141,9 @@ async def update_user_by_id(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if data.is_active is not None and current_user.role != Role.super_admin:
+        raise HTTPException(status_code=403, detail="Only super admins can change account status")
+
     loop = asyncio.get_running_loop()
     user = await loop.run_in_executor(None, update_user, db, user_id, data)
     if user is None:

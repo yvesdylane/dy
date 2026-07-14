@@ -3,7 +3,7 @@ import logging
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import CommandHandler
 
-from bot.common import format_user_info, get_user_sync, reply_fn, reply_md_fn
+from bot.common import INACTIVE_MSG, format_user_info, get_user_sync, reply_fn, reply_md_fn
 from bot.router import ASSETS_DIR
 from config import settings
 
@@ -72,6 +72,10 @@ async def me(update: Update, _context):
         )
         return
 
+    if not user.is_active:
+        await reply_text(INACTIVE_MSG)
+        return
+
     text = format_user_info(user)
     image_id = user.image
 
@@ -105,6 +109,11 @@ async def me(update: Update, _context):
 
 async def dashboard(update: Update, _context):
     telegram_id = str(update.effective_user.id)
+    user = get_user_sync(telegram_id)
+    if user and not user.is_active:
+        await update.message.reply_text(INACTIVE_MSG)
+        return
+
     mini_app_url = f"{settings.mini_app_url.rstrip('/')}?telegram_id={telegram_id}"
     button = InlineKeyboardButton("Open Dashboard", web_app=WebAppInfo(url=mini_app_url))
     keyboard = InlineKeyboardMarkup([[button]])

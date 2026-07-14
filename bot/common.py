@@ -9,6 +9,13 @@ from models.user import User
 
 logger = logging.getLogger(__name__)
 
+INACTIVE_MSG = (
+    "Your account has been deactivated. "
+    "You cannot perform any action on the system. "
+    "Please contact the admin for more details."
+)
+
+
 ROLE_DISPLAY = {
     "super_admin": "Super Admin",
     "admin": "Admin",

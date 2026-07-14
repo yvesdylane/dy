@@ -27,7 +27,7 @@ def get_attendance(db: Session, d: date) -> dict:
 
     students = []
     interns = db.execute(
-        select(User).where(User.group == group, User.role == "intern")
+        select(User).where(User.group.in_([group, Group.C]), User.role == "intern")
     ).scalars().all()
 
     # get approved leaves for this date
@@ -112,7 +112,7 @@ def create_attendance(db: Session, d: date) -> Attendance:
     exempted = {l.user_id for l in leaves}
 
     interns = db.execute(
-        select(User).where(User.group == group, User.role == "intern")
+        select(User).where(User.group.in_([group, Group.C]), User.role == "intern")
     ).scalars().all()
 
     for u in interns:

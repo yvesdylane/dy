@@ -6,7 +6,7 @@ from sqlalchemy import select
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, CommandHandler, ConversationHandler, MessageHandler, filters
 
-from bot.common import get_user_sync, reply_fn
+from bot.common import INACTIVE_MSG, get_user_sync, reply_fn
 from bot.files import upload_file_to_group
 from controllers.face import resize_for_cache
 from db.database import get_sync_db
@@ -33,6 +33,10 @@ async def _cancel(update: Update, _context):
 
 async def image_start(update: Update, _context):
     reply = reply_fn(update)
+    user = get_user_sync(str(update.effective_user.id))
+    if user and not user.is_active:
+        await reply(INACTIVE_MSG)
+        return ConversationHandler.END
     await reply("Send me a photo to set as your profile picture.")
     return IMAGE_PHOTO
 
@@ -64,6 +68,9 @@ async def image_handle_photo(update: Update, context):
     if not user:
         await reply("You need an account first. Use /start to create one.")
         return ConversationHandler.END
+    if not user.is_active:
+        await reply(INACTIVE_MSG)
+        return ConversationHandler.END
 
     photo = update.message.photo[-1]
     file = await photo.get_file()
@@ -82,6 +89,9 @@ async def image_handle_document(update: Update, context):
     user = get_user_sync(telegram_id)
     if not user:
         await reply("You need an account first. Use /start to create one.")
+        return ConversationHandler.END
+    if not user.is_active:
+        await reply(INACTIVE_MSG)
         return ConversationHandler.END
 
     doc = update.message.document
@@ -118,6 +128,9 @@ async def complain_start(update: Update, _context):
     user = get_user_sync(str(update.effective_user.id))
     if not user:
         await update.message.reply_text("User not found.")
+        return ConversationHandler.END
+    if not user.is_active:
+        await update.message.reply_text(INACTIVE_MSG)
         return ConversationHandler.END
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("💢 Complaint", callback_data="complain_type_complaint")],
@@ -204,6 +217,9 @@ async def update_start(update: Update, _context):
     user = get_user_sync(str(update.effective_user.id))
     if not user:
         await update.message.reply_text("User not found.")
+        return ConversationHandler.END
+    if not user.is_active:
+        await update.message.reply_text(INACTIVE_MSG)
         return ConversationHandler.END
     return await _show_update_menu(update, _context)
 

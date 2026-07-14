@@ -23,4 +23,11 @@ async def get_current_user(
         request.session.clear()
         raise HTTPException(status_code=401, detail="User not found")
 
+    if not user.is_active:
+        request.session.clear()
+        raise HTTPException(
+            status_code=403,
+            detail="Account deactivated. Contact admin.",
+        )
+
     return user

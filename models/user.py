@@ -54,6 +54,7 @@ class User(Base):
     quarter = Column(String, nullable=True)
     fees_paid = Column(Numeric(10, 2), default=0, nullable=True)
     total_fees = Column(Numeric(10, 2), default=40000, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

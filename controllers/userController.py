@@ -48,6 +48,7 @@ class UserUpdate(BaseModel):
     dob: Optional[date] = None
     image: Optional[str] = None
     quarter: Optional[str] = None
+    is_active: Optional[bool] = None
     fees_paid: Optional[float] = None
     total_fees: Optional[float] = None
 
@@ -99,6 +100,7 @@ def search_users(
     department: Optional[Department] = None,
     group: Optional[Group] = None,
     gender: Optional[Gender] = None,
+    is_active: Optional[bool] = None,
     fees_paid_min: Optional[float] = None,
     fully_paid: Optional[bool] = None,
     skip: int = 0,
@@ -129,6 +131,10 @@ def search_users(
     if gender is not None:
         stmt = stmt.where(User.gender == gender)
         count_stmt = count_stmt.where(User.gender == gender)
+
+    if is_active is not None:
+        stmt = stmt.where(User.is_active == is_active)
+        count_stmt = count_stmt.where(User.is_active == is_active)
 
     if fees_paid_min is not None:
         stmt = stmt.where(User.fees_paid >= fees_paid_min)
