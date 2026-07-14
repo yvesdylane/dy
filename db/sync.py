@@ -788,8 +788,10 @@ def sync_user_attendance_data(backup_db_path: str) -> str:
     matched = 0
     tid_updated = 0
     unmatched = 0
+    user_messages: list[str] = []
     for row in old_users:
         inc("user", "read")
+        label = _user_label(row)
         phone = normalize_phone(row["phone"])
         tid = str(row["telegram_id"]) if row["telegram_id"] is not None else ""
         backup_has_valid_tid = bool(tid) and not is_fake_telegram_id(tid)
@@ -814,10 +816,21 @@ def sync_user_attendance_data(backup_db_path: str) -> str:
         else:
             unmatched += 1
             inc("user", "skipped")
+            reason = f"phone '{phone}' not found"
+            if not backup_has_valid_tid:
+                reason += ", no valid telegram_id in backup"
+            elif tid and tid not in existing_by_tid:
+                reason += f", telegram_id '{tid}' also not found"
+            msg = f"  ⚠ {label}: {reason}"
+            user_messages.append(msg)
+            print(msg)
 
     report_lines.append(f"  {len(old_users)} read → {matched} matched, {unmatched} unmatched")
     if tid_updated:
         report_lines.append(f"  ↳ {tid_updated} telegram_id(s) updated from backup")
+    if user_messages:
+        report_lines.append("")
+        report_lines.extend(user_messages)
 
     # ── 2. Attendances + Intern attendances ─────────────────────
     report_lines.append("")
@@ -875,6 +888,14 @@ def sync_user_attendance_data(backup_db_path: str) -> str:
         mapped_user_id = id_map.get("user", {}).get(row["user_id"])
         if not mapped_att_id or not mapped_user_id:
             inc("intern_attendance", "skipped")
+            missing = []
+            if not mapped_att_id:
+                missing.append(f"attendance #{row['attendance_id']}")
+            if not mapped_user_id:
+                missing.append(f"user #{row['user_id']}")
+            msg = f"  ⚠ InternAttendance row #{row['id']}: skipped, missing {' & '.join(missing)}"
+            user_messages.append(msg)
+            print(msg)
             continue
         if (mapped_att_id, mapped_user_id) in existing_pairs:
             inc("intern_attendance", "skipped")
@@ -909,6 +930,9 @@ def sync_user_attendance_data(backup_db_path: str) -> str:
         mapped_user_id = id_map.get("user", {}).get(row["user_id"])
         if not mapped_user_id:
             inc("leave_request", "skipped")
+            msg = f"  ⚠ LeaveRequest #{row['id']}: user #{row['user_id']} not matched in sync"
+            user_messages.append(msg)
+            print(msg)
             continue
         d = parse_date(row["date"])
         if not d:
@@ -994,6 +1018,14 @@ def sync_user_attendance_data(backup_db_path: str) -> str:
         mapped_user_id = id_map.get("user", {}).get(row["user_id"])
         if not mapped_task_id or not mapped_user_id:
             inc("task_submission", "skipped")
+            missing = []
+            if not mapped_task_id:
+                missing.append(f"task #{row['task_id']}")
+            if not mapped_user_id:
+                missing.append(f"user #{row['user_id']}")
+            msg = f"  ⚠ TaskSubmission #{row['id']}: skipped, missing {' & '.join(missing)}"
+            user_messages.append(msg)
+            print(msg)
             continue
         if (mapped_task_id, mapped_user_id) in existing_ts_pairs:
             inc("task_submission", "skipped")
@@ -1034,6 +1066,10 @@ def sync_user_attendance_data(backup_db_path: str) -> str:
             parts.append(f"{e} ❌")
         report_lines.append(f"  {table}: {' · '.join(parts)}")
     report_lines.append(f"\n  Total: {total_imported} records imported")
+    if user_messages:
+        report_lines.append("")
+        report_lines.append("── Warnings ──────────────────────────────────────────")
+        report_lines.extend(user_messages)
 
     old_conn.close()
     engine.dispose()

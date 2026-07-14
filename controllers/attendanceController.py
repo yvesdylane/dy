@@ -145,7 +145,9 @@ def save_attendance(
             )
         ).scalar_one_or_none()
         if not ia:
-            continue
+            ia = InternAttendance(attendance_id=attendance_id, user_id=uid)
+            db.add(ia)
+            db.flush()
         enter_str = entry.get("enter_at")
         left_str = entry.get("left_at")
 
