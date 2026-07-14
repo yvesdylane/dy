@@ -5,6 +5,7 @@ from sqlalchemy import select
 from telegram import Update
 from telegram.ext import MessageHandler, filters
 
+from controllers.passController import use_code
 from db.database import get_sync_db
 from models.attendance import Attendance, InternAttendance
 from models.enums import Group, Role
@@ -60,6 +61,11 @@ async def handle_attendance_code(update: Update, _context):
                     "Please settle your fees."
                 )
 
+        valid, mode = use_code(code_str)
+        if not valid:
+            await update.message.reply_text("Invalid or expired code.")
+            return
+
         att = session.execute(
             select(Attendance).where(
                 Attendance.date == today,
@@ -82,19 +88,15 @@ async def handle_attendance_code(update: Update, _context):
             entry = InternAttendance(
                 attendance_id=att.id,
                 user_id=user.id,
-                enter_at=now,
             )
             session.add(entry)
-            msg = f"✅ Entry marked at {now.strftime('%H:%M')}"
-        elif not entry.enter_at:
+
+        if mode == "entry":
             entry.enter_at = now
             msg = f"✅ Entry marked at {now.strftime('%H:%M')}"
-        elif not entry.left_at:
+        elif mode == "exit":
             entry.left_at = now
             msg = f"✅ Exit marked at {now.strftime('%H:%M')}"
-        else:
-            await update.message.reply_text("Attendance already completed for today.")
-            return
 
         await update.message.reply_text(msg)
 

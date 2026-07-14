@@ -11,7 +11,7 @@ from controllers.attendanceController import (
     get_attendance,
     save_attendance,
 )
-from db.database import get_db
+from db.database import get_db, run_in_session
 from models.user import User
 
 router = APIRouter(prefix="/api/admin")
@@ -55,7 +55,6 @@ async def create_attendance_endpoint(
 @router.post("/attendance/save")
 async def save_attendance_endpoint(
     data: dict,
-    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     att_id = data.get("attendance_id")
@@ -63,8 +62,7 @@ async def save_attendance_endpoint(
     if not att_id:
         raise HTTPException(400, "attendance_id required")
 
-    loop = asyncio.get_running_loop()
-    await loop.run_in_executor(None, save_attendance, db, att_id, entries)
+    await run_in_session(save_attendance, att_id, entries)
     return {"ok": True}
 
 
