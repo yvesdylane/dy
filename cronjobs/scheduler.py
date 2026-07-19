@@ -6,6 +6,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from cronjobs.attendance import auto_create_attendance
 from cronjobs.backup import backup_db
+from cronjobs.evaluations import eval_start_reminder, eval_summary
 from cronjobs.fees import fee_reminder
 
 logger = logging.getLogger(__name__)
@@ -34,11 +35,19 @@ def start_scheduler(bot):
         CronTrigger(hour=9, minute=0, timezone=_tz),    # 09:00 local
     )
     scheduler.add_job(
+        eval_start_reminder,
+        CronTrigger(hour=7, minute=0, timezone=_tz),    # 07:00 local
+    )
+    scheduler.add_job(
         backup_db,
         CronTrigger(hour=23, minute=0, timezone=_tz),   # 23:00 local
     )
+    scheduler.add_job(
+        eval_summary,
+        CronTrigger(hour=22, minute=0, timezone=_tz),   # 22:00 local
+    )
     scheduler.start()
-    logger.info("Scheduler started (attendance, fees, backup)")
+    logger.info("Scheduler started (attendance, fees, eval reminders, backup, eval summary)")
 
 
 def stop_scheduler():

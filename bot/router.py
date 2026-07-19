@@ -61,6 +61,7 @@ async def init_bot(handler_list: list):
                     BotCommand("skip", "Skip current step"),
                     BotCommand("db", "Download database backup (admin)"),
                     BotCommand("sync", "Sync from uploaded database file (admin)"),
+                    BotCommand("eval", "View your daily evaluation"),
                     BotCommand("pics", "Download all profile pictures as archive (staff)"),
                 ],
                 scope=BotCommandScopeAllPrivateChats(),

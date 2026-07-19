@@ -189,7 +189,9 @@
   function getFilterParams() {
     var q = document.getElementById("userSearch").value.trim();
     var role = document.getElementById("filterRole").value;
-    var dept = document.getElementById("filterDept").value;
+    var depts = Array.from(document.querySelectorAll("#filterDeptPills .dept-pill:not([data-dept=''])"))
+      .filter(function (b) { return b.classList.contains("bg-white"); })
+      .map(function (b) { return b.dataset.dept; });
     var group = document.getElementById("filterGroup").value;
     var gender = document.getElementById("filterGender").value;
     var feesMin = document.getElementById("filterFees").value;
@@ -198,7 +200,7 @@
     var params = "?skip=" + (currentPage * pageLimit) + "&limit=" + pageLimit;
     if (q) params += "&q=" + encodeURIComponent(q);
     if (role) params += "&role=" + role;
-    if (dept) params += "&department=" + dept;
+    if (depts.length) params += "&departments=" + depts.join(",");
     if (group) params += "&group=" + group;
     if (gender) params += "&gender=" + gender;
     if (status) params += "&is_active=" + status;
@@ -710,6 +712,38 @@
     })
       .then(function () { loadPeopleCodes(); })
       .catch(function () { btn.disabled = false; btn.textContent = "Delete All"; });
+  });
+
+  // --- Dept pill click delegation ---
+  document.addEventListener("click", function (e) {
+    var pill = e.target.closest(".dept-pill");
+    if (!pill) return;
+    var dept = pill.dataset.dept;
+    var allBtn = document.querySelector('#filterDeptPills .dept-pill[data-dept=""]');
+    if (dept === "") {
+      document.querySelectorAll("#filterDeptPills .dept-pill").forEach(function (b) {
+        b.classList.remove("bg-white", "dark:bg-zinc-900", "shadow-sm", "text-zinc-900", "dark:text-zinc-100");
+        b.classList.add("text-zinc-600", "dark:text-zinc-400", "bg-white", "dark:bg-zinc-900");
+      });
+      allBtn.classList.add("shadow-sm");
+      allBtn.classList.remove("text-zinc-600", "dark:text-zinc-400");
+      allBtn.classList.add("text-zinc-900", "dark:text-zinc-100");
+    } else {
+      allBtn.classList.remove("shadow-sm", "bg-white", "dark:bg-zinc-900", "text-zinc-900", "dark:text-zinc-100");
+      allBtn.classList.add("text-zinc-600", "dark:text-zinc-400");
+      pill.classList.toggle("shadow-sm");
+      pill.classList.toggle("bg-white");
+      pill.classList.toggle("dark:bg-zinc-900");
+      pill.classList.toggle("text-zinc-600");
+      pill.classList.toggle("dark:text-zinc-400");
+      pill.classList.toggle("text-zinc-900");
+      pill.classList.toggle("dark:text-zinc-100");
+      if (!document.querySelectorAll("#filterDeptPills .dept-pill:not([data-dept='']).bg-white").length) {
+        allBtn.classList.add("shadow-sm", "bg-white", "dark:bg-zinc-900", "text-zinc-900", "dark:text-zinc-100");
+        allBtn.classList.remove("text-zinc-600", "dark:text-zinc-400");
+      }
+    }
+    loadUsers();
   });
 
   // --- Pill click delegation ---

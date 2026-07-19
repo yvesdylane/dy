@@ -48,6 +48,7 @@
       dashboard: "Dashboard",
       users: "People",
       codes: "Registration Codes",
+      evaluations: "Evaluation",
       registers: "Attendance",
       leaves: "Leaves",
       pass: "Pass Codes",
@@ -65,9 +66,10 @@
     var tasksPills = document.getElementById("headerTasksPills");
     var bulletinPills = document.getElementById("headerBulletinPills");
     if (pills) {
-      if (name === "users" || name === "codes") {
+      if (name === "users" || name === "codes" || name === "evaluations") {
         pills.classList.remove("hidden");
-        var activePeople = name === "codes" ? 1 : 0;
+        var peopleMap = { users: 0, codes: 1, evaluations: 2 };
+        var activePeople = peopleMap[name] || 0;
         var ps = pills.querySelectorAll(".people-tab");
         if (ps.length) {
           ps.forEach(function (p, i) {

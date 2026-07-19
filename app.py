@@ -30,6 +30,7 @@ from routes.api.notes import router as notes_api_router
 from routes.api.info import router as info_api_router
 from routes.api.face import router as face_api_router
 from routes.api.complaints import router as complaints_api_router
+from routes.api.evaluations import router as evaluations_api_router
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +86,7 @@ app.include_router(notes_api_router)
 app.include_router(info_api_router)
 app.include_router(face_api_router)
 app.include_router(complaints_api_router)
+app.include_router(evaluations_api_router)
 
 
 @app.get("/health")

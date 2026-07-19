@@ -1,6 +1,13 @@
 (function () {
   'use strict';
 
+  var JS_MAP = {
+    registers: "/static/js/admin/registers.js",
+    leaves: "/static/js/admin/registers.js",
+    pass: "/static/js/admin/registers.js",
+    evaluations: "/static/js/admin/evaluations.js",
+  };
+
   function loadPage(name) {
     fetch("/instructor/page/" + name)
       .then(function (r) {
@@ -20,13 +27,15 @@
   }
 
   function updateActiveNav(name) {
+    var navMap = { leaves: "registers", pass: "registers", evaluations: "evaluations" };
+    var navName = navMap[name] || name;
     document.querySelectorAll(".nav-btn").forEach(function (btn) {
       btn.classList.remove(
         "bg-brand-100", "dark:bg-brand-950/50",
         "text-brand-700", "dark:text-brand-300", "font-semibold"
       );
     });
-    document.querySelectorAll('[data-page="' + name + '"]').forEach(function (btn) {
+    document.querySelectorAll('[data-page="' + navName + '"]').forEach(function (btn) {
       btn.classList.add(
         "bg-brand-100", "dark:bg-brand-950/50",
         "text-brand-700", "dark:text-brand-300", "font-semibold"
@@ -38,9 +47,36 @@
     var map = {
       dashboard: "Dashboard",
       tasks: "Tasks",
+      registers: "Attendance",
+      leaves: "Leaves",
+      pass: "Pass Codes",
+      evaluations: "Evaluation",
     };
     var el = document.getElementById("headerTitle");
     if (el) el.textContent = map[name] || "Dashboard";
+
+    var attPills = document.getElementById("headerAttPills");
+    if (attPills) {
+      if (name === "registers" || name === "leaves" || name === "pass") {
+        attPills.classList.remove("hidden");
+        var attMap = { registers: 0, leaves: 1, pass: 2 };
+        var activeAtt = attMap[name] || 0;
+        var at = attPills.querySelectorAll(".att-tab");
+        if (at.length) {
+          at.forEach(function (a, i) {
+            a.classList.toggle("bg-white", i === activeAtt);
+            a.classList.toggle("dark:bg-zinc-700", i === activeAtt);
+            a.classList.toggle("text-zinc-900", i === activeAtt);
+            a.classList.toggle("dark:text-zinc-100", i === activeAtt);
+            a.classList.toggle("shadow-sm", i === activeAtt);
+            a.classList.toggle("text-zinc-600", i !== activeAtt);
+            a.classList.toggle("dark:text-zinc-300", i !== activeAtt);
+          });
+        }
+      } else {
+        attPills.classList.add("hidden");
+      }
+    }
   }
 
   function loadPageScript(name) {
@@ -49,7 +85,8 @@
 
     var script = document.createElement("script");
     script.id = "page-script";
-    script.src = "/static/js/instructor/" + name + ".js?t=" + Date.now();
+    var path = JS_MAP[name] || "/static/js/instructor/" + name + ".js?t=" + Date.now();
+    script.src = path + (path.indexOf("?") !== -1 ? "" : "?t=") + Date.now();
     document.body.appendChild(script);
   }
 
@@ -105,6 +142,12 @@
     if (btn) {
       e.preventDefault();
       loadPage(btn.getAttribute("data-page"));
+      return;
+    }
+    var aTab = e.target.closest("[data-att-tab]");
+    if (aTab) {
+      e.preventDefault();
+      loadPage(aTab.getAttribute("data-att-tab"));
     }
   });
 

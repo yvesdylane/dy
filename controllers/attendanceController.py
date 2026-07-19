@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from models.attendance import Attendance, InternAttendance
-from models.enums import Group, LeaveStatus
+from models.enums import Department, Group, LeaveStatus
 from models.leave import LeaveRequest
 from models.user import User
 
@@ -16,7 +16,11 @@ def get_group_for_date(d: date) -> Group | None:
     return Group.A if wd in (0, 2, 4) else Group.B
 
 
-def get_attendance(db: Session, d: date) -> dict:
+def get_attendance(
+    db: Session, d: date,
+    departments: list[Department] | None = None,
+    include_inactive: bool = False,
+) -> dict:
     group = get_group_for_date(d)
     if group is None:
         return {"exists": False, "group": None, "students": [], "attendance_id": None}
@@ -25,9 +29,15 @@ def get_attendance(db: Session, d: date) -> dict:
         select(Attendance).where(Attendance.date == d)
     ).scalar_one_or_none()
 
+    conditions = [User.group.in_([group, Group.C]), User.role == "intern"]
+    if departments:
+        conditions.append(User.department.in_(departments))
+    if not include_inactive:
+        conditions.append(User.is_active == True)
+
     students = []
     interns = db.execute(
-        select(User).where(User.group.in_([group, Group.C]), User.role == "intern")
+        select(User).where(*conditions)
     ).scalars().all()
 
     # get approved leaves for this date
@@ -86,7 +96,11 @@ def get_attendance(db: Session, d: date) -> dict:
         }
 
 
-def create_attendance(db: Session, d: date) -> Attendance:
+def create_attendance(
+    db: Session, d: date,
+    departments: list[Department] | None = None,
+    include_inactive: bool = False,
+) -> Attendance:
     group = get_group_for_date(d)
     if group is None:
         raise ValueError("Cannot create attendance for Sunday")
@@ -111,8 +125,14 @@ def create_attendance(db: Session, d: date) -> Attendance:
     ).scalars().all()
     exempted = {l.user_id for l in leaves}
 
+    conditions = [User.group.in_([group, Group.C]), User.role == "intern"]
+    if departments:
+        conditions.append(User.department.in_(departments))
+    if not include_inactive:
+        conditions.append(User.is_active == True)
+
     interns = db.execute(
-        select(User).where(User.group.in_([group, Group.C]), User.role == "intern")
+        select(User).where(*conditions)
     ).scalars().all()
 
     for u in interns:

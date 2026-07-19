@@ -68,7 +68,7 @@ class UserOut(BaseModel):
 async def list_users(
     q: Optional[str] = Query(None, alias="q"),
     role: Optional[str] = Query(None),
-    department: Optional[str] = Query(None),
+    departments: Optional[str] = Query(None),
     group: Optional[str] = Query(None),
     gender: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(None),
@@ -80,7 +80,7 @@ async def list_users(
     current_user: User = Depends(get_current_user),
 ):
     role_enum = Role(role) if role else None
-    dept_enum = Department(department) if department else None
+    dept_list = [Department(d.strip()) for d in departments.split(",") if d.strip()] if departments else None
     group_enum = Group(group) if group else None
     gender_enum = Gender(gender) if gender else None
 
@@ -91,7 +91,7 @@ async def list_users(
             db,
             query=q,
             role=role_enum,
-            department=dept_enum,
+            departments=dept_list,
             group=group_enum,
             gender=gender_enum,
             is_active=is_active,

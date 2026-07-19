@@ -23,6 +23,7 @@ PAGES = {
     "notes": "admin/sections/notes.html",
     "info": "admin/sections/info.html",
     "complaints": "admin/sections/complaints.html",
+    "evaluations": "admin/sections/evaluations.html",
 }
 
 

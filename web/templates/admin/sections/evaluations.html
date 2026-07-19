@@ -1,0 +1,62 @@
+<div class="space-y-4">
+  <div class="flex flex-wrap items-center gap-3">
+    <input type="date" id="evalDate" class="px-3 py-1.5 text-sm border rounded-lg dark:bg-zinc-800 dark:border-zinc-700">
+    <div id="evalDeptPills" class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+      <button class="dept-pill px-2.5 py-1 text-[11px] font-medium rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm" data-dept="">All</button>
+      <button class="dept-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300" data-dept="ISM">ISM</button>
+      <button class="dept-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300" data-dept="SWE">SWE</button>
+      <button class="dept-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300" data-dept="CGWD">CGWD</button>
+      <button class="dept-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300" data-dept="EDM">EDM</button>
+      <button class="dept-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300" data-dept="CSN">CSN</button>
+      <button class="dept-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300" data-dept="DBMS">DBMS</button>
+      <button class="dept-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300" data-dept="NWS">NWS</button>
+    </div>
+    <div id="evalGroupPills" class="flex gap-1 p-0.5 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+      <button class="group-pill px-2.5 py-1 text-[11px] font-medium rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm" data-group="">All</button>
+      <button class="group-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300" data-group="A">A</button>
+      <button class="group-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300" data-group="B">B</button>
+      <button class="group-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300" data-group="C">C</button>
+    </div>
+    <label id="evalIncludeInactive" class="hidden flex items-center gap-1.5 text-xs text-zinc-500 cursor-pointer">
+      <input type="checkbox" id="includeInactiveCheck" class="rounded">
+      Include inactive
+    </label>
+  </div>
+
+  <div id="evalMissing" class="hidden">
+    <div class="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm">
+      <span class="font-semibold">Missing evaluations:</span> <span id="missingCount">0</span>
+      <span id="missingList" class="text-zinc-600 dark:text-zinc-400"></span>
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm border-collapse">
+      <thead>
+        <tr class="bg-zinc-100 dark:bg-zinc-800">
+          <th class="text-left p-2 whitespace-nowrap sticky left-0 bg-zinc-100 dark:bg-zinc-800">Intern</th>
+          <th class="text-left p-2 whitespace-nowrap">Dept</th>
+          <th class="text-left p-2 whitespace-nowrap">Grp</th>
+          <th class="text-center p-2 whitespace-nowrap">Punctuality</th>
+          <th class="text-center p-2 whitespace-nowrap">Professionalism</th>
+          <th class="text-center p-2 whitespace-nowrap">Dressing</th>
+          <th class="text-center p-2 whitespace-nowrap">Conduct</th>
+          <th class="text-center p-2 whitespace-nowrap">Teamwork</th>
+          <th class="text-center p-2 whitespace-nowrap">Participation</th>
+          <th class="text-center p-2 whitespace-nowrap">Leadership</th>
+          <th class="text-center p-2 whitespace-nowrap">Presentation</th>
+          <th class="text-center p-2 whitespace-nowrap">Communication</th>
+          <th class="text-center p-2 whitespace-nowrap">Total</th>
+          <th class="text-center p-2 whitespace-nowrap">Notes</th>
+        </tr>
+      </thead>
+      <tbody id="evalTableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="flex justify-end">
+    <button id="saveAllEvals" class="px-4 py-2 bg-brand-500 text-white rounded-lg text-sm font-medium hover:bg-brand-600 disabled:opacity-50">
+      Save All
+    </button>
+  </div>
+</div>

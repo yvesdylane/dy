@@ -74,15 +74,67 @@
     });
   }
 
+  // --- Dept pill handling ---
+  document.addEventListener("click", function (e) {
+    var pill = e.target.closest(".att-dept-pill");
+    if (!pill) return;
+    var dept = pill.dataset.dept;
+    var allBtn = document.querySelector('#attDeptPills .att-dept-pill[data-dept=""]');
+    if (dept === "") {
+      document.querySelectorAll("#attDeptPills .att-dept-pill").forEach(function (b) {
+        b.classList.remove("shadow-sm", "text-zinc-900", "dark:text-zinc-100");
+        b.classList.add("text-zinc-600", "dark:text-zinc-400");
+      });
+      allBtn.classList.add("shadow-sm");
+      allBtn.classList.remove("text-zinc-600", "dark:text-zinc-400");
+      allBtn.classList.add("text-zinc-900", "dark:text-zinc-100");
+    } else {
+      allBtn.classList.remove("shadow-sm", "text-zinc-900", "dark:text-zinc-100");
+      allBtn.classList.add("text-zinc-600", "dark:text-zinc-400");
+      pill.classList.toggle("shadow-sm");
+      pill.classList.toggle("text-zinc-600");
+      pill.classList.toggle("dark:text-zinc-400");
+      pill.classList.toggle("text-zinc-900");
+      pill.classList.toggle("dark:text-zinc-100");
+      if (!document.querySelectorAll("#attDeptPills .att-dept-pill:not([data-dept='']).shadow-sm").length) {
+        allBtn.classList.add("shadow-sm");
+        allBtn.classList.remove("text-zinc-600", "dark:text-zinc-400");
+        allBtn.classList.add("text-zinc-900", "dark:text-zinc-100");
+      }
+    }
+    loadAttendance();
+  });
+
+  // --- Show include_inactive only for super_admin ---
+  (function () {
+    var role = document.getElementById("appView").dataset.currentUserRole;
+    if (role === "super_admin") {
+      document.getElementById("attIncludeInactiveLabel").classList.remove("hidden");
+    }
+  })();
+
   loadAttendance();
 
-  function loadAttendance() {
+  function getAttParams() {
     var ds = document.getElementById("attDate").value;
-    if (!ds) return;
+    if (!ds) return null;
+    var depts = Array.from(document.querySelectorAll("#attDeptPills .att-dept-pill:not([data-dept=''])"))
+      .filter(function (b) { return b.classList.contains("shadow-sm"); })
+      .map(function (b) { return b.dataset.dept; });
+    var includeInactive = document.getElementById("attIncludeInactive").checked;
+    var params = "date=" + ds;
+    if (depts.length) params += "&departments=" + depts.join(",");
+    if (includeInactive) params += "&include_inactive=true";
+    return params;
+  }
+
+  function loadAttendance() {
+    var params = getAttParams();
+    if (!params) return;
     var list = document.getElementById("attStudents");
     list.innerHTML = '<div class="flex justify-center py-8"><div class="animate-spin h-5 w-5 border-2 border-teal-500 border-t-transparent rounded-full"></div></div>';
 
-    fetch("/api/admin/attendance?date=" + ds)
+    fetch("/api/admin/attendance?" + params)
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) throw new Error("Failed");
@@ -137,12 +189,18 @@
   function createAttendance() {
     var ds = document.getElementById("attDate").value;
     if (!ds) return;
+    var depts = Array.from(document.querySelectorAll("#attDeptPills .att-dept-pill:not([data-dept=''])"))
+      .filter(function (b) { return b.classList.contains("shadow-sm"); })
+      .map(function (b) { return b.dataset.dept; });
+    var body = { date: ds };
+    if (depts.length) body.departments = depts.join(",");
+    body.include_inactive = document.getElementById("attIncludeInactive").checked;
     var btn = document.getElementById("attCreateBtn");
     btn.disabled = true; btn.textContent = "Creating...";
     fetch("/api/admin/attendance/create", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ date: ds }),
+      body: JSON.stringify(body),
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {

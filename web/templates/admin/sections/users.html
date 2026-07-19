@@ -28,16 +28,16 @@
           <option value="admin">Admin</option>
           <option value="super_admin">Super Admin</option>
         </select>
-        <select id="filterDept" onchange="loadUsers()" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 shrink-0">
-          <option value="">All Depts</option>
-          <option value="ISM">ISM</option>
-          <option value="SWE">SWE</option>
-          <option value="CGWD">CGWD</option>
-          <option value="EDM">EDM</option>
-          <option value="CSN">CSN</option>
-          <option value="DBMS">DBMS</option>
-          <option value="NWS">NWS</option>
-        </select>
+        <div id="filterDeptPills" class="flex gap-1 overflow-x-auto shrink-0">
+          <button class="dept-pill px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs font-medium shadow-sm" data-dept="">All</button>
+          <button class="dept-pill px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-dept="ISM">ISM</button>
+          <button class="dept-pill px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-dept="SWE">SWE</button>
+          <button class="dept-pill px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-dept="CGWD">CGWD</button>
+          <button class="dept-pill px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-dept="EDM">EDM</button>
+          <button class="dept-pill px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-dept="CSN">CSN</button>
+          <button class="dept-pill px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-dept="DBMS">DBMS</button>
+          <button class="dept-pill px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800" data-dept="NWS">NWS</button>
+        </div>
         <select id="filterGroup" onchange="loadUsers()" class="px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500/50 shrink-0">
           <option value="">All Groups</option>
           <option value="A">A</option>

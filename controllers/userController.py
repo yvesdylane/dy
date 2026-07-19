@@ -97,7 +97,7 @@ def search_users(
     *,
     query: Optional[str] = None,
     role: Optional[Role] = None,
-    department: Optional[Department] = None,
+    departments: Optional[list[Department]] = None,
     group: Optional[Group] = None,
     gender: Optional[Gender] = None,
     is_active: Optional[bool] = None,
@@ -122,9 +122,9 @@ def search_users(
     if role is not None:
         stmt = stmt.where(User.role == role)
         count_stmt = count_stmt.where(User.role == role)
-    if department is not None:
-        stmt = stmt.where(User.department == department)
-        count_stmt = count_stmt.where(User.department == department)
+    if departments is not None:
+        stmt = stmt.where(User.department.in_(departments))
+        count_stmt = count_stmt.where(User.department.in_(departments))
     if group is not None:
         stmt = stmt.where(User.group == group)
         count_stmt = count_stmt.where(User.group == group)
@@ -153,7 +153,7 @@ def get_users(
     db: Session,
     *,
     role: Optional[Role] = None,
-    department: Optional[Department] = None,
+    departments: Optional[list[Department]] = None,
     group: Optional[Group] = None,
     skip: int = 0,
     limit: int = 100,
@@ -161,8 +161,8 @@ def get_users(
     stmt = select(User)
     if role is not None:
         stmt = stmt.where(User.role == role)
-    if department is not None:
-        stmt = stmt.where(User.department == department)
+    if departments is not None:
+        stmt = stmt.where(User.department.in_(departments))
     if group is not None:
         stmt = stmt.where(User.group == group)
     stmt = stmt.offset(skip).limit(limit)

@@ -1,5 +1,6 @@
 import asyncio
 from datetime import date, datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -12,6 +13,7 @@ from controllers.attendanceController import (
     save_attendance,
 )
 from db.database import get_db, run_in_session
+from models.enums import Department, Role
 from models.user import User
 
 router = APIRouter(prefix="/api/admin")
@@ -20,6 +22,8 @@ router = APIRouter(prefix="/api/admin")
 @router.get("/attendance")
 async def get_attendance_endpoint(
     date_str: str = Query(alias="date"),
+    departments: Optional[str] = Query(None),
+    include_inactive: Optional[bool] = Query(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -28,8 +32,15 @@ async def get_attendance_endpoint(
     except ValueError:
         raise HTTPException(400, "Invalid date format")
 
+    if include_inactive and current_user.role != Role.super_admin:
+        raise HTTPException(403, "Only super admins can include inactive users")
+
+    dept_list = [Department(d.strip()) for d in departments.split(",") if d.strip()] if departments else None
+
     loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(None, get_attendance, db, d)
+    result = await loop.run_in_executor(
+        None, get_attendance, db, d, dept_list, include_inactive
+    )
     return {"ok": True, **result}
 
 
@@ -44,9 +55,18 @@ async def create_attendance_endpoint(
     except (ValueError, KeyError):
         raise HTTPException(400, "Invalid date")
 
+    departments = data.get("departments")
+    dept_list = [Department(d.strip()) for d in departments.split(",") if d.strip()] if departments else None
+    include_inactive = data.get("include_inactive", False)
+
+    if include_inactive and current_user.role != Role.super_admin:
+        raise HTTPException(403, "Only super admins can include inactive users")
+
     loop = asyncio.get_running_loop()
     try:
-        att = await loop.run_in_executor(None, create_attendance, db, d)
+        att = await loop.run_in_executor(
+            None, create_attendance, db, d, dept_list, include_inactive
+        )
         return {"ok": True, "attendance_id": att.id}
     except ValueError as e:
         raise HTTPException(400, str(e))

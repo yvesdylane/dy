@@ -10,6 +10,10 @@ router = APIRouter()
 INSTRUCTOR_PAGES = {
     "dashboard": "instructor/sections/dashboard.html",
     "tasks": "instructor/sections/tasks.html",
+    "registers": "admin/sections/registers.html",
+    "leaves": "admin/sections/registers.html",
+    "pass": "admin/sections/registers.html",
+    "evaluations": "admin/sections/evaluations.html",
 }
 
 ROLE_PATHS = {

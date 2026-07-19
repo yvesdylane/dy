@@ -6,6 +6,7 @@ from bot.commands.tasks import tasks_handlers
 from bot.commands.leave import leave_handlers
 from bot.commands.link import link_handlers
 from bot.commands.attendance import attendance_handlers
+from bot.commands.eval import eval_handlers
 
 handlers = (
     admin_handlers
@@ -16,4 +17,5 @@ handlers = (
     + leave_handlers
     + link_handlers
     + attendance_handlers
+    + eval_handlers
 )
