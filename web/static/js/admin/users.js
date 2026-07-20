@@ -722,9 +722,26 @@
     var label = container.querySelector(".dept-dropdown-label");
     if (!toggle || !menu || !label) return;
 
+    function closeDeptMenu() {
+      menu.classList.add("hidden");
+    }
+
+    function openDeptMenu() {
+      var rect = toggle.getBoundingClientRect();
+      menu.style.position = "fixed";
+      menu.style.top = (rect.bottom + 4) + "px";
+      menu.style.left = rect.left + "px";
+      menu.style.minWidth = Math.max(rect.width, 160) + "px";
+      menu.classList.remove("hidden");
+    }
+
     toggle.addEventListener("click", function (e) {
       e.stopPropagation();
-      menu.classList.toggle("hidden");
+      if (menu.classList.contains("hidden")) {
+        openDeptMenu();
+      } else {
+        closeDeptMenu();
+      }
     });
 
     container.querySelectorAll(".dept-checkbox").forEach(function (cb) {
@@ -737,8 +754,11 @@
     });
 
     document.addEventListener("click", function (e) {
-      if (!container.contains(e.target)) menu.classList.add("hidden");
+      if (!container.contains(e.target)) closeDeptMenu();
     });
+
+    window.addEventListener("scroll", closeDeptMenu, true);
+    window.addEventListener("resize", closeDeptMenu);
   }
 
   initDeptDropdown("filterDeptDropdown");
