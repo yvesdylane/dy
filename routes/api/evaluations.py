@@ -8,6 +8,7 @@ from auth.dependencies import get_current_user
 from controllers.evaluationController import (
     CRITERIA,
     EvaluationSave,
+    create_evaluations,
     get_evaluations,
     get_missing_evaluations,
     save_evaluation,
@@ -72,6 +73,32 @@ async def missing_evaluations(
         None, get_missing_evaluations, db, eval_date, dept_list
     )
     return {"ok": True, "missing": missing}
+
+
+@router.post("/evaluations/create")
+async def create_evaluations_endpoint(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    from datetime import date as d_date
+
+    try:
+        eval_date = d_date.fromisoformat(data["date"])
+    except (ValueError, KeyError):
+        raise HTTPException(400, "Invalid date")
+
+    departments = data.get("departments")
+    dept_list = [Department(d.strip()) for d in departments.split(",") if d.strip()] if departments else None
+
+    loop = asyncio.get_running_loop()
+    try:
+        count = await loop.run_in_executor(
+            None, create_evaluations, db, eval_date, dept_list
+        )
+        return {"ok": True, "created": count}
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 @router.post("/evaluations/save")

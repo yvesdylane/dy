@@ -5,6 +5,7 @@
   var evalDate = document.getElementById("evalDate");
   var listView = document.getElementById("evalListView");
   var saveBtn = document.getElementById("saveAllEvals");
+  var createBtn = document.getElementById("createEvalsBtn");
   var missingDiv = document.getElementById("evalMissing");
   var missingCount = document.getElementById("missingCount");
   var missingList = document.getElementById("missingList");
@@ -102,8 +103,10 @@
   function renderEvals(evals) {
     if (!evals || evals.length === 0) {
       listView.innerHTML = '<p class="text-center py-8 text-zinc-400 text-sm">No evaluations for this date</p>';
+      createBtn.classList.remove("hidden");
       return;
     }
+    createBtn.classList.add("hidden");
 
     if (window.innerWidth < 768) {
       renderMobileCards(evals);
@@ -233,6 +236,30 @@
     if (e.target === includeInactiveCheck) {
       loadEvaluations();
     }
+  });
+
+  createBtn.addEventListener("click", function () {
+    var ds = evalDate.value;
+    if (!ds) return;
+    var depts = getDepts();
+    var body = { date: ds };
+    if (depts.length) body.departments = depts.join(",");
+    createBtn.disabled = true; createBtn.textContent = "Creating...";
+    fetch("/api/admin/evaluations/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        createBtn.disabled = false; createBtn.textContent = "Create";
+        if (data.ok) loadEvaluations();
+        else alert(data.detail || "Failed");
+      })
+      .catch(function () {
+        createBtn.disabled = false; createBtn.textContent = "Create";
+        alert("Network error");
+      });
   });
 
   saveBtn.addEventListener("click", function () {

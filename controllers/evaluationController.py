@@ -162,6 +162,41 @@ def save_evaluation(db: Session, data: EvaluationSave, scorer_id: int) -> dict:
     return _eval_to_dict(ev)
 
 
+def create_evaluations(
+    db: Session,
+    eval_date: date,
+    departments: Optional[list[Department]] = None,
+) -> int:
+    today_group = Group.A if eval_date.weekday() in (0, 2, 4) else Group.B
+
+    conditions = [
+        User.role == Role.intern,
+        User.is_active == True,
+        User.group.in_([today_group, Group.C]),
+    ]
+    if departments:
+        conditions.append(User.department.in_(departments))
+
+    interns = db.execute(
+        select(User.id).where(*conditions)
+    ).scalars().all()
+
+    created = 0
+    for uid in interns:
+        existing = db.execute(
+            select(DailyEvaluation).where(
+                DailyEvaluation.user_id == uid,
+                DailyEvaluation.date == eval_date,
+            )
+        ).scalar_one_or_none()
+        if existing:
+            continue
+        db.add(DailyEvaluation(user_id=uid, date=eval_date))
+        created += 1
+    db.commit()
+    return created
+
+
 def get_user_evaluation(db: Session, user_id: int, eval_date: date) -> dict | None:
     ev = db.execute(
         select(DailyEvaluation).where(
