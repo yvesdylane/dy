@@ -2,7 +2,7 @@ import asyncio
 import re
 from urllib.parse import quote
 
-from fastapi import APIRouter, Body, Depends, Form, Request
+from fastapi import APIRouter, Body, Depends, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -21,13 +21,29 @@ router = APIRouter()
 @limiter.limit("10/minute")
 async def telegram_auth(
     request: Request,
-    initData: str = Form(...),
     db: Session = Depends(get_db),
 ):
     loop = asyncio.get_running_loop()
+
+    # Accept initData from JSON body (cached app.js) or form-encoded (new app.js)
+    init_data = ""
+    ct = request.headers.get("content-type", "")
+    if ct.startswith("application/json"):
+        body = await request.json()
+        init_data = body.get("initData", "")
+    else:
+        form = await request.form()
+        init_data = form.get("initData", "")
+
+    if not init_data:
+        return RedirectResponse(
+            url="/?error=Missing+init+data",
+            status_code=302,
+        )
+
     try:
         user, tg_user = await loop.run_in_executor(
-            None, authenticate_telegram, db, initData
+            None, authenticate_telegram, db, init_data
         )
     except ValueError as e:
         return RedirectResponse(
