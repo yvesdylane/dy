@@ -68,4 +68,4 @@ def verify_init_data(init_data: str) -> TelegramUser:
         logger.warning("Auth expired for tg_user %s (age=%.0fs)", tg_id, time.time() - auth_date)
         raise ValueError("Telegram login expired")
 
-    return TelegramUser.model_validate(tg_user_raw)
+    return TelegramUser.model_validate(json.loads(tg_user_raw))
