@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import re
 from urllib.parse import quote
 
@@ -14,6 +15,8 @@ from db.database import get_db
 from helpers.phone import normalize_phone
 from middleware.rate_limit import limiter
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 
@@ -28,6 +31,7 @@ async def telegram_auth(
     # Accept initData from JSON body (cached app.js) or form-encoded (new app.js)
     init_data = ""
     ct = request.headers.get("content-type", "")
+    logger.info("Auth request | content-type=%s", ct)
     if ct.startswith("application/json"):
         body = await request.json()
         init_data = body.get("initData", "")
@@ -36,22 +40,33 @@ async def telegram_auth(
         init_data = form.get("initData", "")
 
     if not init_data:
+        logger.warning("init_data is empty (!)  content-type=%s", ct)
         return RedirectResponse(
             url="/?error=Missing+init+data",
             status_code=302,
         )
 
+    logger.info(
+        "init_data received | content-type=%s | length=%d | preview=%s",
+        ct, len(init_data), init_data[:80],
+    )
+
     try:
         user, tg_user = await loop.run_in_executor(
             None, authenticate_telegram, db, init_data
         )
+        logger.info("Auth OK | tg_id=%s user_id=%s role=%s",
+                      tg_user.id, user.id if user else "None", user.role.value if user else "N/A")
     except ValueError as e:
+        logger.warning("Auth failed | error=%s | init_data_preview=%s", e, init_data[:80])
         return RedirectResponse(
             url=f"/?error={quote(str(e))}",
             status_code=302,
         )
 
     if user is None:
+        logger.info("User not registered | tg_id=%s name=%s → redirecting to /register",
+                      tg_user.id, tg_user.first_name)
         return RedirectResponse(
             url=f"/register?telegram_id={tg_user.id}&first_name={quote(tg_user.first_name)}",
             status_code=302,
@@ -59,6 +74,7 @@ async def telegram_auth(
 
     role = user.role.value
     create_session(request, user.id, str(tg_user.id), role)
+    logger.info("Session created | user_id=%s tg_id=%s role=%s", user.id, tg_user.id, role)
 
     role_path = {
         "admin": "/admin",
@@ -67,6 +83,7 @@ async def telegram_auth(
         "intern": "/",
     }.get(role, "/")
 
+    logger.info("Redirecting to %s | user_id=%s", role_path, user.id)
     return RedirectResponse(url=role_path, status_code=302)
 
 

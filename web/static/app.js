@@ -18,11 +18,20 @@
       el.textContent = "Not running in Telegram";
       el.classList.remove("hidden");
     }
+    console.log("[auth] Telegram.WebApp not available");
     return;
   }
 
+  console.log("[auth] Telegram.WebApp available, version=" + (tg.version || "?"));
+
   tg.ready();
   tg.expand();
+
+  var initData = tg.initData || "";
+  console.log("[auth] initData present=" + !!initData + " length=" + initData.length + " preview=" + initData.substring(0, 80));
+  if (!initData) {
+    console.warn("[auth] initData is empty — Mini App not launched from Telegram or no session");
+  }
 
   // Use a form POST (real navigation) so the session cookie
   // set by the server is properly persisted across redirects.
@@ -35,9 +44,10 @@
   var input = document.createElement("input");
   input.type = "hidden";
   input.name = "initData";
-  input.value = tg.initData;
+  input.value = initData;
   form.appendChild(input);
 
   document.body.appendChild(form);
+  console.log("[auth] submitting form to /auth/telegram");
   form.submit();
 })();
