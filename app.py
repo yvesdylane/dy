@@ -57,8 +57,8 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=settings.session_secret,
     max_age=1800,
-    same_site="lax",
-    https_only=False,
+    same_site="none",
+    https_only=True,
 )
 
 app.state.limiter = limiter
