@@ -11,6 +11,13 @@
   var missingList = document.getElementById("missingList");
   var includeInactiveCheck = document.getElementById("includeInactiveCheck");
   var includeInactiveLabel = document.getElementById("evalIncludeInactive");
+  var evalInfo = document.getElementById("evalInfo");
+  var prevPageBtn = document.getElementById("evalPrevPage");
+  var nextPageBtn = document.getElementById("evalNextPage");
+
+  var currentPage = 0;
+  var pageLimit = 20;
+  var searchTimer = null;
 
   var FIELDS = ["punctuality","professionalism","dressing","conduct","teamwork","participation","leadership","presentation","communication"];
   var FIELD_LABELS = {punctuality:"Punct",professionalism:"Prof",dressing:"Dress",conduct:"Cond",teamwork:"Team",participation:"Part",leadership:"Lead",presentation:"Pres",communication:"Comm"};
@@ -38,6 +45,7 @@
         var checked = container.querySelectorAll(".dept-checkbox:checked");
         var names = Array.from(checked).map(function (c) { return c.value; });
         label.textContent = names.length ? names.join(", ") : "All Departments";
+        currentPage = 0;
         loadEvaluations();
       });
     });
@@ -65,6 +73,9 @@
     var depts = getDepts();
     if (depts.length > 0) params += "&departments=" + depts.join(",");
     if (includeInactiveCheck && includeInactiveCheck.checked) params += "&include_inactive=true";
+    var q = document.getElementById("evalSearchInput");
+    if (q && q.value.trim()) params += "&q=" + encodeURIComponent(q.value.trim());
+    params += "&skip=" + (currentPage * pageLimit) + "&limit=" + pageLimit;
     return params;
   }
 
@@ -77,6 +88,7 @@
       .then(function (data) {
         if (!data.ok) throw new Error("Failed");
         renderEvals(data.evaluations);
+        updatePagination(data.total || 0);
         loadMissing();
         saveBtn.disabled = false;
       })
@@ -226,14 +238,54 @@
     });
   }
 
+  function updatePagination(total) {
+    if (evalInfo) evalInfo.textContent = total + " evaluation" + (total !== 1 ? "s" : "");
+    if (prevPageBtn) prevPageBtn.disabled = currentPage <= 0;
+    if (nextPageBtn) nextPageBtn.disabled = (currentPage + 1) * pageLimit >= total;
+  }
+
+  function changeEvalPage(delta) {
+    currentPage += delta;
+    if (currentPage < 0) currentPage = 0;
+    loadEvaluations();
+  }
+
+  function debounceSearchEvals() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () {
+      currentPage = 0;
+      loadEvaluations();
+    }, 300);
+  }
+
+  function toggleEvalSearch() {
+    var bar = document.getElementById("evalSearchBar");
+    var input = document.getElementById("evalSearchInput");
+    if (bar.classList.contains("hidden")) {
+      bar.classList.remove("hidden");
+      setTimeout(function () { input.focus(); }, 100);
+    } else {
+      bar.classList.add("hidden");
+      if (input.value.trim()) {
+        input.value = "";
+        currentPage = 0;
+        loadEvaluations();
+      }
+    }
+  }
+
   // ── Event wiring ──
-  evalDate.addEventListener("change", loadEvaluations);
+  evalDate.addEventListener("change", function () {
+    currentPage = 0;
+    loadEvaluations();
+  });
 
   document.addEventListener("change", function (e) {
     if (e.target.closest(".eval-score")) {
       updateTotals();
     }
     if (e.target === includeInactiveCheck) {
+      currentPage = 0;
       loadEvaluations();
     }
   });
@@ -309,6 +361,10 @@
     div.appendChild(document.createTextNode(str));
     return div.innerHTML;
   }
+
+  window.toggleEvalSearch = toggleEvalSearch;
+  window.changeEvalPage = changeEvalPage;
+  window.debounceSearchEvals = debounceSearchEvals;
 
   loadEvaluations();
 })();

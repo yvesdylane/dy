@@ -26,6 +26,9 @@ async def list_evaluations(
     date: str = Query(...),
     departments: str | None = Query(None),
     include_inactive: bool = Query(False),
+    q: str | None = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=200),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -44,10 +47,10 @@ async def list_evaluations(
         raise HTTPException(status_code=403, detail="Only admins can include inactive users")
 
     loop = asyncio.get_running_loop()
-    evals = await loop.run_in_executor(
-        None, get_evaluations, db, eval_date, dept_list, include_inactive
+    evals, total = await loop.run_in_executor(
+        None, get_evaluations, db, eval_date, dept_list, include_inactive, q, skip, limit
     )
-    return {"ok": True, "evaluations": evals}
+    return {"ok": True, "evaluations": evals, "total": total, "skip": skip, "limit": limit}
 
 
 @router.get("/evaluations/missing")

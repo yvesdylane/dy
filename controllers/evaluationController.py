@@ -2,7 +2,7 @@ from datetime import date
 from typing import Optional
 
 from pydantic import BaseModel
-from sqlalchemy import select, and_
+from sqlalchemy import func, or_, select, and_
 from sqlalchemy.orm import Session, joinedload
 
 from models.enums import Department, Group, Role
@@ -67,20 +67,40 @@ def get_evaluations(
     eval_date: date,
     departments: Optional[list[Department]] = None,
     include_inactive: bool = False,
-) -> list[dict]:
+    query: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20,
+) -> tuple[list[dict], int]:
     today_group = Group.A if eval_date.weekday() in (0, 2, 4) else Group.B
+
+    base_where = [
+        DailyEvaluation.date == eval_date,
+        User.group.in_([today_group, Group.C]),
+    ]
+    if not include_inactive:
+        base_where.append(User.is_active == True)
+    if departments:
+        base_where.append(User.department.in_(departments))
+    if query:
+        pattern = f"%{query}%"
+        base_where.append(
+            or_(User.name.ilike(pattern), User.surname.ilike(pattern))
+        )
+
+    count_stmt = select(func.count(DailyEvaluation.id)).join(
+        User, DailyEvaluation.user_id == User.id
+    ).where(*base_where)
+    total = db.scalar(count_stmt) or 0
+
     stmt = (
         select(DailyEvaluation, User.name, User.surname, User.department, User.group, User.is_active)
         .join(User, DailyEvaluation.user_id == User.id)
-        .where(DailyEvaluation.date == eval_date)
-        .where(User.group.in_([today_group, Group.C]))
+        .where(*base_where)
+        .order_by(User.name)
+        .offset(skip)
+        .limit(limit)
     )
-    if not include_inactive:
-        stmt = stmt.where(User.is_active == True)
-    if departments:
-        stmt = stmt.where(User.department.in_(departments))
-
-    rows = db.execute(stmt.order_by(User.name)).all()
+    rows = db.execute(stmt).all()
     result = []
     for ev, un, us, dept, grp, active in rows:
         d = _eval_to_dict(ev)
@@ -90,7 +110,7 @@ def get_evaluations(
         d["group"] = grp.value if grp else None
         d["is_active"] = active
         result.append(d)
-    return result
+    return result, total
 
 
 def get_missing_evaluations(

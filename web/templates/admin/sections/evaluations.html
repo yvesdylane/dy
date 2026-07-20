@@ -1,5 +1,22 @@
 <div class="space-y-4">
+  <!-- Floating search bar overlay -->
+  <div id="evalSearchBar" class="hidden fixed inset-x-0 top-0 z-50 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 p-3 shadow-lg safe-area-top">
+    <div class="flex items-center gap-2 max-w-3xl mx-auto">
+      <div class="relative flex-1">
+        <input id="evalSearchInput" type="text" placeholder="Search name, surname…" oninput="debounceSearchEvals()"
+          class="w-full pl-9 pr-3 py-2.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500/50" />
+        <svg class="absolute left-2.5 top-3 w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+      <button onclick="toggleEvalSearch()" class="p-2.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+        <svg class="w-5 h-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+
   <div class="flex flex-wrap items-center gap-2">
+    <button onclick="toggleEvalSearch()" class="p-2 rounded-lg border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shrink-0">
+      <svg class="w-5 h-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </button>
     <input type="date" id="evalDate" class="px-3 py-1.5 text-sm border rounded-lg dark:bg-zinc-800 dark:border-zinc-700">
     <div id="evalDeptDropdown" class="dept-dropdown relative">
       <button type="button" class="dept-dropdown-toggle px-2 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs flex items-center gap-1 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-teal-500/50">
@@ -20,6 +37,14 @@
       <input type="checkbox" id="includeInactiveCheck" class="rounded">
       Include inactive
     </label>
+  </div>
+
+  <div id="evalPagination" class="flex items-center justify-between text-sm text-zinc-500">
+    <span id="evalInfo">0 evaluations</span>
+    <div class="flex gap-1">
+      <button id="evalPrevPage" onclick="changeEvalPage(-1)" class="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors" disabled>Prev</button>
+      <button id="evalNextPage" onclick="changeEvalPage(1)" class="px-3 py-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-40 transition-colors" disabled>Next</button>
+    </div>
   </div>
 
   <div id="evalMissing" class="hidden">
