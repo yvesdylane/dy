@@ -1,7 +1,9 @@
 import asyncio
 import re
+from urllib.parse import quote
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from auth.session import create_session
@@ -19,23 +21,25 @@ router = APIRouter()
 @limiter.limit("10/minute")
 async def telegram_auth(
     request: Request,
-    data: dict = Body(...),
+    initData: str = Form(...),
     db: Session = Depends(get_db),
 ):
     loop = asyncio.get_running_loop()
     try:
         user, tg_user = await loop.run_in_executor(
-            None, authenticate_telegram, db, data["initData"]
+            None, authenticate_telegram, db, initData
         )
     except ValueError as e:
-        return {"ok": False, "detail": str(e)}
+        return RedirectResponse(
+            url=f"/?error={quote(str(e))}",
+            status_code=302,
+        )
 
     if user is None:
-        return {
-            "needs_registration": True,
-            "telegram_id": tg_user.id,
-            "first_name": tg_user.first_name,
-        }
+        return RedirectResponse(
+            url=f"/register?telegram_id={tg_user.id}&first_name={quote(tg_user.first_name)}",
+            status_code=302,
+        )
 
     role = user.role.value
     create_session(request, user.id, str(tg_user.id), role)
@@ -47,7 +51,7 @@ async def telegram_auth(
         "intern": "/",
     }.get(role, "/")
 
-    return {"ok": True, "role": role, "redirect": role_path}
+    return RedirectResponse(url=role_path, status_code=302)
 
 
 @router.post("/api/register")
