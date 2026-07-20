@@ -3,7 +3,6 @@ import logging
 
 from sqlalchemy import select
 
-from db.database import SyncSession
 from models.enums import Group, Role
 from models.user import User
 
@@ -44,6 +43,7 @@ async def fee_reminder():
 
 def _sync_get_interns():
     from datetime import date
+    from db.database import SyncSession
 
     today = date.today()
     if today.weekday() == 6:

@@ -3,7 +3,6 @@ import logging
 
 from sqlalchemy import select
 
-from db.database import SyncSession
 from models.attendance import Attendance
 from models.enums import Group
 
@@ -17,6 +16,7 @@ async def auto_create_attendance():
 
 def _sync_create_attendance():
     from datetime import date
+    from db.database import SyncSession
 
     today = date.today()
     if today.weekday() == 6:

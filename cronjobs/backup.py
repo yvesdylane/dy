@@ -8,7 +8,7 @@ from sqlalchemy import create_engine
 from telegram import InputFile
 
 from config import settings
-from db.database import Base, sync_engine
+from db.database import Base
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +18,7 @@ def _dump_database(dest_path: str) -> None:
 
     Works for both local SQLite and remote Turso/libsql databases.
     """
+    from db.database import sync_engine
     backup_engine = create_engine(f"sqlite:///{dest_path}")
     Base.metadata.create_all(backup_engine)
 
@@ -32,6 +33,7 @@ def _dump_database(dest_path: str) -> None:
 
 
 async def backup_db():
+    from db.database import sync_engine
     from cronjobs.scheduler import get_bot
 
     bot = get_bot()

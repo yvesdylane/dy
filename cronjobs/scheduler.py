@@ -28,7 +28,7 @@ def start_scheduler(bot):
 
     scheduler.add_job(
         auto_create_attendance,
-        CronTrigger(hour=8, minute=0, timezone=_tz),   # 08:00 local
+        CronTrigger(hour=7, minute=0, timezone=_tz),   # 07:00 local
     )
     scheduler.add_job(
         fee_reminder,

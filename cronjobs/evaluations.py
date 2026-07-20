@@ -5,7 +5,6 @@ from datetime import date
 from sqlalchemy import select
 
 from controllers.evaluationController import get_evaluations, get_missing_evaluations
-from db.database import SyncSession
 from models.enums import Group, Role
 from models.evaluation import DailyEvaluation
 from models.user import User
@@ -14,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 async def eval_summary():
+    from db.database import SyncSession
     from cronjobs.scheduler import get_bot
 
     today = date.today()
@@ -89,6 +89,7 @@ async def pre_create_evaluations():
     loop = asyncio.get_running_loop()
 
     def _create():
+        from db.database import SyncSession
         session = SyncSession()
         try:
             today_group = Group.A if today.weekday() in (0, 2, 4) else Group.B
@@ -136,6 +137,7 @@ async def eval_start_reminder():
     loop = asyncio.get_running_loop()
 
     def _get_interns():
+        from db.database import SyncSession
         session = SyncSession()
         try:
             rows = session.execute(

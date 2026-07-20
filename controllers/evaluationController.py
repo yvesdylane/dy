@@ -66,20 +66,19 @@ def get_evaluations(
     db: Session,
     eval_date: date,
     departments: Optional[list[Department]] = None,
-    group: Optional[Group] = None,
     include_inactive: bool = False,
 ) -> list[dict]:
+    today_group = Group.A if eval_date.weekday() in (0, 2, 4) else Group.B
     stmt = (
         select(DailyEvaluation, User.name, User.surname, User.department, User.group, User.is_active)
         .join(User, DailyEvaluation.user_id == User.id)
         .where(DailyEvaluation.date == eval_date)
+        .where(User.group.in_([today_group, Group.C]))
     )
     if not include_inactive:
         stmt = stmt.where(User.is_active == True)
     if departments:
         stmt = stmt.where(User.department.in_(departments))
-    if group:
-        stmt = stmt.where(User.group == group)
 
     rows = db.execute(stmt.order_by(User.name)).all()
     result = []
@@ -98,7 +97,6 @@ def get_missing_evaluations(
     db: Session,
     eval_date: date,
     departments: Optional[list[Department]] = None,
-    group: Optional[Group] = None,
 ) -> list[dict]:
     from models.attendance import Attendance, InternAttendance
 
@@ -119,8 +117,6 @@ def get_missing_evaluations(
     )
     if departments:
         stmt = stmt.where(User.department.in_(departments))
-    if group:
-        stmt = stmt.where(User.group == group)
 
     rows = db.execute(stmt.order_by(User.name)).all()
     return [

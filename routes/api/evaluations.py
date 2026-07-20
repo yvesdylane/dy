@@ -13,7 +13,7 @@ from controllers.evaluationController import (
     save_evaluation,
 )
 from db.database import get_db
-from models.enums import Department, Group
+from models.enums import Department
 from models.user import User
 
 logger = logging.getLogger(__name__)
@@ -24,7 +24,6 @@ router = APIRouter(prefix="/api/admin")
 async def list_evaluations(
     date: str = Query(...),
     departments: str | None = Query(None),
-    group: str | None = Query(None),
     include_inactive: bool = Query(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -40,16 +39,12 @@ async def list_evaluations(
     if departments:
         dept_list = [Department(d.strip()) for d in departments.split(",") if d.strip()]
 
-    grp = None
-    if group:
-        grp = Group(group)
-
     if include_inactive and current_user.role.value not in ("super_admin", "admin"):
         raise HTTPException(status_code=403, detail="Only admins can include inactive users")
 
     loop = asyncio.get_running_loop()
     evals = await loop.run_in_executor(
-        None, get_evaluations, db, eval_date, dept_list, grp, include_inactive
+        None, get_evaluations, db, eval_date, dept_list, include_inactive
     )
     return {"ok": True, "evaluations": evals}
 
@@ -58,7 +53,6 @@ async def list_evaluations(
 async def missing_evaluations(
     date: str = Query(...),
     departments: str | None = Query(None),
-    group: str | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -73,13 +67,9 @@ async def missing_evaluations(
     if departments:
         dept_list = [Department(d.strip()) for d in departments.split(",") if d.strip()]
 
-    grp = None
-    if group:
-        grp = Group(group)
-
     loop = asyncio.get_running_loop()
     missing = await loop.run_in_executor(
-        None, get_missing_evaluations, db, eval_date, dept_list, grp
+        None, get_missing_evaluations, db, eval_date, dept_list
     )
     return {"ok": True, "missing": missing}
 

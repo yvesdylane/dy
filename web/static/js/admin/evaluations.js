@@ -11,7 +11,6 @@
   var includeInactiveCheck = document.getElementById("includeInactiveCheck");
   var includeInactiveLabel = document.getElementById("evalIncludeInactive");
 
-  var selectedGroup = "";
   var FIELDS = ["punctuality","professionalism","dressing","conduct","teamwork","participation","leadership","presentation","communication"];
   var FIELD_LABELS = {punctuality:"Punct",professionalism:"Prof",dressing:"Dress",conduct:"Cond",teamwork:"Team",participation:"Part",leadership:"Lead",presentation:"Pres",communication:"Comm"};
 
@@ -64,7 +63,6 @@
     var params = "date=" + encodeURIComponent(evalDate.value);
     var depts = getDepts();
     if (depts.length > 0) params += "&departments=" + depts.join(",");
-    if (selectedGroup) params += "&group=" + selectedGroup;
     if (includeInactiveCheck && includeInactiveCheck.checked) params += "&include_inactive=true";
     return params;
   }
@@ -227,20 +225,6 @@
 
   // ── Event wiring ──
   evalDate.addEventListener("change", loadEvaluations);
-
-  document.addEventListener("click", function (e) {
-    var groupPill = e.target.closest("#evalGroupPills .group-pill");
-    if (groupPill) {
-      selectedGroup = groupPill.getAttribute("data-group");
-      document.querySelectorAll("#evalGroupPills .group-pill").forEach(function (p) {
-        p.classList.remove("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
-        p.classList.add("text-zinc-600", "dark:text-zinc-300");
-      });
-      groupPill.classList.add("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
-      groupPill.classList.remove("text-zinc-600", "dark:text-zinc-300");
-      loadEvaluations();
-    }
-  });
 
   document.addEventListener("change", function (e) {
     if (e.target.closest(".eval-score")) {
