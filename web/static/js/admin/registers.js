@@ -74,36 +74,35 @@
     });
   }
 
-  // --- Dept pill handling ---
-  document.addEventListener("click", function (e) {
-    var pill = e.target.closest(".att-dept-pill");
-    if (!pill) return;
-    var dept = pill.dataset.dept;
-    var allBtn = document.querySelector('#attDeptPills .att-dept-pill[data-dept=""]');
-    if (dept === "") {
-      document.querySelectorAll("#attDeptPills .att-dept-pill").forEach(function (b) {
-        b.classList.remove("shadow-sm", "text-zinc-900", "dark:text-zinc-100");
-        b.classList.add("text-zinc-600", "dark:text-zinc-400");
+  // --- Dept dropdown ---
+  function initDeptDropdown(containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    var toggle = container.querySelector(".dept-dropdown-toggle");
+    var menu = container.querySelector(".dept-dropdown-menu");
+    var label = container.querySelector(".dept-dropdown-label");
+    if (!toggle || !menu || !label) return;
+
+    toggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      menu.classList.toggle("hidden");
+    });
+
+    container.querySelectorAll(".dept-checkbox").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        var checked = container.querySelectorAll(".dept-checkbox:checked");
+        var names = Array.from(checked).map(function (c) { return c.value; });
+        label.textContent = names.length ? names.join(", ") : "All Departments";
+        loadAttendance();
       });
-      allBtn.classList.add("shadow-sm");
-      allBtn.classList.remove("text-zinc-600", "dark:text-zinc-400");
-      allBtn.classList.add("text-zinc-900", "dark:text-zinc-100");
-    } else {
-      allBtn.classList.remove("shadow-sm", "text-zinc-900", "dark:text-zinc-100");
-      allBtn.classList.add("text-zinc-600", "dark:text-zinc-400");
-      pill.classList.toggle("shadow-sm");
-      pill.classList.toggle("text-zinc-600");
-      pill.classList.toggle("dark:text-zinc-400");
-      pill.classList.toggle("text-zinc-900");
-      pill.classList.toggle("dark:text-zinc-100");
-      if (!document.querySelectorAll("#attDeptPills .att-dept-pill:not([data-dept='']).shadow-sm").length) {
-        allBtn.classList.add("shadow-sm");
-        allBtn.classList.remove("text-zinc-600", "dark:text-zinc-400");
-        allBtn.classList.add("text-zinc-900", "dark:text-zinc-100");
-      }
-    }
-    loadAttendance();
-  });
+    });
+
+    document.addEventListener("click", function (e) {
+      if (!container.contains(e.target)) menu.classList.add("hidden");
+    });
+  }
+
+  initDeptDropdown("attDeptDropdown");
 
   // --- Show include_inactive only for super_admin ---
   (function () {
@@ -118,9 +117,8 @@
   function getAttParams() {
     var ds = document.getElementById("attDate").value;
     if (!ds) return null;
-    var depts = Array.from(document.querySelectorAll("#attDeptPills .att-dept-pill:not([data-dept=''])"))
-      .filter(function (b) { return b.classList.contains("shadow-sm"); })
-      .map(function (b) { return b.dataset.dept; });
+    var depts = Array.from(document.querySelectorAll("#attDeptDropdown .dept-checkbox:checked"))
+      .map(function (b) { return b.value; });
     var includeInactive = document.getElementById("attIncludeInactive").checked;
     var params = "date=" + ds;
     if (depts.length) params += "&departments=" + depts.join(",");
@@ -189,9 +187,8 @@
   function createAttendance() {
     var ds = document.getElementById("attDate").value;
     if (!ds) return;
-    var depts = Array.from(document.querySelectorAll("#attDeptPills .att-dept-pill:not([data-dept=''])"))
-      .filter(function (b) { return b.classList.contains("shadow-sm"); })
-      .map(function (b) { return b.dataset.dept; });
+    var depts = Array.from(document.querySelectorAll("#attDeptDropdown .dept-checkbox:checked"))
+      .map(function (b) { return b.value; });
     var body = { date: ds };
     if (depts.length) body.departments = depts.join(",");
     body.include_inactive = document.getElementById("attIncludeInactive").checked;

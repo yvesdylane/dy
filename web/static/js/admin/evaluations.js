@@ -3,7 +3,7 @@
 
   var currentUserRole = document.getElementById("appView").getAttribute("data-current-user-role");
   var evalDate = document.getElementById("evalDate");
-  var tbody = document.getElementById("evalTableBody");
+  var listView = document.getElementById("evalListView");
   var saveBtn = document.getElementById("saveAllEvals");
   var missingDiv = document.getElementById("evalMissing");
   var missingCount = document.getElementById("missingCount");
@@ -11,12 +11,43 @@
   var includeInactiveCheck = document.getElementById("includeInactiveCheck");
   var includeInactiveLabel = document.getElementById("evalIncludeInactive");
 
-  var selectedDepts = [];
   var selectedGroup = "";
+  var FIELDS = ["punctuality","professionalism","dressing","conduct","teamwork","participation","leadership","presentation","communication"];
+  var FIELD_LABELS = {punctuality:"Punct",professionalism:"Prof",dressing:"Dress",conduct:"Cond",teamwork:"Team",participation:"Part",leadership:"Lead",presentation:"Pres",communication:"Comm"};
 
   if (currentUserRole === "super_admin") {
     includeInactiveLabel.classList.remove("hidden");
   }
+
+  // --- Dept dropdown init ---
+  function initDeptDropdown(containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    var toggle = container.querySelector(".dept-dropdown-toggle");
+    var menu = container.querySelector(".dept-dropdown-menu");
+    var label = container.querySelector(".dept-dropdown-label");
+    if (!toggle || !menu || !label) return;
+
+    toggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      menu.classList.toggle("hidden");
+    });
+
+    container.querySelectorAll(".dept-checkbox").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        var checked = container.querySelectorAll(".dept-checkbox:checked");
+        var names = Array.from(checked).map(function (c) { return c.value; });
+        label.textContent = names.length ? names.join(", ") : "All Departments";
+        loadEvaluations();
+      });
+    });
+
+    document.addEventListener("click", function (e) {
+      if (!container.contains(e.target)) menu.classList.add("hidden");
+    });
+  }
+
+  initDeptDropdown("evalDeptDropdown");
 
   function todayStr() {
     var d = new Date();
@@ -25,9 +56,14 @@
 
   if (!evalDate.value) evalDate.value = todayStr();
 
+  function getDepts() {
+    return Array.from(document.querySelectorAll("#evalDeptDropdown .dept-checkbox:checked")).map(function (b) { return b.value; });
+  }
+
   function getParams() {
     var params = "date=" + encodeURIComponent(evalDate.value);
-    if (selectedDepts.length > 0) params += "&departments=" + selectedDepts.join(",");
+    var depts = getDepts();
+    if (depts.length > 0) params += "&departments=" + depts.join(",");
     if (selectedGroup) params += "&group=" + selectedGroup;
     if (includeInactiveCheck && includeInactiveCheck.checked) params += "&include_inactive=true";
     return params;
@@ -35,18 +71,18 @@
 
   function loadEvaluations() {
     saveBtn.disabled = true;
-    tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-zinc-400">Loading...</td></tr>';
+    listView.innerHTML = '<div class="flex justify-center py-8"><div class="animate-spin h-5 w-5 border-2 border-brand-500 border-t-transparent rounded-full"></div></div>';
 
     fetch("/api/admin/evaluations?" + getParams())
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) throw new Error("Failed");
-        renderTable(data.evaluations);
+        renderEvals(data.evaluations);
         loadMissing();
         saveBtn.disabled = false;
       })
       .catch(function () {
-        tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-red-400">Failed to load</td></tr>';
+        listView.innerHTML = '<p class="text-center py-8 text-red-400 text-sm">Failed to load</p>';
       });
   }
 
@@ -65,28 +101,43 @@
       .catch(function () {});
   }
 
-  function renderTable(evals) {
+  function renderEvals(evals) {
     if (!evals || evals.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="14" class="text-center py-8 text-zinc-400">No evaluations for this date</td></tr>';
+      listView.innerHTML = '<p class="text-center py-8 text-zinc-400 text-sm">No evaluations for this date</p>';
       return;
     }
 
-    var html = "";
-    var fields = ["punctuality", "professionalism", "dressing", "conduct", "teamwork", "participation", "leadership", "presentation", "communication"];
+    if (window.innerWidth < 768) {
+      renderMobileCards(evals);
+    } else {
+      renderDesktopTable(evals);
+    }
+  }
+
+  // ── Desktop: table ──
+  function renderDesktopTable(evals) {
+    var html = '<div class="overflow-x-auto"><table class="w-full text-sm border-collapse"><thead><tr class="bg-zinc-100 dark:bg-zinc-800">'
+      + '<th class="text-left p-2 whitespace-nowrap sticky left-0 bg-zinc-100 dark:bg-zinc-800">Intern</th>'
+      + '<th class="text-left p-2 whitespace-nowrap">Dept</th>'
+      + '<th class="text-left p-2 whitespace-nowrap">Grp</th>';
+    FIELDS.forEach(function (f) {
+      html += '<th class="text-center p-2 whitespace-nowrap text-[11px]">' + f.charAt(0).toUpperCase() + f.slice(1) + '</th>';
+    });
+    html += '<th class="text-center p-2 whitespace-nowrap">Total</th><th class="text-center p-2 whitespace-nowrap">Notes</th></tr></thead><tbody>';
 
     evals.forEach(function (e) {
-      var name = e.user_name + " " + e.user_surname;
+      var name = esc(e.user_name) + " " + esc(e.user_surname);
       var total = e.total || 0;
       var color = total >= 40 ? "text-green-600 dark:text-green-400" : total >= 30 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400";
 
-      html += '<tr class="border-b border-zinc-200 dark:border-zinc-800 eval-row" data-user-id="' + e.user_id + '">';
-      html += '<td class="p-2 sticky left-0 bg-white dark:bg-zinc-950 whitespace-nowrap font-medium">' + name + '</td>';
-      html += '<td class="p-2 text-zinc-500">' + (e.department || "-") + '</td>';
-      html += '<td class="p-2 text-zinc-500">' + (e.group || "-") + '</td>';
+      html += '<tr class="eval-row border-b border-zinc-200 dark:border-zinc-800" data-user-id="' + e.user_id + '">'
+        + '<td class="p-2 sticky left-0 bg-white dark:bg-zinc-950 whitespace-nowrap font-medium text-xs">' + name + '</td>'
+        + '<td class="p-2 text-zinc-500 text-xs">' + (e.department || "-") + '</td>'
+        + '<td class="p-2 text-zinc-500 text-xs">' + (e.group || "-") + '</td>';
 
-      fields.forEach(function (f) {
+      FIELDS.forEach(function (f) {
         var val = e[f];
-        html += '<td class="text-center p-2"><select class="eval-score w-14 px-1 py-1 text-xs border rounded dark:bg-zinc-800 dark:border-zinc-700" data-field="' + f + '">';
+        html += '<td class="text-center p-1"><select class="eval-score w-12 px-1 py-1 text-xs border rounded dark:bg-zinc-800 dark:border-zinc-700" data-field="' + f + '">';
         html += '<option value="">-</option>';
         for (var i = 1; i <= 5; i++) {
           html += '<option value="' + i + '"' + (val === i ? " selected" : "") + ">" + i + "</option>";
@@ -94,12 +145,50 @@
         html += "</select></td>";
       });
 
-      html += '<td class="text-center p-2 font-bold ' + color + ' eval-total">' + total + '</td>';
-      html += '<td class="text-center p-2"><input type="text" class="eval-notes w-20 px-1 py-1 text-xs border rounded dark:bg-zinc-800 dark:border-zinc-700" value="' + (e.notes || "") + '" maxlength="200"></td>';
-      html += "</tr>";
+      html += '<td class="text-center p-2 font-bold text-xs ' + color + ' eval-total">' + total + '</td>'
+        + '<td class="text-center p-1"><input type="text" class="eval-notes w-16 px-1 py-1 text-xs border rounded dark:bg-zinc-800 dark:border-zinc-700" value="' + esc(e.notes || "") + '" maxlength="200"></td>'
+        + "</tr>";
     });
 
-    tbody.innerHTML = html;
+    html += "</tbody></table></div>";
+    listView.innerHTML = html;
+  }
+
+  // ── Mobile: cards ──
+  function renderMobileCards(evals) {
+    var html = '<div class="space-y-3">';
+
+    evals.forEach(function (e) {
+      var name = esc(e.user_name) + " " + esc(e.user_surname);
+      var total = e.total || 0;
+      var dot = total >= 40 ? "bg-green-500" : total >= 30 ? "bg-yellow-500" : "bg-red-500";
+
+      html += '<div class="eval-row rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3" data-user-id="' + e.user_id + '">'
+        + '<div class="flex items-center justify-between mb-2">'
+        + '<div class="min-w-0 flex-1"><p class="font-medium text-sm truncate">' + name + '</p>'
+        + '<p class="text-xs text-zinc-500">' + (e.department || "-") + ' · ' + (e.group || "-") + '</p></div>'
+        + '<div class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full ' + dot + '"></span><span class="eval-total font-bold text-sm">' + total + '</span></div>'
+        + '</div>'
+        + '<div class="grid grid-cols-3 gap-1.5">';
+
+      FIELDS.forEach(function (f) {
+        var val = e[f];
+        html += '<div><label class="block text-[10px] text-zinc-400 mb-0.5">' + (FIELD_LABELS[f] || f) + '</label>'
+          + '<select class="eval-score w-full px-1 py-1 text-xs border rounded dark:bg-zinc-800 dark:border-zinc-700" data-field="' + f + '">'
+          + '<option value="">-</option>';
+        for (var i = 1; i <= 5; i++) {
+          html += '<option value="' + i + '"' + (val === i ? " selected" : "") + ">" + i + "</option>";
+        }
+        html += '</select></div>';
+      });
+
+      html += '</div>'
+        + '<div class="mt-1.5"><input type="text" class="eval-notes w-full px-2 py-1 text-xs border rounded dark:bg-zinc-800 dark:border-zinc-700" value="' + esc(e.notes || "") + '" maxlength="200" placeholder="Notes..."></div>'
+        + '</div>';
+    });
+
+    html += "</div>";
+    listView.innerHTML = html;
   }
 
   function collectData() {
@@ -119,7 +208,6 @@
   }
 
   function updateTotals() {
-    var fields = ["punctuality", "professionalism", "dressing", "conduct", "teamwork", "participation", "leadership", "presentation", "communication"];
     document.querySelectorAll(".eval-row").forEach(function (row) {
       var total = 0;
       row.querySelectorAll(".eval-score").forEach(function (sel) {
@@ -128,45 +216,19 @@
       var el = row.querySelector(".eval-total");
       if (el) {
         el.textContent = total;
-        el.className = "text-center p-2 font-bold eval-total " + (total >= 40 ? "text-green-600 dark:text-green-400" : total >= 30 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400");
+        var dot = row.querySelector(".w-2\\.5");
+        if (dot) {
+          dot.className = "w-2.5 h-2.5 rounded-full " + (total >= 40 ? "bg-green-500" : total >= 30 ? "bg-yellow-500" : "bg-red-500");
+        }
+        el.className = "eval-total font-bold text-sm " + (total >= 40 ? "text-green-600 dark:text-green-400" : total >= 30 ? "text-yellow-600 dark:text-yellow-400" : "text-red-600 dark:text-red-400");
       }
     });
   }
 
+  // ── Event wiring ──
   evalDate.addEventListener("change", loadEvaluations);
 
   document.addEventListener("click", function (e) {
-    var deptPill = e.target.closest("#evalDeptPills .dept-pill");
-    if (deptPill) {
-      var dept = deptPill.getAttribute("data-dept");
-      if (dept === "") {
-        selectedDepts = [];
-        document.querySelectorAll("#evalDeptPills .dept-pill").forEach(function (p) {
-          p.classList.remove("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
-          p.classList.add("text-zinc-600", "dark:text-zinc-300");
-        });
-        deptPill.classList.add("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
-        deptPill.classList.remove("text-zinc-600", "dark:text-zinc-300");
-      } else {
-        document.querySelector("#evalDeptPills .dept-pill[data-dept='']").className = "dept-pill px-2.5 py-1 text-[11px] font-medium rounded-md text-zinc-600 dark:text-zinc-300";
-        var idx = selectedDepts.indexOf(dept);
-        if (idx > -1) {
-          selectedDepts.splice(idx, 1);
-          deptPill.classList.remove("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
-          deptPill.classList.add("text-zinc-600", "dark:text-zinc-300");
-        } else {
-          selectedDepts.push(dept);
-          deptPill.classList.add("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
-          deptPill.classList.remove("text-zinc-600", "dark:text-zinc-300");
-        }
-        if (selectedDepts.length === 0) {
-          document.querySelector("#evalDeptPills .dept-pill[data-dept='']").className = "dept-pill px-2.5 py-1 text-[11px] font-medium rounded-md bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm";
-        }
-      }
-      loadEvaluations();
-      return;
-    }
-
     var groupPill = e.target.closest("#evalGroupPills .group-pill");
     if (groupPill) {
       selectedGroup = groupPill.getAttribute("data-group");
@@ -177,7 +239,6 @@
       groupPill.classList.add("bg-white", "dark:bg-zinc-700", "text-zinc-900", "dark:text-zinc-100", "shadow-sm");
       groupPill.classList.remove("text-zinc-600", "dark:text-zinc-300");
       loadEvaluations();
-      return;
     }
   });
 
@@ -207,20 +268,36 @@
     Promise.all(promises)
       .then(function (results) {
         var allOk = results.every(function (r) { return r.ok; });
-        if (allOk) {
-          saveBtn.textContent = "Saved!";
-          setTimeout(function () { saveBtn.textContent = "Save All"; saveBtn.disabled = false; }, 2000);
-          loadEvaluations();
-        } else {
-          saveBtn.textContent = "Error";
-          setTimeout(function () { saveBtn.textContent = "Save All"; saveBtn.disabled = false; }, 2000);
-        }
+        saveBtn.textContent = allOk ? "Saved!" : "Error";
+        setTimeout(function () { saveBtn.textContent = "Save All"; saveBtn.disabled = false; }, 2000);
+        if (allOk) loadEvaluations();
       })
       .catch(function () {
         saveBtn.textContent = "Error";
         setTimeout(function () { saveBtn.textContent = "Save All"; saveBtn.disabled = false; }, 2000);
       });
   });
+
+  // ── Resize listener for responsive layout ──
+  var resizeTimer;
+  window.addEventListener("resize", function () {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      var evals = listView.querySelectorAll(".eval-row");
+      if (evals.length > 0) {
+        fetch("/api/admin/evaluations?" + getParams())
+          .then(function (r) { return r.json(); })
+          .then(function (data) { if (data.ok) renderEvals(data.evaluations); })
+          .catch(function () {});
+      }
+    }, 300);
+  });
+
+  function esc(str) {
+    var div = document.createElement("div");
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
 
   loadEvaluations();
 })();

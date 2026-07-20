@@ -189,9 +189,8 @@
   function getFilterParams() {
     var q = document.getElementById("userSearch").value.trim();
     var role = document.getElementById("filterRole").value;
-    var depts = Array.from(document.querySelectorAll("#filterDeptPills .dept-pill:not([data-dept=''])"))
-      .filter(function (b) { return b.classList.contains("bg-white"); })
-      .map(function (b) { return b.dataset.dept; });
+    var depts = Array.from(document.querySelectorAll("#filterDeptDropdown .dept-checkbox:checked"))
+      .map(function (b) { return b.value; });
     var group = document.getElementById("filterGroup").value;
     var gender = document.getElementById("filterGender").value;
     var feesMin = document.getElementById("filterFees").value;
@@ -714,37 +713,35 @@
       .catch(function () { btn.disabled = false; btn.textContent = "Delete All"; });
   });
 
-  // --- Dept pill click delegation ---
-  document.addEventListener("click", function (e) {
-    var pill = e.target.closest(".dept-pill");
-    if (!pill) return;
-    var dept = pill.dataset.dept;
-    var allBtn = document.querySelector('#filterDeptPills .dept-pill[data-dept=""]');
-    if (dept === "") {
-      document.querySelectorAll("#filterDeptPills .dept-pill").forEach(function (b) {
-        b.classList.remove("bg-white", "dark:bg-zinc-900", "shadow-sm", "text-zinc-900", "dark:text-zinc-100");
-        b.classList.add("text-zinc-600", "dark:text-zinc-400", "bg-white", "dark:bg-zinc-900");
+  // --- Dept dropdown ---
+  function initDeptDropdown(containerId) {
+    var container = document.getElementById(containerId);
+    if (!container) return;
+    var toggle = container.querySelector(".dept-dropdown-toggle");
+    var menu = container.querySelector(".dept-dropdown-menu");
+    var label = container.querySelector(".dept-dropdown-label");
+    if (!toggle || !menu || !label) return;
+
+    toggle.addEventListener("click", function (e) {
+      e.stopPropagation();
+      menu.classList.toggle("hidden");
+    });
+
+    container.querySelectorAll(".dept-checkbox").forEach(function (cb) {
+      cb.addEventListener("change", function () {
+        var checked = container.querySelectorAll(".dept-checkbox:checked");
+        var names = Array.from(checked).map(function (c) { return c.value; });
+        label.textContent = names.length ? names.join(", ") : "All Departments";
+        loadUsers();
       });
-      allBtn.classList.add("shadow-sm");
-      allBtn.classList.remove("text-zinc-600", "dark:text-zinc-400");
-      allBtn.classList.add("text-zinc-900", "dark:text-zinc-100");
-    } else {
-      allBtn.classList.remove("shadow-sm", "bg-white", "dark:bg-zinc-900", "text-zinc-900", "dark:text-zinc-100");
-      allBtn.classList.add("text-zinc-600", "dark:text-zinc-400");
-      pill.classList.toggle("shadow-sm");
-      pill.classList.toggle("bg-white");
-      pill.classList.toggle("dark:bg-zinc-900");
-      pill.classList.toggle("text-zinc-600");
-      pill.classList.toggle("dark:text-zinc-400");
-      pill.classList.toggle("text-zinc-900");
-      pill.classList.toggle("dark:text-zinc-100");
-      if (!document.querySelectorAll("#filterDeptPills .dept-pill:not([data-dept='']).bg-white").length) {
-        allBtn.classList.add("shadow-sm", "bg-white", "dark:bg-zinc-900", "text-zinc-900", "dark:text-zinc-100");
-        allBtn.classList.remove("text-zinc-600", "dark:text-zinc-400");
-      }
-    }
-    loadUsers();
-  });
+    });
+
+    document.addEventListener("click", function (e) {
+      if (!container.contains(e.target)) menu.classList.add("hidden");
+    });
+  }
+
+  initDeptDropdown("filterDeptDropdown");
 
   // --- Pill click delegation ---
   document.addEventListener("click", function (e) {

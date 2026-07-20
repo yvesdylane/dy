@@ -6,7 +6,8 @@ from sqlalchemy import select
 
 from controllers.evaluationController import get_evaluations, get_missing_evaluations
 from db.database import SyncSession
-from models.enums import Role
+from models.enums import Group, Role
+from models.evaluation import DailyEvaluation
 from models.user import User
 
 logger = logging.getLogger(__name__)
@@ -80,7 +81,52 @@ async def eval_summary():
     logger.info("Eval summary sent to %d staff members", len(staff))
 
 
+async def pre_create_evaluations():
+    today = date.today()
+    if today.weekday() == 6:
+        return
+
+    loop = asyncio.get_running_loop()
+
+    def _create():
+        session = SyncSession()
+        try:
+            today_group = Group.A if today.weekday() in (0, 2, 4) else Group.B
+            interns = session.execute(
+                select(User.id).where(
+                    User.role == Role.intern,
+                    User.is_active == True,
+                    User.group.in_([today_group, Group.C]),
+                )
+            ).scalars().all()
+
+            created = 0
+            for uid in interns:
+                existing = session.execute(
+                    select(DailyEvaluation).where(
+                        DailyEvaluation.user_id == uid,
+                        DailyEvaluation.date == today,
+                    )
+                ).scalar_one_or_none()
+                if existing:
+                    continue
+                session.add(DailyEvaluation(user_id=uid, date=today))
+                created += 1
+            session.commit()
+            return created
+        finally:
+            session.close()
+
+    created = await loop.run_in_executor(None, _create)
+    if created:
+        logger.info("Pre-created %d evaluation records for %s", created, today)
+    else:
+        logger.info("No new evaluation records needed for %s", today)
+
+
 async def eval_start_reminder():
+    await pre_create_evaluations()
+
     from cronjobs.scheduler import get_bot
 
     today = date.today()
