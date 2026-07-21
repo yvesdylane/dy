@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime
 
 from sqlalchemy import select
@@ -7,6 +8,8 @@ from models.attendance import Attendance, InternAttendance
 from models.enums import Department, Group, LeaveStatus
 from models.leave import LeaveRequest
 from models.user import User
+
+logger = logging.getLogger(__name__)
 
 
 def get_group_for_date(d: date) -> Group | None:
@@ -39,6 +42,12 @@ def get_attendance(
     interns = db.execute(
         select(User).where(*conditions)
     ).scalars().all()
+
+    logger.info(
+        "Attendance query | date=%s day_group=%s | found %d interns: %s",
+        d, group.value if group else None, len(interns),
+        [(u.id, u.name, u.surname, u.group.value if u.group else None) for u in interns],
+    )
 
     # get approved leaves for this date
     exempted_user_ids = set()

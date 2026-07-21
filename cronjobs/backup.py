@@ -1,3 +1,4 @@
+import asyncio
 import io
 import logging
 from datetime import date
@@ -45,19 +46,22 @@ async def backup_db():
         logger.warning("Database not initialized, skipping backup")
         return
 
+    logger.info("Starting DB backup...")
     backup_path = Path(f"/tmp/dy_backup_{uuid4().hex[:8]}.db")
     try:
-        _dump_database(str(backup_path))
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, _dump_database, str(backup_path))
+        logger.info("DB dump complete (%d bytes)", backup_path.stat().st_size)
         with open(backup_path, "rb") as f:
             buf = io.BytesIO(f.read())
         await bot.send_document(
             chat_id=settings.telegram_group_id,
             document=InputFile(buf, filename=f"dy_backup_{date.today().isoformat()}.db"),
-            caption=f"📦 DB Backup — {date.today().isoformat()}",
+            caption=f"DB Backup - {date.today().isoformat()}",
         )
         logger.info("DB backup sent to group (%d bytes)", buf.tell())
     except Exception as e:
-        logger.error("DB backup failed: %s", e)
+        logger.error("DB backup failed: %s", e, exc_info=True)
     finally:
         if backup_path.exists():
             backup_path.unlink()
