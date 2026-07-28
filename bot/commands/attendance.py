@@ -49,7 +49,7 @@ async def handle_attendance_code(update: Update, _context):
             return
 
         fees_paid = float(user.fees_paid or 0)
-        if user.role == Role.intern and fees_paid < 20000:
+        if user.role == Role.intern and fees_paid < 35000:
             from config import settings
 
             if date.today() >= settings.fee_block_start_date:
