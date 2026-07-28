@@ -32,10 +32,9 @@ async def handle_contact(update: Update, _context):
     contact = update.message.contact
     if not contact:
         return
+
     phone = normalize_phone(contact.phone_number)
     caller_id = str(update.effective_user.id)
-    contact_user_id = str(contact.user_id)
-    is_own = caller_id == contact_user_id
 
     with get_sync_db() as session:
         user = session.execute(
@@ -49,49 +48,38 @@ async def handle_contact(update: Update, _context):
             )
             return
 
-        if is_own:
-            if not _is_fake(user.telegram_id) and user.telegram_id == caller_id:
-                await update.message.reply_text("Already linked!", reply_markup=ReplyKeyboardRemove())
-                return
-            if not _is_fake(user.telegram_id) and user.telegram_id != caller_id:
-                await update.message.reply_text(
-                    "This account is already linked to a different Telegram account.",
-                    reply_markup=ReplyKeyboardRemove(),
-                )
-                return
-            user.telegram_id = caller_id
+        old_tid = user.telegram_id
+
+        # Already linked to this Telegram account
+        if old_tid == caller_id:
             await update.message.reply_text(
-                f"Linked! Welcome back {user.name} {user.surname}.",
+                f"Already linked! Welcome back {user.name} {user.surname}.",
                 reply_markup=ReplyKeyboardRemove(),
             )
             return
 
-        if not _is_fake(user.telegram_id):
-            old_tid = user.telegram_id
-            if old_tid == caller_id:
-                await update.message.reply_text("Already linked!", reply_markup=ReplyKeyboardRemove())
-                return
-            user.telegram_id = caller_id
+        # Replace any existing Telegram link
+        user.telegram_id = caller_id
+
+        # Notify previous Telegram account if there was one
+        if not _is_fake(old_tid) and old_tid != caller_id:
             try:
                 await update.get_bot().send_message(
                     chat_id=int(old_tid),
-                    text="⚠️ Your phone number has been linked to a new account. If this wasn't you, please contact support.",
+                    text=(
+                        "⚠️ Your phone number has been linked to a "
+                        "different Telegram account. "
+                        "If this wasn't you, please contact support."
+                    ),
                 )
             except Exception:
+                # Old account may have blocked the bot or be unavailable.
                 pass
-            await update.message.reply_text(
-                f"Linked! Welcome {user.name} {user.surname}.",
-                reply_markup=ReplyKeyboardRemove(),
-            )
-            return
 
-        user.telegram_id = caller_id
-
-    await update.message.reply_text(
-        f"Linked! Welcome {user.name} {user.surname}.",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-
+        await update.message.reply_text(
+            f"Linked! Welcome {user.name} {user.surname}.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
 
 link_handlers = [
     CommandHandler("link", link_cmd),
