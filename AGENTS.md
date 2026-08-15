@@ -145,12 +145,18 @@ migrations/           # Alembic (sync for Turso, async for local), two migration
 - `POST /api/register` creates user with `telegram_id`, role=`intern`, and sets `fees_paid`.
 - Quarter field is `type="text"` (not number) to avoid browser number-stepper issues.
 
+## Intern Excel export (`bot/commands/export.py`)
+
+- `/export_interns` command — staff only (admin, super_admin, instructor via `_is_staff()` from `bot/commands/admin.py`).
+- Flow: `fetch_interns(session)` in `controllers/exportController.py` queries all interns (active + inactive) ordered by department/group/surname → `build_excel(rows)` in `utils/excel_export.py` (pure, DB-free, unit-tested) produces an `.xlsx` in memory → replies with `interns_YYYY-MM-DD.xlsx`.
+- Excludes `telegram_id`; includes an `Active` column reflecting `is_active`.
+
 ## Operational notes
 
 - DB schema: Alembic migrations (run on startup via `init_db()` + manual `alembic upgrade head`)
 - `enter_at` column on `intern_attendances` was originally `NOT NULL`; made nullable via migration `781d654a6975` since not all interns are exempted from entry time.
 - No CI, no pre-commit, no linter/formatter config yet
-- Tests: pytest + httpx available in dev deps, no test suite written yet
+- Tests: pytest + httpx available in dev deps; `tests/test_excel_export.py` covers `utils/excel_export.build_excel` (pure, DB-free). Run with `uv run pytest`.
 - Deploy: Render — build `uv sync --frozen && uv cache prune --ci`, start `uv run python main.py`
 - `.env` is gitignored; see `.env.example` for required vars
 - `previouse/` folder is the old v1 monolith — preserved for reference, do NOT import from it in new code

@@ -7,6 +7,7 @@ from bot.commands.leave import leave_handlers
 from bot.commands.link import link_handlers
 from bot.commands.attendance import attendance_handlers
 from bot.commands.eval import eval_handlers
+from bot.commands.export import export_handlers
 
 handlers = (
     admin_handlers
@@ -18,4 +19,5 @@ handlers = (
     + link_handlers
     + attendance_handlers
     + eval_handlers
+    + export_handlers
 )

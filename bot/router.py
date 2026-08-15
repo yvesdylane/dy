@@ -63,6 +63,7 @@ async def init_bot(handler_list: list):
                     BotCommand("sync", "Sync from uploaded database file (admin)"),
                     BotCommand("eval", "View your daily evaluation"),
                     BotCommand("pics", "Download all profile pictures as archive (staff)"),
+                    BotCommand("export_interns", "Export intern list as Excel (staff)"),
                 ],
                 scope=BotCommandScopeAllPrivateChats(),
             )
